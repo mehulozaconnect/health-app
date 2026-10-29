@@ -3,7 +3,7 @@
 var F = window.FOODS || [];
 var FX = {}; F.forEach(function (r, i) { FX[r[0]] = i; });
 /* row: [name,kcal,p,c,f,fi,veg,units,sugar,na,fe,ca,src] per 100 g */
-function food(name) { var i = FX[name]; if (i != null) return F[i]; for (var j = 0; j < DB.custom.length; j++) if (DB.custom[j][0] === name) return DB.custom[j]; return null; }
+function food(name) { for (var j = 0; j < DB.custom.length; j++) if (DB.custom[j][0] === name) return DB.custom[j]; var i = FX[name]; return i != null ? F[i] : null; }
 function unitsOf(r) { var u = String(r[7] || '').split('|').filter(Boolean).map(function (s) { var p = s.split(':'); return [p[0], +p[1]]; }); u.push(['grams', 1]); return u; }
 
 /* ---------- search ---------- */
@@ -11,23 +11,24 @@ var SYN = { roti: 'chapati', chapati: 'roti', dahi: 'curd', curd: 'dahi', chawal
 function searchFoods(q, limit) {
   q = q.trim().toLowerCase(); if (!q) return [];
   var toks = q.split(/\s+/), vegOnly = DB.profile.vegOnly, out = [];
-  var all = F.concat(DB.custom);
+  var mine = {}; DB.custom.forEach(function (r) { mine[r[0]] = 1; });
+  var all = DB.custom.concat(F.filter(function (r) { return !mine[r[0]]; }));
   for (var i = 0; i < all.length; i++) {
     var r = all[i]; if (vegOnly && r[6] !== 1) continue;
     var n = r[0].toLowerCase(), s = 0, ok = true;
     for (var t = 0; t < toks.length; t++) {
       var tk = toks[t], alt = SYN[tk], hit = 0;
-      [tk, alt].forEach(function (w) {
-        if (!w) return;
-        if (n.indexOf(w) === 0) hit = Math.max(hit, 100);
-        else if (new RegExp('(^|[\\s(/,-])' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(n)) hit = Math.max(hit, 70);
-        else if (n.indexOf(w) >= 0) hit = Math.max(hit, 30);
+      [[tk, 1], [alt, 0.75]].forEach(function (x) {
+        var w = x[0]; if (!w) return;
+        if (n.indexOf(w) === 0) hit = Math.max(hit, 100 * x[1]);
+        else if (new RegExp('(^|[\\s(/,-])' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(n)) hit = Math.max(hit, 70 * x[1]);
+        else if (w.length >= 6 && n.indexOf(w) >= 0) hit = Math.max(hit, 30 * x[1]);
       });
       if (!hit) { ok = false; break; }
       s += hit;
     }
     if (!ok) continue;
-    s -= n.length * 0.4; if (r[12] === 'Basic' || r[12] === 'Mine') s += 12;
+    s -= n.length * 0.4; if (r[12] === 'Mine') s += 45; else if (r[12] === 'Basic') s += 35;
     var used = DB.usual[r[0]]; if (used) s += Math.min(40, used.n * 6);
     out.push([s, r]);
   }

@@ -50,7 +50,7 @@ Oats cooked with milk,108,4.6,15,3.4,1.7,1,katori:180|bowl:250
 Oats cooked with water,71,2.5,12,1.5,1.7,1,katori:180|bowl:250
 Cornflakes with milk,90,3.3,15,2,0.5,1,bowl:200
 Muesli,370,9.5,66,7,7.5,1,katori:45
-Phulka (no ghee),264,9.6,52,1.8,8.6,1,piece:30
+Roti / Phulka (no ghee),264,9.6,52,1.8,8.6,1,piece:30
 Roti with ghee,310,8.7,47,9.6,7.9,1,piece:35
 Bhakri (Jowar),330,9.2,66,3,8.5,1,piece:50
 Bajra roti,345,9.5,62,6,8.5,1,piece:50
@@ -123,3 +123,64 @@ Boiled potato,87,1.9,20,0.1,1.8,1,medium:150
 Sweet potato boiled (Shakarkand),76,1.4,17.7,0.1,2.5,1,medium:130
 Egg boiled,155,12.6,1.1,10.6,0,2,egg:50
 Egg omelette,154,10.6,0.6,11.7,0,2,2-egg omelette:120
+Dal tadka (toor),110,6,15,3,3,1,katori:150|bowl:200
+Moong dal (yellow),100,6.5,14,2.5,2.5,1,katori:150|bowl:200
+Masoor dal,105,7,15,2.5,3,1,katori:150|bowl:200
+Chana dal,125,7,17,3.5,4,1,katori:150|bowl:200
+Dal makhani,160,6,14,9,4,1,katori:150|bowl:200
+Rajma curry,130,6.5,17,4,5.5,1,katori:150|bowl:200
+Chole (chickpea curry),150,7,20,5,6,1,katori:150|bowl:200
+Kadhi,85,3,8,4.5,0.5,1,katori:150|bowl:200
+Aloo sabzi (dry),120,2,16,6,2,1,katori:150
+Bhindi sabzi,110,2.2,9,7.5,3.5,1,katori:150
+Gobi aloo sabzi,100,2.5,11,5.5,2.5,1,katori:150
+Baingan bharta,95,2,8,6.5,3.5,1,katori:150
+Mixed vegetable sabzi,95,2.5,9,5.5,3,1,katori:150
+Lauki (bottle gourd) sabzi,60,1.2,6,3.5,2,1,katori:150
+Cabbage sabzi,75,1.8,7,4.5,2.5,1,katori:150
+Palak paneer,150,7,6,11,2,1,katori:150
+Matar paneer,165,7.5,9,11,2.5,1,katori:150
+Paneer butter masala,220,8,9,17,1.5,1,katori:150
+Paneer bhurji,230,13,6,17,1,1,katori:150
+Soya chunks curry,120,10,9,5,3,1,katori:150
+Rice - plain (cooked),130,2.7,28,0.3,0.4,1,katori:150|plate:250
+Veg pulao,160,3.5,25,5,1.5,1,katori:150|plate:250
+Curd rice,140,3.5,21,4.5,0.5,1,katori:150|plate:250
+Lemon rice,175,3,28,5.5,1,1,katori:150|plate:250
+Poha,170,3,27,5,1.5,1,katori:150|plate:200
+Upma,150,3.5,22,5.5,1.5,1,katori:150|plate:200
+Idli,130,4,27,0.5,1.5,1,piece:40
+Masala dosa,165,3.5,22,7,2,1,piece:180
+Plain paratha,300,7,42,11.5,5,1,piece:80
+Aloo paratha,230,5,32,9,3.5,1,piece:120
+Paneer paratha,260,9,30,11.5,3,1,piece:120
+Puri,330,6,40,16,2.5,1,piece:25
+Bhatura,320,7,42,14,2,1,piece:70
+Besan chilla,190,9,22,7,4,1,piece:70
+Moong dal chilla,160,10,20,5,4,1,piece:70
+Sprouts chaat,100,6,15,2,4,1,katori:100|plate:150
+Veg sandwich,210,6,30,7,3,1,piece:140
+Grilled cheese sandwich,280,10,30,13,2,1,piece:130
+Aloo tikki,190,3,24,9,2.5,1,piece:60
+Veg cutlet,200,4,25,9,3,1,piece:60
+Paneer tikka,220,15,5,16,1,1,piece:25|plate:150
+Veg momos (steamed),180,5,30,4,2,1,piece:25|plate (6):150
+Sabudana vada,260,3,35,12,1.5,1,piece:50
+Dahi vada,150,5,15,7.5,1.5,1,piece:90
+Raita,60,3,5,3,0.5,1,katori:100
+Kheer,140,4,20,5,0.2,1,katori:150
+Suji halwa,330,4,45,15,1,1,katori:100
+Gajar halwa,230,4,28,12,2,1,katori:100
+Namkeen (bhujia/mixture),550,13,40,37,5,1,tablespoon:10|fistful:30
+Papad roasted,370,25,60,3,15,1,piece:12
+Papad fried,450,22,50,18,12,1,piece:15
+Pickle (achar),200,1.5,8,18,3,1,teaspoon:10|tablespoon:20
+Chakli,510,9,55,28,4,1,piece:15
+Mathri,520,8,52,31,2,1,piece:15
+Peanut chikki,520,15,55,27,4,1,piece:20
+Banana chips,520,2.3,58,33,4,1,fistful:30
+Vegetable soup,50,1.5,8,1.5,1.5,1,bowl:200
+Tomato soup,60,1.5,9,2,1,1,bowl:200
+Fruit salad,70,0.8,17,0.3,2,1,katori:150
+Badam milk,120,4,15,5,0.5,1,glass:200
+Haldi milk (turmeric milk),75,3.2,7,3.8,0,1,glass:200

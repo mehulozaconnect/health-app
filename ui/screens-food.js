@@ -134,7 +134,7 @@ ROUTES.dish = function (arg) {
   if (r[8] > 10) tags.push('<span class="tag warn">Sugary</span>');
   if (r[9] > 500) tags.push('<span class="tag warn">Salty</span>');
   var h = head('', 'Adding to ' + mealName(m));
-  h += '<section class="c"><h1 class="big">' + esc(r[0]) + '</h1><div class="l">Per 100 g: ' + n0(r[1]) + ' kcal · ' + (r[12] === 'INDB' ? 'Indian Nutrient Databank' : r[12] === 'Mine' ? 'Your own food' : 'Standard values') + '</div><div class="chips mt">' + tags.join('') + '</div></section>';
+  h += '<section class="c"><h1 class="big">' + esc(r[0]) + '</h1><div class="l">Per 100 g: ' + n0(r[1]) + ' kcal · ' + (r[12] === 'INDB' ? 'Indian Nutrient Databank' : r[12] === 'INDB-adj' ? 'Indian Nutrient Databank, corrected for oil actually absorbed' : r[12] === 'Mine' ? 'Your home version' : 'Standard home-style values') + '</div><div class="chips mt">' + tags.join('') + '</div></section>';
   h += '<section class="c"><div class="l">HOW MUCH?</div><div class="stepper"><button class="step" data-act="dq" data-d="-1" aria-label="Less">−</button><div class="ctr"><b class="huge">' + (u[0] === 'grams' ? Math.round(DISH.q) : frac(DISH.q)) + '</b><div class="l">' + esc(u[0]) + (u[0] === 'grams' ? '' : ' · ' + Math.round(g) + ' g') + '</div></div><button class="step" data-act="dq" data-d="1" aria-label="More">+</button></div>';
   if (u[0] !== 'grams') h += '<div class="chips c4">' + [0.5, 1, 1.5, 2].map(function (q) { return '<button class="chip' + (DISH.q === q ? ' on' : '') + '" data-act="dqSet" data-q="' + q + '">' + frac(q) + '</button>'; }).join('') + '</div>';
   h += '<div class="chips">' + units.map(function (x) { return '<button class="chip' + (x[0] === u[0] ? ' dk' : '') + '" data-act="du" data-u="' + esc(x[0]) + '">' + esc(x[0]) + '</button>'; }).join('') + '</div>';
@@ -148,6 +148,8 @@ ROUTES.dish = function (arg) {
   else tip = 'Good fit. ' + n0(Math.max(0, tg.p - t.p - s.p)) + ' g protein still to go today.';
   h += '<section class="c ' + (over ? 'peachbg' : 'mintbg') + '"><div class="l2">AFTER YOU ADD THIS</div><b class="mid">' + (over ? n0(-left) + ' kcal over today' : n0(left) + ' kcal left for today') + '</b><p>' + tip + '</p></section>';
   h += '<button class="btn big" data-act="addDish" data-m="' + m + '" data-n="' + esc(name) + '">Add to ' + mealName(m) + ' · ' + n0(s.kcal) + ' kcal</button>';
+  h += '<button class="btn sec" data-act="tuneFood" data-n="' + esc(name) + '" data-u="' + esc(u[0]) + '" data-g="' + Math.round(u[0] === 'grams' ? 100 : u[1]) + '">' + icon('edit', 18) + (r[12] === 'Mine' ? 'Edit my home version' : 'Made differently at home? Adjust') + '</button>';
+  if (r[12] === 'Mine' && FX[name] != null) h += '<button class="lnk" data-act="untuneFood" data-n="' + esc(name) + '">Go back to the standard values</button>';
   return h;
 };
 function mac(n, v, t) { return '<div class="mac"><span class="l">' + n + '</span><b>' + n1(v) + ' g</b>' + bar(v / t * 100) + '</div>'; }
@@ -193,6 +195,33 @@ ACT.customFood = function () {
     '<label class="fld">Carbs g<input id="cf_c" type="number" inputmode="decimal"></label><label class="fld">Fat g<input id="cf_f" type="number" inputmode="decimal"></label></div>' +
     '<button class="btn mt" data-act="saveCustom">Save food</button>');
 };
+/* adjust a dish to how it is made at home: values entered per serving, saved per 100 g as a personal override */
+var TUNE = null;
+ACT.tuneFood = function (el) {
+  var n = el.getAttribute('data-n'), r = food(n), u = el.getAttribute('data-u'), g = +el.getAttribute('data-g'), f = g / 100;
+  TUNE = { n: n, base: r };
+  sheet('<h2>' + esc(n) + '</h2><div class="l">Enter the values for how it\'s made in your home. Example: less oil means fewer calories and less fat.</div>' +
+    '<div class="g2"><label class="fld">Serving name<input id="tf_u" value="' + esc(u === 'grams' ? 'serving' : u) + '"></label><label class="fld">Serving grams<input id="tf_g" type="number" inputmode="decimal" value="' + g + '"></label>' +
+    '<label class="fld">Calories<input id="tf_k" type="number" inputmode="decimal" value="' + Math.round(r[1] * f) + '"></label><label class="fld">Protein g<input id="tf_p" type="number" inputmode="decimal" value="' + n1(r[2] * f) + '"></label>' +
+    '<label class="fld">Carbs g<input id="tf_c" type="number" inputmode="decimal" value="' + n1(r[3] * f) + '"></label><label class="fld">Fat g<input id="tf_f" type="number" inputmode="decimal" value="' + n1(r[4] * f) + '"></label></div>' +
+    '<div class="chips"><button class="chip" data-act="tuneOil" data-d="-5">−1 tsp oil</button><button class="chip" data-act="tuneOil" data-d="5">+1 tsp oil</button><button class="chip" data-act="tuneOil" data-d="-13">−1 tbsp ghee</button></div>' +
+    '<button class="btn mt" data-act="saveTune">Save my home version</button>');
+};
+ACT.tuneOil = function (el) {
+  var d = +el.getAttribute('data-d'), k = document.getElementById('tf_k'), f = document.getElementById('tf_f');
+  var nf = Math.max(0, (+f.value || 0) + d); k.value = Math.max(0, Math.round((+k.value || 0) + (nf - (+f.value || 0)) * 9)); f.value = n1(nf);
+};
+ACT.saveTune = function () {
+  var v = function (id) { return +(document.getElementById(id).value || 0); }, g = v('tf_g') || 100, f = 100 / g, b = TUNE.base;
+  if (!v('tf_k')) return toast('Enter calories');
+  var u = (document.getElementById('tf_u').value.trim() || 'serving').toLowerCase();
+  var units = [u + ':' + g].concat(String(b[7]).split('|').filter(function (x) { return x.split(':')[0] !== u; })).join('|');
+  DB.custom = DB.custom.filter(function (r) { return r[0] !== TUNE.n; });
+  DB.custom.push([TUNE.n, v('tf_k') * f, v('tf_p') * f, v('tf_c') * f, v('tf_f') * f, b[5], b[6], units, b[8], b[9], b[10], b[11], 'Mine']);
+  DISH.u = u; DISH.q = 1; save(); sheet(null); rerender(); toast('Saved. This dish now uses your home values.');
+};
+ACT.untuneFood = function (el) { var n = el.getAttribute('data-n'); DB.custom = DB.custom.filter(function (r) { return r[0] !== n; }); DISH.u = ''; save(); rerender(); toast('Back to standard values'); };
+
 ACT.saveCustom = function () {
   var v = function (id) { return +(document.getElementById(id).value || 0); }, n = document.getElementById('cf_n').value.trim(), g = v('cf_g') || 100, f = 100 / g;
   if (!n || !v('cf_k')) return toast('Name and calories are needed');
