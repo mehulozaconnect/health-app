@@ -7,3 +7,4 @@ android/app/src/main/assets/www/index.html
 android/local.properties
 *.iml
 .idea/
+shots/
