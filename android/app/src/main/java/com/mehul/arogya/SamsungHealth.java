@@ -6,6 +6,8 @@ import com.samsung.android.sdk.health.data.HealthDataService;
 import com.samsung.android.sdk.health.data.HealthDataStore;
 import com.samsung.android.sdk.health.data.data.AggregatedData;
 import com.samsung.android.sdk.health.data.data.HealthDataPoint;
+import com.samsung.android.sdk.health.data.data.entries.HeartRate;
+import com.samsung.android.sdk.health.data.data.entries.OxygenSaturation;
 import com.samsung.android.sdk.health.data.data.entries.SleepSession;
 import com.samsung.android.sdk.health.data.error.ErrorCode;
 import com.samsung.android.sdk.health.data.error.HealthDataException;
@@ -177,41 +179,57 @@ public class SamsungHealth {
                     s.put("stages", st);
                     sl.put(s);
                 }
-                o.put("sleep", sl);
+                o.put("sleep", sl); o.put("sleepRecords", sl.length());
             } catch (Exception e) { errs.put("sleep: " + msgOf(e)); }
 
             try {
+                // Samsung often stores many readings inside one record (SERIES_DATA); expand them so no reading is lost
                 Map<String, float[]> d = new TreeMap<>(); // min, max, sum, n
                 List<HealthDataPoint> hr = readAll(DataTypes.HEART_RATE.getReadDataRequestBuilder().setLocalTimeFilter(LocalTimeFilter.of(from, to)));
-                JSONArray recent = new JSONArray();
+                List<long[]> pts = new ArrayList<>(); // time, bpm, min, max
                 for (HealthDataPoint p : hr) {
+                    List<HeartRate> series = null;
+                    try { series = p.getValue(DataType.HeartRateType.SERIES_DATA); } catch (Exception ignored) { }
+                    if (series != null && !series.isEmpty()) {
+                        for (HeartRate x : series) {
+                            if (x.getHeartRate() <= 0) continue;
+                            pts.add(new long[]{ms(x.getEndTime() != null ? x.getEndTime() : x.getStartTime()), Math.round(x.getHeartRate()), Math.round(x.getMin() > 0 ? x.getMin() : x.getHeartRate()), Math.round(x.getMax() > 0 ? x.getMax() : x.getHeartRate())});
+                        }
+                        continue;
+                    }
                     Float v = p.getValue(DataType.HeartRateType.HEART_RATE);
                     if (v == null || v <= 0) continue;
                     Float mn = null, mx = null;
                     try { mn = p.getValue(DataType.HeartRateType.MIN_HEART_RATE); mx = p.getValue(DataType.HeartRateType.MAX_HEART_RATE); } catch (Exception ignored) { }
-                    String k = dkOf(p.getStartTime());
+                    pts.add(new long[]{ms(p.getEndTime() != null ? p.getEndTime() : p.getStartTime()), Math.round(v), Math.round(mn != null && mn > 0 ? mn : v), Math.round(mx != null && mx > 0 ? mx : v)});
+                }
+                pts.sort((x, y) -> Long.compare(x[0], y[0]));
+                for (long[] x : pts) {
+                    String k = dkOf(Instant.ofEpochMilli(x[0]));
                     float[] a = d.get(k); if (a == null) { a = new float[]{999, 0, 0, 0}; d.put(k, a); }
-                    a[0] = Math.min(a[0], mn != null && mn > 0 ? mn : v); a[1] = Math.max(a[1], mx != null && mx > 0 ? mx : v); a[2] += v; a[3]++;
+                    a[0] = Math.min(a[0], x[2]); a[1] = Math.max(a[1], x[3]); a[2] += x[1]; a[3]++;
                 }
                 JSONObject hj = new JSONObject(), rh = new JSONObject();
                 for (Map.Entry<String, float[]> e : d.entrySet()) {
                     float[] a = e.getValue();
-                    hj.put(e.getKey(), new JSONObject().put("min", Math.round(a[0])).put("max", Math.round(a[1])).put("avg", Math.round(a[2] / a[3])));
+                    hj.put(e.getKey(), new JSONObject().put("min", Math.round(a[0])).put("max", Math.round(a[1])).put("avg", Math.round(a[2] / a[3])).put("n", (int) a[3]));
                     rh.put(e.getKey(), Math.round(a[0]));
                 }
-                int from2 = Math.max(0, hr.size() - 40);
-                List<HealthDataPoint> sorted = new ArrayList<>(hr);
-                sorted.sort((x, y) -> Long.compare(ms(x.getStartTime()), ms(y.getStartTime())));
-                for (int i = Math.max(0, sorted.size() - 40); i < sorted.size(); i++) {
-                    HealthDataPoint p = sorted.get(i); Float v = p.getValue(DataType.HeartRateType.HEART_RATE);
-                    if (v != null && v > 0) recent.put(new JSONObject().put("t", ms(p.getEndTime() != null ? p.getEndTime() : p.getStartTime())).put("bpm", Math.round(v)));
-                }
+                JSONArray recent = new JSONArray();
+                for (int i = Math.max(0, pts.size() - 60); i < pts.size(); i++) recent.put(new JSONObject().put("t", pts.get(i)[0]).put("bpm", pts.get(i)[1]));
                 o.put("hr", hj); o.put("restingHr", rh); o.put("hrRecent", recent);
+                o.put("hrRecords", hr.size()); o.put("hrReadings", pts.size());
             } catch (Exception e) { errs.put("heart rate: " + msgOf(e)); }
 
             try {
                 JSONArray sp = new JSONArray();
                 for (HealthDataPoint p : readAll(DataTypes.BLOOD_OXYGEN.getReadDataRequestBuilder().setLocalTimeFilter(LocalTimeFilter.of(today.minusDays(2).atStartOfDay(), to)))) {
+                    List<OxygenSaturation> series = null;
+                    try { series = p.getValue(DataType.BloodOxygenType.SERIES_DATA); } catch (Exception ignored) { }
+                    if (series != null && !series.isEmpty()) {
+                        for (OxygenSaturation x : series) if (x.getOxygenSaturation() > 0) sp.put(new JSONObject().put("t", ms(x.getStartTime())).put("pct", Math.round(x.getOxygenSaturation())));
+                        continue;
+                    }
                     Float v = p.getValue(DataType.BloodOxygenType.OXYGEN_SATURATION);
                     if (v != null && v > 0) sp.put(new JSONObject().put("t", ms(p.getStartTime())).put("pct", Math.round(v)));
                 }
@@ -279,7 +297,7 @@ public class SamsungHealth {
                 o.put("exercise", ex);
             } catch (Exception e) { errs.put("exercise: " + msgOf(e)); }
 
-            o.put("errors", errs);
+            o.put("errors", errs); o.put("readAt", System.currentTimeMillis());
         } catch (Exception e) {
             try { o.put("status", statusOf(e)); o.put("msg", msgOf(e)); } catch (Exception ignored) { }
         }

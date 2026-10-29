@@ -177,12 +177,31 @@ ACT.budAuto = function () { DB.profile.budget = 0; save(); rerender(); };
 ACT.preset = function (el) { var v = el.getAttribute('data-p').split(','); DB.profile.protein = +v[0]; DB.profile.carb = +v[1]; DB.profile.fat = +v[2]; save(); rerender(); };
 
 /* ---------- settings ---------- */
+ROUTES.shdata = function () {
+  var h = DB.health, out = head('Samsung Health data', h && h.readAt ? 'Last read ' + ago(h.readAt) + ', ' + hm(h.readAt) : 'Not read yet');
+  if (!h) return out + '<div class="empty-s">Nothing read yet. Tap Read now.</div><button class="btn mt" data-act="refreshHealth">Read now</button>';
+  var lastT = function (arr) { return arr && arr.length ? arr.reduce(function (a, x) { return Math.max(a, x.t || x.end || 0); }, 0) : 0; };
+  var row = function (name, n, t, extra) { return '<div class="rd"><span>' + name + (t ? '<small class="l"> · latest ' + niceDate(dkey(new Date(t))) + ', ' + hm(t) + '</small>' : '') + '</span><b class="' + (n ? '' : 'warnt') + '">' + (n ? n + (extra || '') : 'none') + '</b></div>'; };
+  var k = today();
+  out += '<section class="c"><div class="rd"><span>Connection</span><b class="' + (h.status === 'ok' ? 'gtxt' : 'warnt') + '">' + esc(h.status) + '</b></div>' +
+    row('Steps (days)', Object.keys(h.steps || {}).length, 0, h.steps && h.steps[k] != null ? ' · today ' + n0(h.steps[k]) : '') +
+    row('Heart rate readings', h.hrReadings != null ? h.hrReadings : (h.hrRecent || []).length, lastT(h.hrRecent), h.hrRecords ? ' in ' + h.hrRecords + ' records' : '') +
+    row('Sleep records', (h.sleep || []).length, lastT((h.sleep || []).map(function (x) { return { t: x.end }; }))) +
+    row('Energy score (days)', Object.keys(h.energy || {}).length, 0) +
+    row('SpO₂ readings (2 days)', (h.spo2 || []).length, lastT(h.spo2)) +
+    row('Blood pressure', (h.bp || []).length, lastT(h.bp)) + row('Blood sugar', (h.glucose || []).length, lastT(h.glucose)) +
+    row('Weight', (h.weight || []).length, lastT(h.weight)) + row('Workouts (2 days)', (h.exercise || []).length, lastT((h.exercise || []).map(function (x) { return { t: x.end }; }))) + '</section>';
+  if (h.errors && h.errors.length) out += '<section class="c"><h2>Could not read</h2>' + h.errors.map(function (e) { return '<p class="p warnt">' + esc(e) + '</p>'; }).join('') + '<p class="l mt">Usually a permission that was not allowed. Tap Permissions below and allow everything.</p></section>';
+  out += '<section class="c"><h2>If something is missing</h2><ol class="ol"><li>Open Samsung Health on the phone and check the reading is there. If it is not there either, the watch has not synced yet: open the Galaxy Wearable app or keep the watch near the phone.</li><li>On the watch: Samsung Health → Settings → Heart rate → <b>Measure continuously</b> (or every 10 min).</li><li>Sleep score and Energy score appear after you wear the watch to bed; Energy score comes in the morning.</li></ol></section>';
+  out += '<div class="g2"><button class="btn sec" data-act="connectHealth">Permissions</button><button class="btn" data-act="refreshHealth">Read now</button></div>';
+  return out;
+};
 ROUTES.settings = function () {
   var s = DB.settings, h = head('Settings');
   h += '<section class="c"><h2>AI (Google Gemini)</h2><p class="p">Reads reports and plate photos and powers the coach. Get a free key at aistudio.google.com → Get API key. The Trikaal key works too.</p><label class="fld">Gemini API key<input id="gk" type="password" autocomplete="off" value="' + esc(s.gkey) + '" data-chg="gkey"></label>' +
     '<div class="g2"><button class="btn sec" data-act="testKey">Test key</button>' + (s.gmodel ? '<div class="l ctrtxt">Using ' + esc(s.gmodel) + '</div>' : '') + '</div>' + (s.lastAiErr ? '<div class="note warn mt">Last AI error: ' + esc(s.lastAiErr) + '</div>' : '') + '</section>';
   var hs = DB.health ? DB.health.status : 'not connected';
-  h += '<section class="c"><h2>Samsung Health</h2><div class="rd"><span>Status</span><b>' + (hs === 'ok' ? 'Connected · ' + ago(DB.healthAt) : esc(hs.replace(/_/g, ' '))) + '</b></div><div class="g2 mt"><button class="btn sec" data-act="connectHealth">' + (hs === 'ok' ? 'Permissions' : 'Connect') + '</button><button class="btn sec" data-act="refreshHealth">Read now</button></div></section>';
+  h += '<section class="c"><h2>Samsung Health</h2><div class="rd"><span>Status</span><b>' + (hs === 'ok' ? 'Connected · ' + ago(DB.healthAt) : esc(hs.replace(/_/g, ' '))) + '</b></div><div class="g2 mt"><button class="btn sec" data-act="connectHealth">' + (hs === 'ok' ? 'Permissions' : 'Connect') + '</button><button class="btn sec" data-act="refreshHealth">Read now</button></div><button class="lnk mt" data-act="go" data-to="shdata">See what Arogya receives →</button></section>';
   h += '<section class="c"><h2>Your data</h2><p class="p">Everything is stored only on this phone. Make a backup file before changing phones or reinstalling.</p><div class="g2"><button class="btn sec" data-act="backup">Backup</button><button class="btn sec" data-act="restore">Restore</button></div></section>';
   h += '<section class="c"><h2>About</h2><p class="p">Arogya ' + APP_VERSION + (native('version') ? ' (build ' + native('version') + ')' : '') + '. Food values from the Indian Nutrient Databank (1,014 recipes) plus standard values for common items. Not a medical device: talk to your doctor about anything worrying.</p></section>';
   return h;

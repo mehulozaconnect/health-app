@@ -21,7 +21,7 @@ ROUTES.home = function () {
   h += tile('Steps', st != null ? n0(st) : '—', st != null ? bar(st / 100) + '<div class="l mt6">of 10,000' + (DB.health && DB.health.distance && DB.health.distance[k] ? ' · ' + n1(DB.health.distance[k] / 1000) + ' km' : '') + '</div>' : '<div class="l">Connect watch</div>', 'vitals');
   h += tile('Sleep score', sl ? sl.score + ' <small>/100</small>' : '—', sl ? '<div class="l mt6">' + dur(sl.asleep) + ' · deep ' + Math.round(sl.m.deep / sl.staged * 100) + '%</div>' : '<div class="l">No sleep data yet</div>', 'vitals');
   h += tile('Energy score', en != null ? en : '—', '<div class="l mt6">' + (en == null ? 'No score yet today' : en >= 80 ? 'Good · go for it' : en >= 60 ? 'Fair · go easy after 4 pm' : 'Low · rest more today') + '</div>', 'vitals');
-  h += tile('Heart rate', hr ? hr.bpm + ' <small>bpm</small>' : hd ? hd.avg + ' <small>avg</small>' : '—', hr ? '<div class="l mt6">' + hm(hr.t) + (hd ? ' · ' + hd.min + '–' + hd.max + ' today' : '') + '</div>' : '<div class="l">No reading yet</div>', 'vitals');
+  h += tileT('Heart rate', hr ? hr.bpm + ' <small>bpm</small>' : hd ? hd.avg + ' <small>avg</small>' : '—', hr ? '<div class="l mt6">last reading ' + (Date.now() - hr.t < 86400000 ? hm(hr.t) : ago(hr.t)) + (hd ? ' · ' + hd.min + '–' + hd.max + ' today' : '') + '</div>' : '<div class="l">No reading yet</div>', 'vitals');
   h += '</div>';
   h += waterCard(true);
   var bp = merged('bp')[0], su = merged('sugar')[0];
@@ -35,6 +35,7 @@ ROUTES.home = function () {
     '<div class="r" data-act="go" data-to="yoga"><div class="l">Yoga today</div><b class="m22">' + ym + ' / ' + yogaGoal() + ' min</b><div class="sm gtxt">' + (ym >= yogaGoal() ? 'Done today' : 'Start your routine') + '</div></div></section>';
   return h;
 };
+function tileT(label, val, extra) { return tile(label, val, extra, 'shdata'); }
 function tile(label, val, extra, to) { return '<section class="c tile"' + (to ? ' data-act="go" data-to="' + to + '"' : '') + '><div class="l">' + label + '</div><b class="m24">' + val + '</b>' + (extra || '') + '</section>'; }
 function nowTip(cr, t, tg, b) {
   var hr = new Date().getHours(), left = b.total - t.kcal;
