@@ -37,16 +37,25 @@ function searchFoods(q, limit, partial) {
 }
 
 /* ---------- items / totals ---------- */
-function itemOf(r, q, unit, grams) { return { id: uid(), n: r[0], q: q, u: unit, g: grams, k: r[1], p: r[2], c: r[3], f: r[4], fi: r[5], su: r[8] || 0, na: r[9] || 0, t: Date.now() }; }
+function itemOf(r, q, unit, grams) { return { id: uid(), n: r[0], q: q, u: unit, g: grams, k: r[1], p: r[2], c: r[3], f: r[4], fi: r[5], su: r[8] || 0, na: r[9] || 0, mi: r[14] && r[14].length ? r[14] : undefined, t: Date.now() }; }
 function iv(it, key) { return (it[key] || 0) * it.g / 100; }
 function sumItems(list) {
   var s = { kcal: 0, p: 0, c: 0, f: 0, fi: 0, su: 0, na: 0 };
+  s.mi = MIC.map(function () { return 0; });
+  list.forEach(function (it) { var m = it.mi || ((food(it.n) || [])[14]); if (m && m.length) for (var i = 0; i < MIC.length; i++) s.mi[i] += (m[i] || 0) * it.g / 100; });
   list.forEach(function (it) { s.kcal += iv(it, 'k'); s.p += iv(it, 'p'); s.c += iv(it, 'c'); s.f += iv(it, 'f'); s.fi += iv(it, 'fi'); s.su += iv(it, 'su'); s.na += iv(it, 'na'); });
   return s;
 }
 function dayItems(k) { var d = dayIf(k); if (!d) return []; var a = []; MEALS.forEach(function (m) { a = a.concat(d.meals[m[0]] || []); }); return a; }
 function dayTotals(k) { return sumItems(dayItems(k)); }
 function mealTotals(k, m) { var d = dayIf(k); return sumItems(d ? d.meals[m] || [] : []); }
+
+/* micronutrients per 100 g are stored in r[14] in this order; daily targets from ICMR-NIN 2020 (men, women); lim = upper limit, not a goal */
+var MIC = [['Calcium', 'mg', 1000, 1000], ['Iron', 'mg', 19, 29], ['Magnesium', 'mg', 440, 370], ['Zinc', 'mg', 17, 13.2], ['Potassium', 'mg', 3500, 3500], ['Phosphorus', 'mg', 1000, 1000],
+  ['Sodium', 'mg', 2000, 2000, 'lim'], ['Cholesterol', 'mg', 300, 300, 'lim'], ['Vitamin A', 'µg', 1000, 840], ['Vitamin C', 'mg', 80, 65], ['Folate', 'µg', 300, 220], ['Vitamin B1', 'mg', 1.4, 1.4],
+  ['Vitamin B2', 'mg', 2, 1.9], ['Vitamin B3', 'mg', 14, 11], ['Vitamin B6', 'mg', 1.9, 1.9], ['Vitamin E', 'mg', 10, 7.5], ['Vitamin D', 'µg', 15, 15]];
+function micTarget(i) { return MIC[i][DB.profile.sex === 'f' ? 3 : 2]; }
+function micFmt(v) { return v >= 100 ? n0(v) : v >= 10 ? n1(v).replace(/\.0$/, '') : v >= 1 ? n1(v) : (Math.round(v * 100) / 100).toString(); }
 
 /* ---------- budget ---------- */
 function bmr() { var p = DB.profile, w = lastWeight() || p.weight; return 10 * w + 6.25 * p.height - 5 * p.age + (p.sex === 'f' ? -161 : 5); }

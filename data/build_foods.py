@@ -74,6 +74,49 @@ def trim_oil(p, c, f, fi, share):
     k = 100 / (100 - (f - f2))
     return round(p * k, 1), round(c * k, 1), round(f2 * k, 1), round(fi * k, 1), round((e0 + 9 * f2) * k, 1)
 
+MICRO_COLS = ['calcium_mg', 'iron_mg', 'magnesium_mg', 'zinc_mg', 'potassium_mg', 'phosphorus_mg', 'sodium_mg', 'cholesterol_mg', 'vita', 'vitc_mg', 'folate_ug', 'vitb1_mg', 'vitb2_mg', 'vitb3_mg', 'vitb6_mg', 'vite_mg', 'vitd']
+def micros(r, scale=1.0, fscale=None):
+    out = []
+    for c in MICRO_COLS:
+        g = lambda k: float(r.get(k, 0) or 0) if r.get(k, 0) == r.get(k, 0) else 0
+        # vitamin A as retinol equivalents: retinol + carotenoids / 8 (ICMR-NIN 2020)
+        v = g('vitd2_ug') + g('vitd3_ug') if c == 'vitd' else g('vita_ug') + g('carotenoids_ug') / 8 if c == 'vita' else r.get(c, 0)
+        try: v = float(v)
+        except Exception: v = 0
+        if v != v: v = 0
+        v *= (fscale if fscale is not None and c == 'vite_mg' else scale)
+        out.append(round(v, 2) if v < 10 else round(v, 1) if v < 100 else round(v))
+    return out
+# home-style basics borrow micronutrients from the closest Indian Nutrient Databank recipe, scaled by their non-oil calories
+PROXY = {'Roti / Phulka (no ghee)': 'Chapati/Roti', 'Roti with ghee': 'Chapati/Roti', 'Bhakri (Jowar)': 'Jowar dosa', 'Bajra roti': 'Makki ki roti', 'Thepla': 'Methi poori', 'Methi thepla': 'Methi poori', 'Khakhra': 'Khakhra',
+  'Brown rice cooked': 'Boiled rice (Uble chawal)', 'Jeera rice': 'Cumin pulao (Jeera/Zeera pulao)', 'Rice - plain (cooked)': 'Boiled rice (Uble chawal)', 'Vegetable biryani': 'Vegetable biryani/biriyani',
+  'Pav bhaji': 'Pav bhaji', 'Vada pav': 'Potato bonda (Aloo bonda)', 'Batata vada': 'Potato bonda (Aloo bonda)', 'Misal pav': 'Whole moth (Moth ki dal)', 'Matki usal': 'Whole moth (Moth ki dal)', 'Moong usal': 'Whole moong (Moong ki dal)',
+  'Samosa': 'Potato samosa (Aloo ka samosa)', 'Kachori': 'Khasta kachori', 'Pani puri': 'Bhel puri', 'Bhel puri': 'Bhel puri', 'Sev puri': 'Bhel puri', 'Dahi puri': 'Dahi vadas/Dahi bhalla', 'Pakora (onion bhajiya)': 'Onion pakora/pakoda (Pyaaz ke pakode)',
+  'Khaman dhokla': 'Khaman (dhokla)', 'Khandvi': 'Khaman (dhokla)', 'Medu vada': 'Plain urad dal vada (Uzunne vada/Minapa garelu/Ulundu vadai/Medu vada)', 'Uttapam': 'Uttapam', 'Plain dosa': 'Plain dosa', 'Masala dosa': 'Masala dosa',
+  'Rava dosa': 'Semolina dosa (Suji/Rava dosa)', 'Rava idli': 'Semolina idli (Suji/Rava idli)', 'Idli': 'Idli', 'Sambar': 'Sambar', 'Coconut chutney': 'Coconut chutney (Nariyal ki chutney)', 'Green chutney': 'Green chutney',
+  'Rajma chawal': 'Kidney bean curry (Rajmah curry)', 'Rajma curry': 'Kidney bean curry (Rajmah curry)', 'Chole bhature': 'Chickpeas curry (Safed channa curry)', 'Chole (chickpea curry)': 'Chickpeas curry (Safed channa curry)',
+  'Kala chana curry': 'Black channa curry/Bengal gram curry (Kale chane ki curry)', 'Dal khichdi': 'Plain khitchdi (Plain khichri/khichdi)', 'Sabudana khichdi': 'Sago khitchdi/khichri (Sabudana khitchdi/khichri)',
+  'Sabudana vada': 'Sago cutlet/vadas (Sabudana cutlet/vadas)', 'Thalipeeth': 'Jowar dosa', 'Pizza veg (thin crust)': 'Pizza', 'Burger veg': 'Vegetable burger', 'Pasta in white sauce': 'Beans and macaroni', 'Maggi noodles': 'Home made plain noodles',
+  'Veg Hakka noodles': 'Vegetable chowmein', 'Veg Manchurian gravy': 'Veg manchurian', 'Gulab jamun': 'Gulab jamun with milk powder', 'Kaju katli': 'Cashewnut burfi (Kaju burfi/Kaju katli)', 'Besan ladoo': 'Gram flour ladoo (Besan ladoo)',
+  'Motichoor ladoo': 'Gram flour ladoo (Besan ladoo)', 'Dal tadka (toor)': 'Mixed dal', 'Moong dal (yellow)': 'Washed moong dal (Dhuli moong ki dal)', 'Masoor dal': 'Whole masoor (Masoor ki dal)', 'Chana dal': 'Split bengal gram dal (Channa dal)',
+  'Dal makhani': 'Dal makhani', 'Varan (plain dal)': 'Mixed dal', 'Gujarati dal (khatti meethi)': 'Sour lentils (Khatti dal)', 'Dudhi chana dal': 'Split bengal gram with bottle gourd (Channa dal with ghiya/lauki)', 'Dal dhokli': 'Dal dhokli',
+  'Kadhi': 'Besan kadhi with pakodies', 'Gujarati kadhi': 'Besan kadhi with pakodies', 'Pithla': 'Besan kadhi with pakodies', 'Zunka': 'Gram flour chilla/cheela (Besan chilla/cheela)', 'Aloo sabzi (dry)': 'Dry potato (Sookhe aloo)',
+  'Bhindi sabzi': "Okra/Lady's fingers fry (Bhindi sabzi/sabji/subji)", 'Gobi aloo sabzi': 'Potato cauliflower (Aloo gobhi)', 'Baingan bharta': 'Brinjal bhartha (Baingan ka bhartha)', 'Mixed vegetable sabzi': 'Cabbage and peas (Pattagobhi aur matar)',
+  'Lauki (bottle gourd) sabzi': 'Stuffed bottle gourd (Stuffed ghiya/lauki)', 'Aloo lauki (dudhi) sabzi': 'Stuffed bottle gourd (Stuffed ghiya/lauki)', 'Cabbage sabzi': 'Cabbage and peas (Pattagobhi aur matar)', 'Aloo matar sabzi': 'Pea potato curry (Aloo matar)',
+  'Aloo methi sabzi': 'Potato fenugreek (Aloo methi)', 'Aloo baingan sabzi': 'Stuffed brinjal (Bharwa baingan)', 'Aloo shimla mirch sabzi': 'Potato capsicum (Shimla mirch aloo)', 'Tindora (tondli) sabzi': 'Cabbage and peas (Pattagobhi aur matar)',
+  'Turai (ridge gourd) sabzi': 'Stuffed bottle gourd (Stuffed ghiya/lauki)', 'Karela sabzi': 'Stuffed bittergourd (dry) (Bharwa karela)', 'Methi malai matar': 'Methi malai paneer', 'Undhiyu': 'Pea potato curry (Aloo matar)', 'Sev tamatar sabzi': 'Pea curry (Matar ki sabzi)',
+  'Palak paneer': 'Spinach paneer (Palak paneer)', 'Matar paneer': 'Pea paneer curry (Matar paneer)', 'Paneer butter masala': 'Paneer in butter sauce', 'Paneer tikka masala': 'Paneer in butter sauce', 'Kadhai paneer': 'Kadhai Paneer',
+  'Malai kofta': 'Paneer kofta curry', 'Paneer bhurji': 'Paneer curry', 'Paneer tikka': 'Paneer shaslik/tikka', 'Soya chunks curry': 'Soyabean curry', 'Veg pulao': 'Mixed vegetable pulao',
+  'Curd rice': 'Curd rice (Dahi bhaat/Dahi chawal/ Perugu annam/Daddojanam/Thayir saadam)', 'Lemon rice': 'Lemon rice (Pulihora, Elumichai sadam, Chitranna)', 'Masale bhat': 'Eggplant/Brinjal rice (Vangi bhat)', 'Poha': 'Poha',
+  'Upma': 'Semolina upma (Suji/Rava upma)', 'Plain paratha': 'Plain parantha/paratha', 'Aloo paratha': 'Potato parantha/paratha (Aloo ka parantha/paratha)', 'Paneer paratha': 'Paneer parantha/paratha', 'Puri': 'Poori', 'Bhatura': 'Bhatura',
+  'Besan chilla': 'Gram flour chilla/cheela (Besan chilla/cheela)', 'Moong dal chilla': 'Moong dal stuffed cheela/chilla (Moong dal ka cheela/chilla)', 'Sprouts chaat': 'Sprouted moong dal chat', 'Veg sandwich': 'Cucumber sandwich (Kheere ka sandwich)',
+  'Grilled cheese sandwich': 'Cheese and tomato sandwich (toasted) (Cheese aur tamatar ke sandwich (toasted))', 'Aloo tikki': 'Paneer potato cutlet (Paneer aloo cutlet)', 'Veg cutlet': 'Vegetable cutlet', 'Veg momos (steamed)': 'Vegetable chowmein',
+  'Dahi vada': 'Dahi vadas/Dahi bhalla', 'Raita': 'Cucumber raita (Kheere ka raita)', 'Kheer': 'Rice kheer (Chawal ki kheer)', 'Suji halwa': 'Semolina halwa (Suji ka halwa)', 'Sheera (suji halwa)': 'Semolina halwa (Suji ka halwa)',
+  'Gajar halwa': 'Carrot halwa (Gajar ka halwa)', 'Vegetable soup': 'Mixed vegetable soup', 'Tomato soup': 'Clear tomato soup (Tamatar ka soup)', 'Fruit salad': 'Fruit salad (Phalon ka salaad)', 'Ragda pattice': 'Khatta channa',
+  'Handvo': 'Gujarati handvo', 'Puran poli': 'Sweet split chickpea roti (Sweet channa dal roti/Puranpoli)', 'Shrikhand': 'Sweetened yogurt (Shrikhand)', 'Veg frankie': 'Paneer kaathi roll', 'French fries': 'Dry potato (Sookhe aloo)',
+  'Ukadiche modak': 'Semolina ladoo with coconut (Suji/Rava aur nariyal ke ladoo )', 'Thepla ': 'Methi poori'}
+HAND_ALIAS = {'Pav (bun)': 'Bread white', 'Dabeli': 'Bread white'}
+
 def r1(x):
     try:
         x = float(x)
@@ -133,7 +176,7 @@ for _, r in d.iterrows():
         k = kcal / at
         p, c, f = round(p * k, 1), round(c * k, 1), round(f * k, 1)
         scaled += 1
-    src = 'INDB'
+    src = 'INDB'; p0, c0 = p, c
     if kcal > 350 and f * 9 / kcal > 0.5 and (FRIED.search(low) or DRYFRY.search(low)):
         if DRYFRY.search(low):
             # crisp namkeen: frying drives out the water too; standard values are ~530 kcal/100 g with ~55% from fat
@@ -147,13 +190,32 @@ for _, r in d.iterrows():
                 if SNACK.search(low) and kcal < 260:
                     k = 260 / kcal; p, c, f, fi, kcal = round(p * k, 1), round(c * k, 1), round(f * k, 1), round(fi * k, 1), 260.0
     veg = 0 if NONVEG.search(name) else (2 if EGG.search(name) and 'eggless' not in low and 'eggplant' not in low else 1)
-    rows.append([name, kcal, p, c, f, fi, veg, household_units(name), r1(r.freesugar_g), r1(r.sodium_mg), r1(r.iron_mg), r1(r.calcium_mg), src])
+    mscale = (p + c) / (p0 + c0) if (p0 + c0) > 0 else 1
+    f0 = float(r.fat_g) or 0
+    mi = micros(r, mscale, f / f0 if f0 > 0 else 1)
+    rows.append([name, kcal, p, c, f, fi, veg, household_units(name), r1(r.freesugar_g), mi[6], mi[1], mi[0], src, '', mi])
 
+HAND = {}
+with open(os.path.join(HERE, 'basics_micro.csv')) as fh:
+    for m in csv.DictReader(fh):
+        HAND[m['name']] = [float(m[k]) for k in ['ca', 'fe', 'mg', 'zn', 'k', 'p', 'na', 'chol', 'vita', 'vitc', 'folate', 'b1', 'b2', 'b3', 'b6', 'vite', 'vitd']]
+BYNAME = {re.sub(r"\s+", " ", str(x.food_name).replace("\xa0", " ")).strip().lower(): x for _, x in d.iterrows()}
+missing = []
 with open(os.path.join(HERE, 'basics.csv')) as fh:
     for b in csv.DictReader(fh):
         units = b['units'] + ('' if 'tablespoon' in b['units'] or 'teaspoon' in b['units'] else '|tablespoon:15')
-        mi = MICRO.get(b['name'], (0, 0, 0, 0))
-        rows.append([b['name'], r1(b['kcal']), r1(b['protein']), r1(b['carb']), r1(b['fat']), r1(b['fibre']), int(b['veg']), units, mi[0], mi[1], mi[2], mi[3], 'Basic'])
+        nm = b['name']; mi = MICRO.get(nm, (0, 0, 0, 0)); full = HAND.get(HAND_ALIAS.get(nm, nm))
+        if full is None and nm in PROXY:
+            pr = BYNAME.get(PROXY[nm].strip().lower())
+            if pr is not None:
+                e0 = 4 * float(pr.protein_g) + 4 * float(pr.carb_g)
+                e1 = 4 * float(b['protein']) + 4 * float(b['carb'])
+                full = micros(pr, max(0.3, min(3, e1 / e0)) if e0 > 0 else 1)
+            else:
+                missing.append(nm)
+        full = full or []
+        rows.append([nm, r1(b['kcal']), r1(b['protein']), r1(b['carb']), r1(b['fat']), r1(b['fibre']), int(b['veg']), units, mi[0],
+                     full[6] if full else mi[1], full[1] if full else mi[2], full[0] if full else mi[3], 'Basic', '', full])
 
 rows.sort(key=lambda x: 0 if x[12] == 'Basic' else 1)
 for x in rows:
@@ -162,4 +224,4 @@ for x in rows:
         assert abs(at - x[1]) / x[1] < 0.3 or x[1] < 60, x
 out = 'window.FOODS=' + json.dumps(rows, ensure_ascii=False, separators=(',', ':')) + ';\n'
 open(os.path.join(HERE, '..', 'ui', 'foods.js'), 'w').write(out)
-print(len(trimmed), 'fried dishes trimmed');print(len(rows), 'foods,', sum(1 for x in rows if x[6] == 1), 'veg,', scaled, 'macro-scaled,', round(len(out) / 1024), 'KB')
+print(len(trimmed), 'fried dishes trimmed'); print('basics without micros:', [x[0] for x in rows if x[12] == 'Basic' and not x[14]], 'proxy missing:', missing);print(len(rows), 'foods,', sum(1 for x in rows if x[6] == 1), 'veg,', scaled, 'macro-scaled,', round(len(out) / 1024), 'KB')

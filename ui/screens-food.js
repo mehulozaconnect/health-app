@@ -36,12 +36,13 @@ ROUTES.food = function () {
   });
   var tg = macroTargets();
   h += '<section class="c"><h2>Nutrients today</h2><div class="g2 mt">' +
-    macroRow('Protein', t.p, tg.p, 'g') + macroRow('Carbs', t.c, tg.c, 'g') + macroRow('Fat', t.f, tg.f, 'g') + macroRow('Fibre', t.fi, tg.fi, 'g') + macroRow('Added sugar', t.su, 25, 'g', true) + macroRow('Sodium', t.na, 2000, 'mg', true) + '</div></section>';
+    macroRow('Protein', t.p, tg.p, 'g') + macroRow('Carbs', t.c, tg.c, 'g') + macroRow('Fat', t.f, tg.f, 'g') + macroRow('Fibre', t.fi, tg.fi, 'g') + macroRow('Added sugar', t.su, 25, 'g', true) + macroRow('Sodium', t.na, 2000, 'mg', true) + '</div>' +
+    '<details class="mt"><summary class="lnk">Vitamins &amp; minerals today</summary><div class="mlist mt">' + MIC.map(function (x, i) { return i === 6 ? '' : macroRow(x[0], t.mi[i], micTarget(i), x[1], !!x[4], true); }).join('') + '</div><div class="l mt">Targets: ICMR-NIN 2020 daily needs for ' + (DB.profile.sex === 'f' ? 'women' : 'men') + '. Foods you added yourself or from AI may not have this data.</div></details></section>';
   return h;
 };
-function macroRow(name, v, t, u, capIsLimit) {
+function macroRow(name, v, t, u, capIsLimit, small) {
   var pct = t ? v / t * 100 : 0, col = capIsLimit ? (pct > 100 ? 'var(--bad)' : 'var(--g)') : (pct < 60 ? 'var(--warn)' : 'var(--g)');
-  return '<div><div class="row sb sm"><span>' + name + '</span><span>' + n0(v) + ' / ' + n0(t) + ' ' + u + '</span></div>' + bar(pct, col) + '</div>';
+  return '<div><div class="row sb sm"><span>' + name + '</span><span>' + (small ? micFmt(v) + ' / ' + micFmt(t) : n0(v) + ' / ' + n0(t)) + ' ' + u + '</span></div>' + bar(pct, col) + '</div>';
 }
 ACT.selDay = function (el) { SEL = el.getAttribute('data-k'); rerender(); };
 
@@ -188,8 +189,11 @@ ROUTES.dish = function (arg) {
     list.map(function (e) { var n = DISH.ex[e[0]] || 0; return '<div class="exrow"><span>' + e[1] + '<small>' + e[2] + ' kcal per tsp</small></span><button class="exb" data-act="exd" data-k="' + e[0] + '" data-d="-0.5" aria-label="Less ' + e[1] + '">−</button><b>' + (n ? frac(n) + ' tsp' : '0') + '</b><button class="exb" data-act="exd" data-k="' + e[0] + '" data-d="0.5" aria-label="More ' + e[1] + '">+</button></div>'; }).join('') + '</section>';
   h += '<section class="c"><div class="row sb end"><div><div class="l">Calories</div><b class="huge">' + n0(s.kcal) + '</b></div><div class="r"><div class="l">of today\'s budget</div><b class="mid">' + Math.round(s.kcal / b.total * 100) + '%</b></div></div><div class="g4 mt">' +
     mac('Protein', s.p, tg.p) + mac('Carbs', s.c, tg.c) + mac('Fat', s.f, tg.f) + mac('Fibre', s.fi, tg.fi) + '</div><div class="l mt">Bars show this portion\'s share of your daily target.' + '</div></section>';
-  var mic = [['Calcium', r[11], 'mg'], ['Iron', r[10], 'mg'], ['Sodium', r[9], 'mg'], ['Added sugar', null, 'g']].map(function (x) { var v = x[0] === 'Added sugar' ? s.su : (x[1] || 0) * g / 100; return [x[0], v, x[2]]; }).filter(function (x) { return x[1] > 0.05; });
-  if (mic.length) h += '<section class="c"><h2>Micronutrients</h2>' + mic.map(function (x) { return '<div class="rd"><span>' + x[0] + '</span><b>' + (x[1] >= 10 ? n0(x[1]) : n1(x[1])) + ' ' + x[2] + '</b></div>'; }).join('') + '</section>';
+  var mi = s.mi, hasMi = mi.some(function (v) { return v > 0; }), mrows = [];
+  if (hasMi) MIC.forEach(function (x, i) { if (mi[i] < 0.005) return; var pct = mi[i] / micTarget(i) * 100; mrows.push('<div class="rd"><span>' + x[0] + '</span><b>' + micFmt(mi[i]) + ' ' + x[1] + ' <small class="l">' + (pct < 1 ? '<1' : Math.round(pct)) + '%' + (x[4] ? ' of limit' : '') + '</small></b></div>'); });
+  else [['Calcium', r[11], 'mg'], ['Iron', r[10], 'mg'], ['Sodium', r[9], 'mg']].forEach(function (x) { var v = (x[1] || 0) * g / 100; if (v > 0.05) mrows.push('<div class="rd"><span>' + x[0] + '</span><b>' + micFmt(v) + ' ' + x[2] + '</b></div>'); });
+  if (s.su > 0.05) mrows.push('<div class="rd"><span>Added sugar</span><b>' + n1(s.su) + ' g</b></div>');
+  if (mrows.length) h += '<section class="c"><h2>Vitamins &amp; minerals</h2>' + (hasMi ? '<div class="l">For this portion · % of your daily need</div>' : '<div class="l">Full vitamin and mineral data isn\'t available for this food.</div>') + mrows.join('') + '</section>';
   var over = left < 0, tip;
   if (over) tip = 'That is more than your day can take. I\'ll show you options before adding.';
   else if (s.kcal > 150 && s.p * 4 / s.kcal < 0.1) tip = 'Protein is low in this. Add 1 katori curd (+5 g protein, 90 kcal) to balance it.';
