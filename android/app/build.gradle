@@ -1,0 +1,58 @@
+plugins {
+    id 'com.android.application'
+}
+
+def runNo = (System.getenv("GITHUB_RUN_NUMBER") ?: "1") as Integer
+
+android {
+    namespace 'com.mehul.arogya'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.mehul.arogya'
+        minSdk 29
+        targetSdk 34
+        versionCode runNo
+        versionName "1.0." + runNo
+    }
+
+    signingConfigs {
+        release {
+            storeFile file('arogya.jks')
+            storePassword 'arogya-app'
+            keyAlias 'arogya'
+            keyPassword 'arogya-app'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    buildFeatures {
+        dataBinding true
+        buildConfig true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+}
+
+dependencies {
+    implementation files('libs/samsung-health-data-api-1.1.0.aar')
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.9.24'
+    implementation 'org.jetbrains.kotlin:kotlin-parcelize-runtime:1.9.24'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1'
+    implementation 'com.google.code.gson:gson:2.11.0'
+    implementation 'androidx.core:core:1.13.1'
+}
