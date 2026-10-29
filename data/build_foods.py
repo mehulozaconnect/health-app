@@ -4,7 +4,7 @@ Row format: [name, kcal, protein, carb, fat, fibre, veg(1 veg, 2 egg, 0 non-veg)
 
 Portions: INDB's own serving sizes are inconsistent (some are one piece, some a whole batch), so they are NOT used.
 Every dish instead gets standard Indian household measures from the rules below, the same everywhere:
-katori 150 g, bowl 200 g, tea cup 100 ml, cup 150 ml, glass 200 ml, tablespoon 15 g, teaspoon 5 g, and fixed piece weights.
+katori 150 g, bowl 200 g, tea cup 180 ml, cup 150 ml, glass 200 ml, tablespoon 15 g, teaspoon 5 g, and fixed piece weights.
 Values: if a dish's calories don't match its protein/carbs/fat (Atwater 4/4/9), the macros are scaled to the calories.
 """
 import csv, json, re, os
@@ -47,8 +47,8 @@ PIECES = [(re.compile(p, re.I), u, g) for p, u, g in PIECES]
 RENAME = {}
 # micronutrients for everyday basics: name -> (added sugar g, sodium mg, iron mg, calcium mg) per 100 g
 MICRO = {
-  'Tea with milk and sugar': (4.2, 22, 0.05, 55), 'Tea with milk (no sugar)': (0, 22, 0.05, 55), 'Masala chai with sugar': (4.2, 22, 0.1, 57), 'Masala chai (no sugar)': (0, 22, 0.1, 57),
-  'Coffee with milk and sugar': (4.2, 30, 0.05, 70), 'Coffee with milk (no sugar)': (0, 30, 0.05, 70), 'Milk toned': (0, 45, 0.1, 120), 'Milk full cream (Buffalo)': (0, 50, 0.2, 210),
+  'Tea with milk and sugar': (2.8, 22, 0.05, 55), 'Tea with milk (no sugar)': (0, 22, 0.05, 55), 'Masala chai with sugar': (2.8, 22, 0.1, 57), 'Masala chai (no sugar)': (0, 22, 0.1, 57),
+  'Coffee with milk and sugar': (2.8, 30, 0.05, 70), 'Coffee with milk (no sugar)': (0, 30, 0.05, 70), 'Milk toned': (0, 45, 0.1, 120), 'Milk full cream (Buffalo)': (0, 50, 0.2, 210),
   'Curd (Dahi)': (0, 45, 0.1, 120), 'Greek yogurt plain': (0, 36, 0.1, 110), 'Buttermilk (Chaas)': (0, 180, 0.05, 60), 'Sweet lassi': (8, 40, 0.1, 100), 'Paneer': (0, 25, 0.2, 480), 'Tofu': (0, 7, 2.7, 350),
   'Dal tadka (toor)': (0, 280, 1.3, 25), 'Moong dal (yellow)': (0, 260, 1.2, 25), 'Masoor dal': (0, 270, 1.6, 20), 'Chana dal': (0, 270, 1.8, 30), 'Rajma curry': (0, 300, 1.9, 40), 'Chole (chickpea curry)': (0, 320, 2.2, 45),
   'Roti / Phulka (no ghee)': (0, 300, 2.8, 30), 'Idli': (0, 260, 0.6, 15), 'Poha': (0, 300, 2.5, 15), 'Upma': (0, 320, 0.8, 15), 'Palak paneer': (0, 330, 1.6, 230), 'Paneer bhurji': (0, 320, 0.6, 300),
@@ -95,7 +95,7 @@ def household_units(name):
     if DRYFRY.search(low):
         return 'fistful:30|tablespoon:10'
     if LIQ.search(low) and not SOUP.search(low) and not WET.search(low.replace('milk', '')):
-        u += ['tea cup:100', 'cup:150'] if HOT.search(low) else ['glass:200', 'cup:150']
+        u += ['tea cup:180', 'cup:150'] if HOT.search(low) else ['glass:200', 'cup:150']
     elif SWEET_SCOOP.search(low):
         u += ['scoop:65', 'cup:100']
     elif SOUP.search(low):

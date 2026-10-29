@@ -100,13 +100,13 @@ Motichoor ladoo,420,6,58,18,1,1,piece:40
 Ice cream vanilla,207,3.5,23.6,11,0.7,1,scoop:65|cup:100
 Dark chocolate 70%,598,7.8,46,42.6,10.9,1,square:10
 Milk chocolate,535,7.6,59.4,29.7,3.4,1,small bar:13
-Tea with milk and sugar,47,1.6,6.6,1.6,0,1,tea cup:120|cutting:75|mug:200
-Tea with milk (no sugar),30,1.6,2.4,1.6,0,1,tea cup:120|cutting:75|mug:200
-Masala chai with sugar,50,1.6,7,1.7,0,1,tea cup:120|cutting:75|mug:200
-Masala chai (no sugar),32,1.6,2.8,1.7,0,1,tea cup:120|cutting:75|mug:200
+Tea with milk and sugar,41,1.6,5.2,1.6,0,1,tea cup:180|cutting:75|mug:250
+Tea with milk (no sugar),30,1.6,2.4,1.6,0,1,tea cup:180|cutting:75|mug:250
+Masala chai with sugar,43,1.6,5.6,1.7,0,1,tea cup:180|cutting:75|mug:250
+Masala chai (no sugar),32,1.6,2.8,1.7,0,1,tea cup:180|cutting:75|mug:250
 Black coffee,2,0.1,0,0,0,1,cup:150
-Coffee with milk and sugar,52,2.1,6.8,1.9,0,1,cup:150|tea cup:120|mug:200
-Coffee with milk (no sugar),35,2.1,2.6,1.9,0,1,cup:150|tea cup:120|mug:200
+Coffee with milk and sugar,46,2.1,5.4,1.9,0,1,tea cup:180|cup:150|mug:250
+Coffee with milk (no sugar),35,2.1,2.6,1.9,0,1,tea cup:180|cup:150|mug:250
 Green tea,1,0,0.2,0,0,1,cup:200
 Coconut water,19,0.7,3.7,0.2,1.1,1,glass:250
 Sugarcane juice,73,0.2,18,0.2,0.1,1,glass:250

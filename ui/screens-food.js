@@ -163,7 +163,7 @@ function withExtras(it, ex) {
   it.ex = ex; it.exTxt = t.txt.join(', ');
   return it;
 }
-var UHELP = { 'tea cup': '1 tea cup = 120 ml, a normal home cup', cutting: 'Cutting = half glass, about 75 ml', mug: '1 mug = 200 ml', katori: '1 katori = a 150 ml steel bowl, filled level', plate: '1 plate = a full quarter plate', bowl: 'A bowl as served (bigger than a katori)', glass: '1 glass = 200 ml', cup: '1 cup = 150 ml tea cup', tablespoon: '1 tablespoon = a serving spoon', grams: 'Weighing it? Use grams', piece: '1 piece as usually made at home' };
+var UHELP = { 'tea cup': '1 tea cup = 180 ml', cutting: 'Cutting = half glass, about 75 ml', mug: '1 mug = 250 ml', katori: '1 katori = a 150 ml steel bowl, filled level', plate: '1 plate = a full quarter plate', bowl: 'A bowl as served (bigger than a katori)', glass: '1 glass = 200 ml', cup: '1 cup = 150 ml tea cup', tablespoon: '1 tablespoon = a serving spoon', grams: 'Weighing it? Use grams', piece: '1 piece as usually made at home' };
 ROUTES.dish = function (arg) {
   var p = arg.split('/'), m = p[0], name = p.slice(1).join('/'), r = food(name);
   if (!r) return head('Not found') + '<div class="empty-s">This food is missing.</div>';
