@@ -145,7 +145,7 @@ function resRow(r, m, usual) {
 }
 INP.sq = function (el) { SQ = el.value; document.getElementById('sres').innerHTML = searchList(cur.arg || mealFor()); };
 ACT.toggleVeg = function () { DB.profile.vegOnly = !DB.profile.vegOnly; save(); rerender(); };
-ACT.pickFood = function (el) { var n = el.getAttribute('data-n'), m = el.getAttribute('data-m'), us = DB.usual[n], r = food(n), units = unitsOf(r); DISH = { q: us ? us.q : 1, u: us && units.some(function (x) { return x[0] === us.u; }) ? us.u : units[0][0], ex: us && us.ex ? Object.assign({}, us.ex) : {} }; go('dish/' + m + '/' + encodeURIComponent(n)); };
+ACT.pickFood = function (el) { var n = el.getAttribute('data-n'), m = el.getAttribute('data-m'), us = DB.usual[n], r = food(n), units = unitsOf(r); DISH = { q: us ? us.q : 1, u: us && units.some(function (x) { return x[0] === us.u; }) ? us.u : units[0][0], ex: us && us.ex ? Object.assign({}, us.ex) : (/^(Tea with milk|Masala chai|Coffee with milk)/.test(n) ? { sugar: 1 } : {}) }; go('dish/' + m + '/' + encodeURIComponent(n)); };
 
 /* ---------- dish detail ---------- */
 var DISH = { q: 1, u: '', ex: {} };
@@ -184,7 +184,7 @@ ROUTES.dish = function (arg) {
   h += '<div class="chips">' + units.map(function (x) { return '<button class="chip' + (x[0] === u[0] ? ' dk' : '') + '" data-act="du" data-u="' + esc(x[0]) + '">' + esc(x[0]) + '</button>'; }).join('') + '</div>';
   h += '<div class="hint">' + esc(UHELP[u[0]] || ('1 ' + u[0] + ' ≈ ' + u[1] + ' g')) + '</div></section>';
   var list = DRINK.test(name) ? EXTRAS.slice(0, 3) : EXTRAS.filter(function (e) { return e[0] !== 'honey'; });
-  h += '<section class="c"><div class="l">ADDED ON TOP' + (u[0] === 'grams' ? '' : ' (per ' + esc(u[0]) + ')') + '</div>' + (/with sugar/i.test(name) ? '<div class="hint">This already has about 1 tsp sugar per tea cup. For exact numbers pick the “no sugar” version and add your sugar here.</div>' : '') +
+  h += '<section class="c"><div class="l">ADDED ON TOP' + (u[0] === 'grams' ? '' : ' (per ' + esc(u[0]) + ')') + '</div>' + (/^(Tea with milk|Masala chai|Coffee with milk)/.test(name) ? '<div class="hint">Set the sugar you actually add. Your choice is remembered for next time.</div>' : '') +
     list.map(function (e) { var n = DISH.ex[e[0]] || 0; return '<div class="exrow"><span>' + e[1] + '<small>' + e[2] + ' kcal per tsp</small></span><button class="exb" data-act="exd" data-k="' + e[0] + '" data-d="-0.5" aria-label="Less ' + e[1] + '">−</button><b>' + (n ? frac(n) + ' tsp' : '0') + '</b><button class="exb" data-act="exd" data-k="' + e[0] + '" data-d="0.5" aria-label="More ' + e[1] + '">+</button></div>'; }).join('') + '</section>';
   h += '<section class="c"><div class="row sb end"><div><div class="l">Calories</div><b class="huge">' + n0(s.kcal) + '</b></div><div class="r"><div class="l">of today\'s budget</div><b class="mid">' + Math.round(s.kcal / b.total * 100) + '%</b></div></div><div class="g4 mt">' +
     mac('Protein', s.p, tg.p) + mac('Carbs', s.c, tg.c) + mac('Fat', s.f, tg.f) + mac('Fibre', s.fi, tg.fi) + '</div><div class="l mt">Bars show this portion\'s share of your daily target.' + '</div></section>';

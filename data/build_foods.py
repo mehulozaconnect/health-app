@@ -13,7 +13,7 @@ import pandas as pd
 HERE = os.path.dirname(os.path.abspath(__file__))
 NONVEG = re.compile(r"chicken|mutton|lamb|fish|prawn|shrimp|keema|kheema|meat|crab|lobster|beef|pork|\bham\b|bacon|tuna|salmon|machli|machhli|gosht|liver|jhinga|sardine|mackerel|squid|clam|oyster|sausage|turkey|duck|yakhni|rogan josh|tahar|seekh|\bmince", re.I)
 EGG = re.compile(r"\begg|omelette|omlet|\bande\b|\banda\b|meringue|souffle|mayonnaise|custard|chiffon", re.I)
-LIQ = re.compile(r"shake|juice|\blassi|sharbat|\btea\b|coffee|chai|smoothie|cooler|punch|\bwater\b|drink|\bmilk\b|thandai|kanji|buttermilk|chaas|nog|cocoa|kehwa|soda|lemonade|panna|squash", re.I)
+LIQ = re.compile(r"hot chocolate(?! souffle)|shake|juice|\blassi|sharbat|\btea\b|coffee|chai|smoothie|cooler|punch|\bwater\b|drink|\bmilk\b|thandai|kanji|buttermilk|chaas|nog|cocoa|kehwa|soda|lemonade|panna|squash", re.I)
 HOT = re.compile(r"\btea\b|chai|coffee|kehwa|cocoa|hot chocolate|espreso|espresso", re.I)
 SOUP = re.compile(r"soup|rasam|consomme|shorba|broth", re.I)
 WET = re.compile(r"dal\b|dal |curry|sabzi|subzi|\brice\b|pulao|khichdi|khichri|upma|poha|halwa|kheer|raita|sambar|kadhi|chole|channa|chana|rajma|bhaji|bhurji|daliya|porridge|korma|kofta curry|bhartha|bharta|saag|palak|aloo|gobhi|bhindi|lauki|ghiya|\bdum\b|makhani|salad|chaat|\bchat\b|sprout|vegetable|pasta|macaroni|spaghetti|noodle|chowmein|biryani|pongal|bisi|stew|masala|kurma|jalfrezi|kadhai|kadai|pudding|custard|mousse|trifle|payasam|shrikhand|cereal|muesli|oats|upma|sevai|vermicelli|khaman|usal|misal|ghugni|sundal|kootu|poriyal|thoran|avial|undhiyu|pitla|zunka|jhol|dalma|chorchori", re.I)
@@ -47,8 +47,8 @@ PIECES = [(re.compile(p, re.I), u, g) for p, u, g in PIECES]
 RENAME = {}
 # micronutrients for everyday basics: name -> (added sugar g, sodium mg, iron mg, calcium mg) per 100 g
 MICRO = {
-  'Tea with milk and sugar': (2.8, 22, 0.05, 55), 'Tea with milk (no sugar)': (0, 22, 0.05, 55), 'Masala chai with sugar': (2.8, 22, 0.1, 57), 'Masala chai (no sugar)': (0, 22, 0.1, 57),
-  'Coffee with milk and sugar': (2.8, 30, 0.05, 70), 'Coffee with milk (no sugar)': (0, 30, 0.05, 70), 'Milk toned': (0, 45, 0.1, 120), 'Milk full cream (Buffalo)': (0, 50, 0.2, 210),
+  'Tea with milk (chai)': (0, 22, 0.05, 55), 'Masala chai': (0, 22, 0.1, 57),
+  'Coffee with milk': (0, 30, 0.05, 70), 'Milk toned': (0, 45, 0.1, 120), 'Milk full cream (Buffalo)': (0, 50, 0.2, 210),
   'Curd (Dahi)': (0, 45, 0.1, 120), 'Greek yogurt plain': (0, 36, 0.1, 110), 'Buttermilk (Chaas)': (0, 180, 0.05, 60), 'Sweet lassi': (8, 40, 0.1, 100), 'Paneer': (0, 25, 0.2, 480), 'Tofu': (0, 7, 2.7, 350),
   'Dal tadka (toor)': (0, 280, 1.3, 25), 'Moong dal (yellow)': (0, 260, 1.2, 25), 'Masoor dal': (0, 270, 1.6, 20), 'Chana dal': (0, 270, 1.8, 30), 'Rajma curry': (0, 300, 1.9, 40), 'Chole (chickpea curry)': (0, 320, 2.2, 45),
   'Roti / Phulka (no ghee)': (0, 300, 2.8, 30), 'Idli': (0, 260, 0.6, 15), 'Poha': (0, 300, 2.5, 15), 'Upma': (0, 320, 0.8, 15), 'Palak paneer': (0, 330, 1.6, 230), 'Paneer bhurji': (0, 320, 0.6, 300),
@@ -94,8 +94,8 @@ def household_units(name):
             break
     if DRYFRY.search(low):
         return 'fistful:30|tablespoon:10'
-    if LIQ.search(low) and not SOUP.search(low) and not WET.search(low.replace('milk', '')):
-        u += ['tea cup:180', 'cup:150'] if HOT.search(low) else ['glass:200', 'cup:150']
+    if LIQ.search(low) and not SOUP.search(low) and not WET.search(low.replace('milk', '')) and not piece and not (SWEET_SCOOP.search(low) and not re.search(r'shake|coffee|lassi|float', low)) and not re.search(r'drops|pear|cake|biscuit|cookie|toffee|fudge|souffle', low):
+        u += ['tea cup:180', 'cup:150'] if HOT.search(low) and not re.search(r'cold|iced|frappe', low) else ['glass:200', 'cup:150']
     elif SWEET_SCOOP.search(low):
         u += ['scoop:65', 'cup:100']
     elif SOUP.search(low):
