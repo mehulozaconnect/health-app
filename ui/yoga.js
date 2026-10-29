@@ -74,7 +74,7 @@ var FLOWS = [
   { id: 'b_desk', name: 'Office desk break', for: 'At your desk, no mat needed.', rest: 0, steps: [step('neck'), step('shoulder'), step('chair_twist'), step('desk_stretch'), step('palming')] }
 ];
 function routines() { return (DB.routines || []).concat(FLOWS); }
-function routineById(id) { return routines().filter(function (r) { return r.id === id; })[0] || null; }
+function routineById(id) { if (/^today_/.test(id)) return TODAYFLOW[id] || (TODAYFLOW[id] = sessionFlow(id.slice(6))); return routines().filter(function (r) { return r.id === id; })[0] || null; }
 function stepSec(s) { var p = pose(s.k); return (s.mode === 'reps' ? s.v * p.repSec : s.v) * (s.sides ? 2 : 1); }
 function routineSec(r) { return r.steps.reduce(function (a, s) { return a + stepSec(s); }, 0) + Math.max(0, r.steps.length - 1) * (r.rest || 0); }
 function stepLabel(s) { var p = pose(s.k); return (s.mode === 'reps' ? s.v + (s.v === 1 ? ' round' : ' rounds') : dur(s.v / 60).replace(' 00 m', '').replace(/^0 h /, '')) + (s.sides ? ' each side' : ''); }
@@ -93,37 +93,49 @@ function pickFlow() {
   return ['b_morning', en != null ? 'energy ' + en : 'fresh start'];
 }
 
-/* ---------- main yoga screen ---------- */
+/* ---------- main yoga screen: simple ---------- */
+/* today's practice comes from your plan, split into a morning and a bedtime session */
+var P2Y = { chandra: 'chandra_bh', surya: 'surya_bh', meditative: 'dhyana' };
+function todaySessions() {
+  var P = makePlan(), out = { morning: [], night: [], meal: [] };
+  P.rec.forEach(function (r) {
+    var k = r.p.t === 'p' ? (P2Y[r.p.k] || r.p.k) : (r.p.yk || r.p.k); if (!POSES[k]) return;
+    var slot = r.p.slot === 'meal' ? 'meal' : r.p.slot === 'morning' ? 'morning' : 'night';
+    out[slot].push({ k: k, r: r });
+  });
+  return { P: P, s: out };
+}
+function sessionFlow(slot) {
+  var T = todaySessions(), items = T.s[slot];
+  return { id: 'today_' + slot, name: slot === 'morning' ? 'Morning practice' : 'Bedtime practice', rest: 5, steps: items.map(function (x) { var st = step(x.k); if (x.r.p.t === 'p' && POSES[x.k][3] === 'time') st.v = Math.max(120, (x.r.p.min || 3) * 60); return st; }) };
+}
+var _routineById = null;
+function doneToday(k) { var d = dayIf(today()); return !!(d && d.yoga.some(function (y) { return (y.poses || []).indexOf(k) >= 0 || y.prana === k || (y.prana && P2Y[y.prana] === k); })); }
 ROUTES.yoga = function () {
-  var k = today(), mine = DB.routines || [], h = head('Yoga', yogaMin(k) + ' of ' + yogaGoal() + ' min today');
-  var p = pickFlow(), fav = mine.filter(function (r) { return r.fav; })[0], f = fav || routineById(p[0]);
-  h += '<section class="c dark"><div class="kick">' + (fav ? 'YOUR DAILY ROUTINE' : 'PICKED FOR NOW · ' + esc(p[1].toUpperCase())) + '</div><h2 class="w">' + esc(f.name) + ' · ' + Math.round(routineSec(f) / 60) + ' min</h2>' + (f.for ? '<p class="p dim">' + esc(f.for) + '</p>' : '<p class="p dim">' + f.steps.length + ' poses</p>') +
-    '<div class="g2 mt"><button class="btn mintb" data-act="startRoutine" data-id="' + f.id + '">' + icon('play', 18) + 'Start</button><button class="btn sec onDark" data-act="go" data-to="routine/' + f.id + '">' + (f.id.indexOf('b_') === 0 ? 'Customise' : 'Edit') + '</button></div></section>';
-  h += planTeaser();
-  var bt = (DB.days[k] && DB.days[k].yoga || []).filter(function (x) { return x.prana; }).reduce(function (a, x) { return a + x.sec; }, 0);
-  h += '<section class="c row g14" data-act="go" data-to="breaths"><span class="mic">' + icon('drop', 20) + '</span><div class="f1"><b class="m16">Pranayama</b><div class="l">Anulom Vilom, Bhramari, Kapalbhati and 9 more. Set inhale : hold : exhale and rounds.' + (bt ? ' Today ' + mmss(bt) + '.' : '') + '</div></div>' + icon('chev', 18) + '</section>';
-  h += '<div class="row sb"><h3 class="sech">My routines</h3><button class="lnk" data-act="newRoutine">+ Create routine</button></div>';
-  if (mine.length) h += mine.map(function (r) { return routineRow(r); }).join('');
-  else h += '<div class="empty-s">Make your own routine: pick poses, set time or rounds for each, and the order. Or open any routine below and tap Customise.</div>';
-  h += '<h3 class="sech">Ready-made</h3>' + FLOWS.map(function (r) { return routineRow(r); }).join('');
-  h += '<div class="g2"><button class="btn sec" data-act="logYoga">' + icon('plus', 18) + 'Log a session</button><button class="btn sec" data-act="go" data-to="poses">Pose library</button></div>';
-  /* month calendar */
-  var now = new Date(), y = now.getFullYear(), mo = now.getMonth(), first = new Date(y, mo, 1), n = new Date(y, mo + 1, 0).getDate(), cells = '', sessions = 0, streak = 0, total = 0;
-  for (var i = 0; i < (first.getDay() + 6) % 7; i++) cells += '<span></span>';
-  for (var dd = 1; dd <= n; dd++) {
-    var dk = dkey(new Date(y, mo, dd)), m = yogaMin(dk), cls = m >= yogaGoal() ? 'full' : m > 0 ? 'part' : '';
-    if (m) { sessions += dayIf(dk).yoga.filter(function (x) { return !x.kind || x.kind === 'yoga'; }).length; total += m; }
-    cells += '<span class="dt ' + cls + (dk === k ? ' today' : '') + '">' + dd + '</span>';
-  }
-  for (i = 0; i < 400; i++) { if (yogaMin(addDays(k, -i)) > 0) streak++; else if (i > 0) break; }
-  h += '<section class="c"><div class="row sb"><h2>' + MON[mo] + '</h2><span class="sm gtxt">' + (streak ? streak + '-day streak · ' : '') + sessions + ' sessions · ' + total + ' min</span></div><div class="cal"><span class="l">M</span><span class="l">T</span><span class="l">W</span><span class="l">T</span><span class="l">F</span><span class="l">S</span><span class="l">S</span>' + cells + '</div><div class="row sb mt"><span class="l">Dark = ' + yogaGoal() + ' min or more · light = less</span><button class="lnk" data-act="yogaGoalSet">Goal: ' + yogaGoal() + ' min</button></div></section>';
-  /* history */
+  var k = today(), h = head('Yoga & pranayama', yogaMin(k) + ' of ' + yogaGoal() + ' min today'), T = todaySessions();
+  var row = function (x) { var done = doneToday(x.k); return '<div class="trow' + (done ? ' done' : '') + '"><i>' + (done ? icon('check', 14) : '') + '</i><span>' + esc(pose(x.k).name) + '<small>' + esc(shortDose(x.r)) + '</small></span></div>'; };
+  var sess = function (slot, title, sub) {
+    var it = T.s[slot]; if (!it.length) return '';
+    var f = sessionFlow(slot), min = Math.round(routineSec(f) / 60);
+    return '<section class="c"><div class="row sb"><div><div class="l">' + sub + '</div><h2>' + title + ' · ' + min + ' min</h2></div><button class="btn sm" data-act="startToday" data-s="' + slot + '">' + icon('play', 16) + 'Start</button></div>' + it.map(row).join('') + '</section>';
+  };
+  h += sess('morning', 'Morning', 'BEFORE BREAKFAST') + sess('night', 'Bedtime', 'BEFORE SLEEP');
+  if (T.s.meal.length) h += '<div class="tip">' + icon('food', 16) + '<span>After lunch and dinner: <b>' + esc(pose(T.s.meal[0].k).name) + '</b>, 5–10 min.</span></div>';
+  h += '<button class="lnk" data-act="go" data-to="yplan">Why these? See your plan →</button>';
+  h += '<div class="g2"><button class="tilebtn" data-act="go" data-to="breaths">' + icon('drop', 22) + '<b>Pranayama</b><small>Breathing with a guide</small></button><button class="tilebtn" data-act="go" data-to="poses">' + icon('yoga', 22) + '<b>Poses</b><small>With how-to demos</small></button></div>';
+  /* this week */
+  var wk = ''; for (var i = 6; i >= 0; i--) { var dk = addDays(k, -i), m = yogaMin(dk); wk += '<div class="wd"><i style="background:' + (m >= yogaGoal() ? 'var(--g)' : m > 0 ? 'var(--g2)' : 'var(--track)') + '"></i><small>' + 'SMTWTFS'[fromKey(dk).getDay()] + '</small></div>'; }
+  h += '<section class="c"><div class="row sb"><h2>This week</h2><button class="lnk" data-act="logYoga">+ Log other exercise</button></div><div class="wk mt">' + wk + '</div></section>';
+  /* everything else, tucked away */
+  var mine = DB.routines || [];
+  h += '<details class="c"><summary class="lnk">My routines and ready-made flows</summary>' + (mine.length ? mine.map(routineRow).join('') : '') + FLOWS.map(routineRow).join('') + '<button class="btn sec mt" data-act="newRoutine">' + icon('plus', 18) + 'Create my own routine</button></details>';
   var hist = []; for (i = 0; i < 14; i++) { dk = addDays(k, -i); var dy = dayIf(dk); if (dy) dy.yoga.forEach(function (x, j) { hist.push([dk, j, x]); }); }
-  if (hist.length) h += '<section class="c"><h2>Recent sessions</h2>' + hist.slice(0, 10).map(function (x) { var s = x[2]; return '<button class="it" data-act="editSession" data-k="' + x[0] + '" data-i="' + x[1] + '"><span>' + esc(s.name || (s.flow === 'own' ? 'Yoga' : (routineById(s.flow) || {}).name || 'Yoga')) + '<small>' + niceDate(x[0]) + ', ' + hm(s.t) + (s.poses && s.poses.length ? ' · ' + s.poses.length + ' poses' : '') + (s.feel ? ' · felt ' + s.feel : '') + '</small></span><b>' + (s.sec ? mmss(s.sec) : s.min + ' min') + '<small class="l">' + (watchCovers(s) ? 'on watch' : sessionKcal(s) + ' kcal') + '</small></b></button>'; }).join('') + '</section>';
-  var rh = DB.health && DB.health.restingHr;
-  if (rh) { var yes = [], no = []; Object.keys(rh).forEach(function (d) { (yogaMin(addDays(d, -1)) > 0 ? yes : no).push(rh[d]); }); if (yes.length >= 3 && no.length >= 3) { var a = function (v) { return v.reduce(function (s, x) { return s + x; }, 0) / v.length; }, diff = Math.round(a(yes) - a(no)); h += '<section class="c row sb"><div><div class="l">Resting heart rate the day after yoga</div><b class="m18">' + (diff <= 0 ? '−' : '+') + Math.abs(diff) + ' bpm</b></div><div class="sm gtxt">From your watch</div></section>'; } }
+  if (hist.length) h += '<details class="c"><summary class="lnk">Recent sessions (' + hist.length + ')</summary>' + hist.slice(0, 10).map(function (x) { var s = x[2]; return '<button class="it" data-act="editSession" data-k="' + x[0] + '" data-i="' + x[1] + '"><span>' + esc(s.name || 'Yoga') + '<small>' + niceDate(x[0]) + ', ' + hm(s.t) + ' · ' + (s.min || 0) + ' min</small></span>' + icon('chev', 16) + '</button>'; }).join('') + '</details>';
   return h;
 };
+function shortDose(r) { var t = r.dose.txt.split(/[.(]/)[0]; return t.length > 46 ? t.slice(0, 44) + '…' : t; }
+ACT.startToday = function (el) { var f = sessionFlow(el.getAttribute('data-s')); TODAYFLOW[f.id] = f; PL = null; go('flow/' + f.id); };
+var TODAYFLOW = {};
 function routineRow(r) {
   return '<div class="rrow"><button class="rmain" data-act="go" data-to="routine/' + r.id + '"><span>' + (r.fav ? '★ ' : '') + esc(r.name) + '<small>' + Math.round(routineSec(r) / 60) + ' min · ' + r.steps.length + ' poses' + (r.for ? ' · ' + esc(r.for) : '') + '</small></span></button><button class="ib g" data-act="startRoutine" data-id="' + r.id + '" aria-label="Start ' + esc(r.name) + '">' + icon('play', 20) + '</button></div>';
 }

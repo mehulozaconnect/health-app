@@ -194,10 +194,9 @@ function planProgress() {
 
 /* ---------- screens ---------- */
 ROUTES.yplan = function () {
-  var P = makePlan(), X = P.X, h = head('Your plan', 'Yoga and pranayama for you');
-  h += '<section class="c dark"><div class="kick">' + icon('spark', 16) + 'BUILT FROM YOUR DATA</div>' +
-    (X.list.length ? '<p class="p15">' + X.list.map(function (c) { return esc(c.label); }).join(' · ') + '</p><div class="l">' + X.list.slice(0, 4).map(function (c) { return esc(c.ev[0] || ''); }).filter(Boolean).join('. ') + '.</div>'
-      : '<p class="p15">Your numbers look good. This plan keeps stress low and sleep deep.</p><div class="l">Log BP, sugar and food, and wear the watch at night, to make it more personal.</div>') + '</section>';
+  var P = makePlan(), X = P.X, h = head('Your plan', 'Chosen from your health data');
+  h += '<section class="c"><div class="l">PICKED FOR</div><p class="p15">' + (X.list.length ? X.list.map(function (c) { return esc(c.label); }).join(' · ') : 'Low stress and good sleep') + '</p>' +
+    (X.list.length ? '<details><summary class="lnk">What I looked at</summary>' + X.list.map(function (c) { return '<div class="l mt6">• ' + esc(c.ev.join('; ')) + '</div>'; }).join('') + '</details>' : '') + '</section>';
   /* the day, in order */
   var bySlot = {}; P.rec.forEach(function (r) { (bySlot[r.p.slot] = bySlot[r.p.slot] || []).push(r); });
   var tot = P.rec.reduce(function (a, r) { return a + r.p.min; }, 0);
@@ -206,7 +205,7 @@ ROUTES.yplan = function () {
     if (!bySlot[s]) return;
     h += '<section class="c"><div class="kick2">' + icon(s === 'night' ? 'moon' : s === 'meal' ? 'food' : 'bolt', 16) + SLOTS[s].toUpperCase() + '</div><div class="l">' + esc(slotTime(s, X)) + '</div>' + bySlot[s].map(function (r) { return practCard(r, X); }).join('') + '</section>';
   });
-  if (P.avoid.length) h += '<section class="c"><h2>Avoid for now</h2>' + P.avoid.map(function (a) { return '<div class="ins warn">' + icon('warn', 16) + '<span><b>' + esc(practName(a.p)) + '</b> — ' + esc(a.why) + '</span></div>'; }).join('') + '</section>';
+  if (P.avoid.length) h += '<details class="c"><summary class="lnk">Avoid for now: ' + esc(P.avoid.map(function (a) { return practName(a.p); }).join(', ')) + '</summary>' + P.avoid.map(function (a) { return '<p class="p"><b>' + esc(practName(a.p)) + ':</b> ' + esc(a.why) + '</p>'; }).join('') + '</details>';
   var pg = planProgress();
   if (pg) h += '<section class="c"><h2>Is it working?</h2><div class="l">Since your first pranayama on ' + niceDate(pg.first) + ' · ' + pg.sessions + ' sessions, ' + pg.mins + ' min</div>' +
     (pg.rows.length ? pg.rows.map(function (r) { var dlt = r[2] - r[1], good = r[4] ? dlt < 0 : dlt > 0; return '<div class="rd"><span>' + r[0] + '</span><b>' + r[1] + ' → ' + r[2] + ' ' + r[3] + ' <small class="' + (dlt === 0 ? 'l' : good ? 'gtxt' : 'warnt') + '">' + (dlt > 0 ? '+' : '') + dlt + '</small></b></div>'; }).join('') + (pg.days < 28 ? '<div class="l mt6">Early days: real changes usually show after 4–8 weeks of daily practice.</div>' : '')
@@ -223,8 +222,8 @@ function practCard(r, X) {
   if (why.length > 1) why = [why.slice(0, -1).join(', '), why[why.length - 1]];
   return '<div class="pcard"><div class="pfig" data-fig="' + (p.t === 'p' ? 'p:' : 'y:') + key + '"></div><div class="f1"><b class="m16">' + esc(nm) + '</b>' +
     (why.length ? '<div class="sm gtxt">For your ' + esc(why.join(' and ')) + '</div>' : '') +
-    '<p class="p">' + esc(p.why) + '</p><div class="rd"><span>How much</span><b>' + esc(r.dose.txt) + '</b></div><div class="rd"><span>What to expect</span><b>' + esc(p.expect) + '</b></div>' +
-    (p.caution ? '<div class="note warn mt6">' + esc(p.caution) + '</div>' : '') +
+    '<div class="sm mt6">' + esc(r.dose.txt) + '</div>' + (p.caution ? '<div class="l warnt">' + esc(p.caution) + '</div>' : '') +
+    '<details><summary class="lnk">Why it helps</summary><p class="p">' + esc(p.why) + '</p><p class="p"><b>What to expect:</b> ' + esc(p.expect) + '</p></details>' +
     (p.t === 'p' ? '<button class="btn sm mt6" data-act="planStart" data-k="' + p.k + '">' + icon('play', 16) + 'Start with these counts</button>' : '<button class="btn sm mt6" data-act="poseInfo" data-k="' + key + '">' + icon('play', 16) + 'See how</button>') + '</div></div>';
 }
 function planDemos() { document.querySelectorAll('.pfig').forEach(function (el) { var f = el.getAttribute('data-fig').split(':'); var fr = f[0] === 'p' ? PRANAFIG[PRANA_HANDS[f[1]] || 'gyan'] : (demoFrames(f[1]) || [])[1]; if (fr) el.innerHTML = figSvg(fr, 90, 80); }); }
@@ -236,9 +235,9 @@ ACT.planStart = function (el) {
 /* short "for you" note on any pranayama screen */
 function planNote(k) {
   var P = makePlan(), a = P.avoid.filter(function (x) { return x.p.t === 'p' && x.p.k === k; })[0];
-  if (a) return '<div class="ins warn">' + icon('warn', 16) + '<span><b>Avoid for now.</b> ' + esc(a.why) + '</span></div>';
+  if (a) return '<div class="tip warn">' + icon('warn', 16) + '<span><b>Avoid for now:</b> ' + esc(a.why.split('. ').slice(-1)[0].replace(/\.$/, '')) + '. <button class="lnk" data-act="go" data-to="yplan">Why?</button></span></div>';
   var r = P.rec.concat(P.more).filter(function (x) { return x.p.t === 'p' && x.p.k === k; })[0];
-  if (r && r.hits.length) return '<div class="ins good">' + icon('check', 16) + '<span><b>Good for you:</b> helps your ' + esc(r.hits.slice(0, 2).map(function (c) { return c.label.toLowerCase(); }).join(' and ')) + '. Suggested: ' + esc(r.dose.txt) + ' <button class="lnk" data-act="planStart" data-k="' + k + '">Use these counts</button></span></div>';
+  if (r && r.hits.length) return '<div class="tip">' + icon('check', 16) + '<span><b>Good for your ' + esc(r.hits.slice(0, 2).map(function (c) { return { bp: 'BP', sugar: 'sugar', sleep: 'sleep', stress: 'stress', digest: 'digestion', weight: 'weight' }[c.id] || c.label.toLowerCase(); }).join(' and ')) + '.</b> <button class="lnk" data-act="planStart" data-k="' + k + '">Use suggested counts</button></span></div>';
   return '';
 }
 function planTeaser() {

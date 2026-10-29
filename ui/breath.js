@@ -35,9 +35,11 @@ function mmss(s) { s = Math.max(0, Math.round(s)); var h = Math.floor(s / 3600),
 
 /* ---------- list ---------- */
 ROUTES.breaths = function () {
-  var h = head('Pranayama', 'Set your own counts and rounds') + planTeaser();
-  h += PRANA_ORDER.map(function (k) { var p = PRANA[k], c = pcfg(k); return '<button class="res" data-act="go" data-to="breath/' + k + '"><span>' + p[0] + ' <span class="l">(' + p[1] + ')</span><small>' + (c.fast ? c.rounds + ' rounds × ' + c.fast[1] + ' breaths' : c.r.join(' : ') + ' × ' + c.rounds) + ' · ' + mmss(pTotal(k, c)) + '</small></span>' + icon('chev', 18) + '</button>'; }).join('');
-  h += '<button class="btn sec" data-act="go" data-to="breathlog">Pranayama report</button>';
+  var h = head('Pranayama', 'Pick one, press Start'), P = makePlan(), rec = {}, av = {};
+  P.rec.forEach(function (r) { if (r.p.t === 'p') rec[r.p.k] = r; }); P.avoid.forEach(function (a) { if (a.p.t === 'p') av[a.p.k] = a; });
+  var order = PRANA_ORDER.slice().sort(function (a, b) { return (av[a] ? 2 : rec[a] ? 0 : 1) - (av[b] ? 2 : rec[b] ? 0 : 1) || ((rec[b] || {}).sc || 0) - ((rec[a] || {}).sc || 0); });
+  h += order.map(function (k) { var p = PRANA[k], c = pcfg(k); return '<button class="res' + (av[k] ? ' dim2' : '') + '" data-act="go" data-to="breath/' + k + '"><span>' + p[0] + (rec[k] && !av[k] ? ' <em class="badge">For you</em>' : '') + (av[k] ? ' <em class="badge off">Avoid for now</em>' : '') + '<small>' + esc(p[1]) + ' · ' + mmss(pTotal(k, c)) + '</small></span>' + icon('chev', 18) + '</button>'; }).join('');
+  h += '<button class="lnk" data-act="go" data-to="breathlog">See my pranayama history →</button>';
   return h;
 };
 
@@ -77,16 +79,15 @@ ROUTES.breath = function (k) {
     var sh = pshow(k), labs = sh.map(function (f) { return f === 'r3' && sh.indexOf('r1') >= 0 ? 'HOLD OUT' : PLAB[f]; });
     h += '<section class="c strip"><div class="sgrid" style="grid-template-columns:28px repeat(' + sh.length + ',minmax(0,1fr)) 28px 64px"><span></span>' + labs.map(function (l) { return '<span class="l">' + l + '</span>'; }).join('') + '<span></span><span class="l">ROUNDS</span>' +
       '<button class="sarr" data-act="bLevel" data-d="-1" aria-label="Shorter">‹</button>' + sh.map(function (f, i) { return cell(f, c.r[+f[1]], i < sh.length - 1); }).join('') + '<button class="sarr" data-act="bLevel" data-d="1" aria-label="Longer">›</button>' + cell('rounds', c.rounds) + '</div>' +
-      '<div class="l mt6 ctrtxt">Tap ▲ ▼ to change one count · ‹ › to make the whole breath shorter or longer</div></section>';
+      '</section>';
   }
   h += planNote(k);
-  h += '<section class="c ctrtxt"><div class="bfig' + (BP.run ? '' : ' idle') + '" id="bfig">' + breathFig(k, 0.6) + '</div><div class="orbwrap"><div id="orb" class="orb"></div><div class="orbtxt"><b id="bph">' + (BP.run ? '' : 'Ready') + '</b><span id="bsec"></span><span id="bnos" class="l"></span></div></div>' +
-    '<div id="bround" class="l mt">' + (c.fast ? c.rounds + ' rounds' : c.rounds + ' rounds') + '</div>' +
-    '<div class="clock"><span><b id="bel">' + mmss(BP.el) + '</b><small>done</small></span><span><b id="blf">' + mmss(tot - BP.el) + '</b><small>left</small></span><span><b>' + mmss(tot) + '</b><small>total</small></span></div></section>';
-  h += '<div class="g3"><button class="btn sec" data-act="bReset">Reset</button><button class="btn" data-act="bToggle" id="bgo">' + icon(BP.run ? 'pause' : 'play', 18) + (BP.run ? 'Pause' : 'Start') + '</button><button class="btn sec" data-act="bStop">Finish</button></div>';
+  h += '<section class="c ctrtxt bcard"><div class="bfig' + (BP.run ? '' : ' idle') + '" id="bfig">' + breathFig(k, 0.6) + '</div>' +
+    '<div class="bph"><b id="bph">' + (BP.run ? '' : 'Ready') + '</b> <span id="bsec"></span></div><div id="bnos" class="l"></div>' +
+    '<div class="l mt6"><span id="bround">' + c.rounds + ' rounds</span> · <span id="blf">' + mmss(tot - BP.el) + '</span> left<span id="bel" hidden></span></div>' +
+    '<button class="btn big mt" data-act="bToggle" id="bgo">' + icon(BP.run ? 'pause' : 'play', 20) + (BP.run ? 'Pause' : 'Start') + '</button>' +
+    '<div class="row sb mt6"><button class="lnk" data-act="bReset">Start over</button><button class="lnk" data-act="bStop">Finish and save</button></div></section>';
   h += '<details class="c"><summary class="lnk">How to do it</summary><p class="p">' + esc(p[8]) + '</p>' + (p[9] ? '<div class="note warn mt">' + esc(p[9]) + '</div>' : '') + '</details>';
-  var hist = breathHist(k).slice(0, 5);
-  if (hist.length) h += '<section class="c"><h2>Your last sessions</h2>' + hist.map(function (x) { return '<div class="rd"><span>' + niceDate(x.k) + ', ' + hm(x.s.t) + (x.s.ratio ? ' · ' + x.s.ratio : '') + '</span><b>' + mmss(x.s.sec) + '</b></div>'; }).join('') + '</section>';
   return h;
 };
 ROUTES.breath.after = function () { if (BP && BP.run) bPaint(); };
@@ -128,7 +129,7 @@ function bPaint() {
   var c = pcfg(BP.k), ph = phases(BP.k, c), t = BP.el, i = 0, acc = 0;
   while (i < ph.length && acc + ph[i].sec <= t) { acc += ph[i].sec; i++; }
   var g = ph[Math.min(i, ph.length - 1)], into = t - acc, left = Math.ceil(g.sec - into);
-  var orb = document.getElementById('orb'); if (!orb) return;
+  if (!document.getElementById('bph')) return; var orb = document.getElementById('orb') || { style: {} };
   var scale = g.ph === 'in' ? 0.45 + 0.55 * (into / g.sec) : g.ph === 'out' ? 1 - 0.55 * (into / g.sec) : g.ph === 'hold' ? 1 : g.ph === 'hold2' ? 0.45 : g.ph === 'fast' ? (Math.floor(into * g.bpm / 60 * 2) % 2 ? 0.7 : 0.85) : 0.6;
   orb.style.transform = 'scale(' + scale.toFixed(3) + ')';
   var fb = document.getElementById('fbreath'); if (fb) { fb.setAttribute('r', (+fb.getAttribute('data-r') * (0.35 + scale)).toFixed(1)); document.getElementById('bfig').className = 'bfig'; }

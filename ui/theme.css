@@ -85,3 +85,27 @@ html[data-dark] .ni.on svg{filter:drop-shadow(0 0 6px var(--g))}
 .pfig{width:90px;flex:none;border-radius:14px;background:var(--card2);padding:4px 0}
 .pcard .rd{flex-direction:column;gap:2px}.pcard .rd b{font-weight:600;font-size:13.5px}.pcard .rd span{font-size:12px;color:var(--mute);font-weight:700}
 .btn.sm{padding:0 14px}
+
+/* soft, light themes (default): muted colours, no glow */
+html[data-theme=mist],html[data-theme=lavender],html[data-theme=peach],html[data-theme=sky]{--card:#FFFFFF;--field:#fff;--on:#fff;--edge:rgba(20,30,25,.05);--shadow:0 1px 3px rgba(20,30,25,.05),0 4px 14px rgba(20,30,25,.04);--navbg:rgba(255,255,255,.96);--glow1:transparent;--glow2:transparent;--gshadow:transparent;--darkink:var(--ink);--darkmute:var(--mute);--darkacc:var(--g);--warn:#B9773D;--warnbg:#FAF1E8;--warntx:#86501F;--bad:#BF5450;--badbg:#FBEDEC;--w:#5B8CC0;--wbg:#EDF3FA;--pur:#7E70B5;--purbg:#F3F1FA}
+html[data-theme=mist]{--bg:#F3F6F4;--card2:#EFF4F1;--ink:#1F2B26;--mute:#6A7972;--line:#E5ECE8;--track:#E4EBE7;--g:#4E8B76;--g3:#86BBA8;--g2:#E3F0EA;--mint:#BFE2D3;--onmint:#2D5E4D;--dark:#E6F1EC;--grad:#4E8B76}
+html[data-theme=lavender]{--bg:#F5F4FA;--card2:#F1EFF8;--ink:#25223A;--mute:#726E88;--line:#E9E6F3;--track:#E8E5F2;--g:#7768AE;--g3:#A89BD6;--g2:#ECE9F7;--mint:#D6CFF0;--onmint:#4B3F86;--dark:#EEEBF8;--grad:#7768AE}
+html[data-theme=peach]{--bg:#FAF6F2;--card2:#F8F0EA;--ink:#2E241F;--mute:#7E6F66;--line:#F0E6DF;--track:#EFE5DD;--g:#C07A57;--g3:#DEA98C;--g2:#F7E9E0;--mint:#F2D3C2;--onmint:#7E4528;--dark:#F8EDE5;--grad:#C07A57}
+html[data-theme=sky]{--bg:#F2F6FA;--card2:#EEF3F9;--ink:#1D2633;--mute:#687587;--line:#E3EAF2;--track:#E2E9F1;--g:#4C7DB0;--g3:#8DB2D8;--g2:#E5EEF8;--mint:#C9DCF0;--onmint:#2B517C;--dark:#E8F0F9;--grad:#4C7DB0}
+html{--darkink:#fff;--darkmute:rgba(255,255,255,.72);--darkacc:#fff}
+.c.dark{color:var(--darkink)}.c.dark .l,.c.dark .dim,.c.dark .p.dim{color:var(--darkmute)}.c.dark .kick,.c.dark .lnk.mint{color:var(--darkacc)}
+.c.dark h2.w{color:var(--darkink)}
+html[data-theme=mist] .c.dark,html[data-theme=lavender] .c.dark,html[data-theme=peach] .c.dark,html[data-theme=sky] .c.dark{box-shadow:none;border:1px solid var(--edge)}
+html[data-theme=mist] .btn.mintb,html[data-theme=lavender] .btn.mintb,html[data-theme=peach] .btn.mintb,html[data-theme=sky] .btn.mintb{background:var(--g);color:#fff}
+html[data-theme=mist] .btn.sec.onDark,html[data-theme=lavender] .btn.sec.onDark,html[data-theme=peach] .btn.sec.onDark,html[data-theme=sky] .btn.sec.onDark{color:var(--g);box-shadow:inset 0 0 0 2px var(--g)}
+html:not([data-dark]) .bar>div{box-shadow:none}
+/* simple yoga screens */
+.trow{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line);font-weight:600;font-size:14.5px}.trow:first-of-type{margin-top:10px}
+.trow i{width:20px;height:20px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;color:#fff}.trow.done i{background:var(--g);border-color:var(--g)}.trow.done span{color:var(--mute);text-decoration:line-through}
+.trow small{display:block;color:var(--mute);font-size:12.5px;font-weight:600;margin-top:1px}
+.tip{display:flex;gap:8px;align-items:flex-start;background:var(--card2);border-radius:14px;padding:10px 12px;font-size:13.5px;line-height:1.45}.tip svg{flex:none;margin-top:2px;color:var(--g)}.tip.warn{background:var(--warnbg)}.tip.warn svg{color:var(--warn)}.tip .lnk{padding:0;font-size:13px}
+.tilebtn{display:flex;flex-direction:column;align-items:flex-start;gap:4px;border:1px solid var(--edge);background:var(--card);border-radius:18px;padding:14px;text-align:left;color:var(--ink);box-shadow:var(--shadow)}.tilebtn svg{color:var(--g)}.tilebtn b{font-size:15px}.tilebtn small{color:var(--mute);font-size:12px;font-weight:600}
+.badge{font-style:normal;font-size:11px;font-weight:800;color:var(--onmint);background:var(--g2);padding:2px 7px;border-radius:6px;margin-left:6px;vertical-align:2px}.badge.off{color:var(--warntx);background:var(--warnbg)}
+.res.dim2{opacity:.7}
+.bcard .bph{font-size:26px;font-weight:800;margin-top:4px}.bcard .bph span{color:var(--g)}
+.thm h3{grid-column:1/-1;margin:6px 0 0}

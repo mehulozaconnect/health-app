@@ -126,7 +126,7 @@ function demoStart(key, H) {
   var step = function (now) {
     if (DEMO.id !== id) return;
     if (!document.getElementById('demo')) { DEMO.alive = false; DEMO.key = ''; return; }
-    var per = move + hold, n = seq.length - 1, el2 = (now - t0) % (per * n + 900), i = Math.min(n - 1, Math.floor(el2 / per)), into = el2 - i * per, k = Math.min(1, into / move);
+    var per = move + hold, n = seq.length - 1, el2 = Math.max(0, now - t0) % (per * n + 900), i = Math.min(n - 1, Math.floor(el2 / per)), into = el2 - i * per, k = Math.min(1, into / move);
     if (el2 >= per * n) { i = n - 1; k = 1; }
     k = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
     document.getElementById('demo').innerHTML = figSvg(figMix(seq[i], seq[i + 1], k), 240, H || 180);
