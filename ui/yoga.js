@@ -115,7 +115,7 @@ ROUTES.yoga = function () {
   h += '<section class="c"><div class="row sb"><h2>' + MON[mo] + '</h2><span class="sm gtxt">' + (streak ? streak + '-day streak · ' : '') + sessions + ' sessions · ' + total + ' min</span></div><div class="cal"><span class="l">M</span><span class="l">T</span><span class="l">W</span><span class="l">T</span><span class="l">F</span><span class="l">S</span><span class="l">S</span>' + cells + '</div><div class="row sb mt"><span class="l">Dark = ' + yogaGoal() + ' min or more · light = less</span><button class="lnk" data-act="yogaGoalSet">Goal: ' + yogaGoal() + ' min</button></div></section>';
   /* history */
   var hist = []; for (i = 0; i < 14; i++) { dk = addDays(k, -i); var dy = dayIf(dk); if (dy) dy.yoga.forEach(function (x, j) { hist.push([dk, j, x]); }); }
-  if (hist.length) h += '<section class="c"><h2>Recent sessions</h2>' + hist.slice(0, 10).map(function (x) { var s = x[2]; return '<button class="it" data-act="editSession" data-k="' + x[0] + '" data-i="' + x[1] + '"><span>' + esc(s.name || (s.flow === 'own' ? 'Yoga' : (routineById(s.flow) || {}).name || 'Yoga')) + '<small>' + niceDate(x[0]) + ', ' + hm(s.t) + (s.poses && s.poses.length ? ' · ' + s.poses.length + ' poses' : '') + (s.feel ? ' · felt ' + s.feel : '') + '</small></span><b>' + s.min + ' min</b></button>'; }).join('') + '</section>';
+  if (hist.length) h += '<section class="c"><h2>Recent sessions</h2>' + hist.slice(0, 10).map(function (x) { var s = x[2]; return '<button class="it" data-act="editSession" data-k="' + x[0] + '" data-i="' + x[1] + '"><span>' + esc(s.name || (s.flow === 'own' ? 'Yoga' : (routineById(s.flow) || {}).name || 'Yoga')) + '<small>' + niceDate(x[0]) + ', ' + hm(s.t) + (s.poses && s.poses.length ? ' · ' + s.poses.length + ' poses' : '') + (s.feel ? ' · felt ' + s.feel : '') + '</small></span><b>' + (s.sec ? mmss(s.sec) : s.min + ' min') + '<small class="l">' + (watchCovers(s) ? 'on watch' : sessionKcal(s) + ' kcal') + '</small></b></button>'; }).join('') + '</section>';
   var rh = DB.health && DB.health.restingHr;
   if (rh) { var yes = [], no = []; Object.keys(rh).forEach(function (d) { (yogaMin(addDays(d, -1)) > 0 ? yes : no).push(rh[d]); }); if (yes.length >= 3 && no.length >= 3) { var a = function (v) { return v.reduce(function (s, x) { return s + x; }, 0) / v.length; }, diff = Math.round(a(yes) - a(no)); h += '<section class="c row sb"><div><div class="l">Resting heart rate the day after yoga</div><b class="m18">' + (diff <= 0 ? '−' : '+') + Math.abs(diff) + ' bpm</b></div><div class="sm gtxt">From your watch</div></section>'; } }
   return h;
@@ -269,7 +269,7 @@ ACT.lgSave = function () {
   if (r) { rec.flow = r.id; rec.name = r.name; rec.poses = r.steps.filter(function (s, i) { return LG.poses[i] !== false; }).map(function (s) { return s.k; }); }
   else rec.name = LG.kind === 'yoga' ? 'Yoga' : (LG.name || KINDS.filter(function (k) { return k[0] === LG.kind; })[0][1]);
   if (EDS) { var d = day(EDS.k); rec.t = d.yoga[EDS.i].t; d.yoga[EDS.i] = rec; EDS = null; } else day(today()).yoga.push(rec);
-  save(); sheet(null); rerender(); toast('Saved ' + rec.min + ' min');
+  save(); sheet(null); rerender(); toast('Saved ' + rec.min + ' min · ' + sessionKcal(rec) + ' kcal burned');
 };
 var EDS = null;
 ACT.editSession = function (el) {
@@ -333,7 +333,7 @@ function plFinish() {
   var did = Object.keys(PL.did);
   day(today()).yoga.push({ t: Date.now(), min: mins, kind: 'yoga', flow: PL.id, name: r ? r.name : 'Yoga', poses: did });
   save(); plSay('Well done. ' + (r ? r.name : 'Session') + ' complete.');
-  PL = null; toast('Logged ' + mins + ' min of yoga'); go('yoga');
+  var last = day(today()).yoga[day(today()).yoga.length - 1]; PL = null; toast('Logged ' + mins + ' min · ' + sessionKcal(last) + ' kcal burned'); go('yoga');
 }
 ACT.plToggle = function () {
   PL.run = !PL.run;

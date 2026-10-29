@@ -127,7 +127,7 @@ function bPaint() {
 function bLog() {
   var c = pcfg(BP.k), p = PRANA[BP.k], sec = Math.round(BP.el);
   day(today()).yoga.push({ t: Date.now(), min: Math.round(sec / 6) / 10, sec: sec, kind: 'yoga', prana: BP.k, name: p[0], ratio: c.fast ? c.rounds + '×' + c.fast[1] : c.r.filter(function (x, i) { return x || i % 2 === 0; }).join(':') + ' ×' + Math.round(sec / Math.max(1, pTotal(BP.k, c)) * c.rounds) });
-  save(); toast('Saved ' + p[0] + ' · ' + mmss(sec)); BP.el = 0; BP.i = 0; rerender();
+  save(); toast('Saved ' + p[0] + ' · ' + mmss(sec) + ' · ' + sessionKcal(day(today()).yoga[day(today()).yoga.length - 1]) + ' kcal'); BP.el = 0; BP.i = 0; rerender();
 }
 function breathHist(k) {
   var out = []; Object.keys(DB.days).sort().reverse().forEach(function (dk) { (DB.days[dk].yoga || []).slice().reverse().forEach(function (s) { if (s.prana && (!k || s.prana === k)) out.push({ k: dk, s: s }); }); });

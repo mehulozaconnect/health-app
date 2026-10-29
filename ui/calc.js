@@ -56,7 +56,19 @@ function suggestedBudget() {
   return Math.max(p.sex === 'f' ? 1200 : 1500, b);
 }
 function baseBudget() { return DB.profile.budget > 0 ? +DB.profile.budget : suggestedBudget(); }
-function earnedKcal(k) { var h = DB.health; if (!h || !h.activeKcal) return 0; return Math.round(h.activeKcal[k] || 0); }
+/* calories burned: watch active calories + sessions logged in Arogya that the watch did not record as a workout */
+var MET = { yoga: 2.5, prana: 1.5, walk: 3.5, gym: 5, cycle: 6, swim: 7, sport: 6, other: 4 };
+function sessionKcal(s) {
+  var kg = lastWeight() || DB.profile.weight || 70, met = s.prana ? MET.prana : (MET[s.kind || 'yoga'] || 3), hrs = (s.sec ? s.sec / 3600 : (s.min || 0) / 60);
+  return Math.max(0, Math.round((met - 1) * kg * hrs));
+}
+function watchCovers(s) {
+  var ex = (DB.health && DB.health.exercise) || [], end = s.t, start = s.t - (s.sec ? s.sec * 1000 : (s.min || 0) * 60000);
+  return ex.some(function (e) { return e.start < end + 10 * 60000 && e.end > start - 10 * 60000; });
+}
+function loggedKcal(k) { var d = dayIf(k); if (!d) return 0; return (d.yoga || []).reduce(function (a, s) { return a + (watchCovers(s) ? 0 : sessionKcal(s)); }, 0); }
+function watchKcal(k) { var h = DB.health; return h && h.activeKcal ? Math.round(h.activeKcal[k] || 0) : 0; }
+function earnedKcal(k) { return watchKcal(k) + loggedKcal(k); }
 function budgetFor(k) {
   var d = dayIf(k), carry = d && d.carry ? d.carry : 0;
   var base = baseBudget(), earned = earnedKcal(k);
