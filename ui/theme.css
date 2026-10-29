@@ -74,3 +74,14 @@ html[data-dark] .ni.on svg{filter:drop-shadow(0 0 6px var(--g))}
 .thb small{font-weight:600;font-size:12px;opacity:.85}
 .thb.on{outline:3px solid var(--g);outline-offset:2px}
 .thb i{display:flex;gap:4px}.thb i b{width:16px;height:16px;border-radius:50%;display:block}
+
+.demo{display:flex;justify-content:center;margin:6px auto 0;max-width:300px;filter:drop-shadow(0 6px 18px var(--gshadow))}
+.bfig{max-width:240px;margin:0 auto}
+.bfig.idle #fbreath{animation:bre 8s ease-in-out infinite;transform-origin:center;transform-box:fill-box}
+@keyframes bre{0%,100%{transform:scale(.6)}45%,55%{transform:scale(1.25)}}
+
+.kick2{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--g);margin-bottom:2px}
+.pcard{display:flex;gap:12px;padding:14px 0 4px;border-top:1px solid var(--line);margin-top:10px}.pcard:first-of-type{border-top:0}
+.pfig{width:90px;flex:none;border-radius:14px;background:var(--card2);padding:4px 0}
+.pcard .rd{flex-direction:column;gap:2px}.pcard .rd b{font-weight:600;font-size:13.5px}.pcard .rd span{font-size:12px;color:var(--mute);font-weight:700}
+.btn.sm{padding:0 14px}

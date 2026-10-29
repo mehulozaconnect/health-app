@@ -174,3 +174,10 @@ details.c summary{font-weight:800}
 .wk{display:flex;justify-content:space-between}.wd{display:flex;flex-direction:column;align-items:center;gap:4px}.wd i{width:26px;height:26px;border-radius:50%}.wd small{color:var(--mute);font-weight:700;font-size:12px}
 .chips.c7{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.btn.sm0{width:auto;margin:0;padding:0 14px;height:48px;align-self:flex-end}
 .live.stale{background:#FFF1E6;color:#A4501B}.live.stale i{background:var(--warn);animation:none}
+
+.strip{padding:12px 10px}.sgrid{display:grid;align-items:center;justify-items:center;gap:2px 0;text-align:center}.sgrid.s4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.sgrid .l{font-size:11px;letter-spacing:.05em;font-weight:800}
+.scell{display:flex;flex-direction:column;align-items:center;position:relative;width:100%}.scell b{font-size:34px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.scell.colon:after{content:':';position:absolute;right:-3px;top:50%;transform:translateY(-55%);font-size:26px;font-weight:800;color:var(--mute)}
+.sup{border:0;background:none;color:var(--g);font-size:13px;padding:4px 10px;line-height:1}
+.sarr{border:0;background:var(--g2);color:var(--g);width:28px;height:44px;border-radius:10px;font-size:26px;font-weight:800;line-height:1;padding:0}

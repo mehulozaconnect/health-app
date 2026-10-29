@@ -99,6 +99,7 @@ ROUTES.yoga = function () {
   var p = pickFlow(), fav = mine.filter(function (r) { return r.fav; })[0], f = fav || routineById(p[0]);
   h += '<section class="c dark"><div class="kick">' + (fav ? 'YOUR DAILY ROUTINE' : 'PICKED FOR NOW · ' + esc(p[1].toUpperCase())) + '</div><h2 class="w">' + esc(f.name) + ' · ' + Math.round(routineSec(f) / 60) + ' min</h2>' + (f.for ? '<p class="p dim">' + esc(f.for) + '</p>' : '<p class="p dim">' + f.steps.length + ' poses</p>') +
     '<div class="g2 mt"><button class="btn mintb" data-act="startRoutine" data-id="' + f.id + '">' + icon('play', 18) + 'Start</button><button class="btn sec onDark" data-act="go" data-to="routine/' + f.id + '">' + (f.id.indexOf('b_') === 0 ? 'Customise' : 'Edit') + '</button></div></section>';
+  h += planTeaser();
   var bt = (DB.days[k] && DB.days[k].yoga || []).filter(function (x) { return x.prana; }).reduce(function (a, x) { return a + x.sec; }, 0);
   h += '<section class="c row g14" data-act="go" data-to="breaths"><span class="mic">' + icon('drop', 20) + '</span><div class="f1"><b class="m16">Pranayama</b><div class="l">Anulom Vilom, Bhramari, Kapalbhati and 9 more. Set inhale : hold : exhale and rounds.' + (bt ? ' Today ' + mmss(bt) + '.' : '') + '</div></div>' + icon('chev', 18) + '</section>';
   h += '<div class="row sb"><h3 class="sech">My routines</h3><button class="lnk" data-act="newRoutine">+ Create routine</button></div>';
@@ -240,8 +241,9 @@ ROUTES.poses = function () {
 INP.pq2 = function (el) { PQ = el.value; document.getElementById('pres2').innerHTML = poseList('poseInfo'); };
 ACT.poseInfo = function (el) {
   var k = el.getAttribute('data-k'), p = pose(k), mine = k.indexOf('c_') === 0;
-  sheet('<h2>' + esc(p.name) + '</h2><div class="l">' + (p.aka ? esc(p.aka) + ' · ' : '') + esc(p.cat) + ' · ' + (p.mode === 'reps' ? p.def + ' rounds' : secTxt(p.def)) + (p.sides ? ' each side' : '') + '</div>' + (p.cue ? '<p class="p">' + esc(p.cue) + '</p>' : '') + (p.caution ? '<div class="note warn mt">' + esc(p.caution) + '</div>' : '') +
+  sheet('<h2>' + esc(p.name) + '</h2><div class="l">' + (p.aka ? esc(p.aka) + ' · ' : '') + esc(p.cat) + ' · ' + (p.mode === 'reps' ? p.def + ' rounds' : secTxt(p.def)) + (p.sides ? ' each side' : '') + '</div>' + demoHtml(k, 180) + (p.cue ? '<p class="p">' + esc(p.cue) + '</p>' : '') + (p.caution ? '<div class="note warn mt">' + esc(p.caution) + '</div>' : '') +
     (mine ? '<button class="btn sec mt" data-act="editMyPose" data-k="' + k + '">' + icon('edit', 18) + 'Edit</button>' : '') + '<button class="btn mt" data-act="closeSheet">OK</button>');
+  setTimeout(function () { DEMO.alive = false; demoStart(k, 180); }, 30);
 };
 
 /* ---------- log a session (yoga or any exercise) ---------- */
@@ -297,6 +299,7 @@ function segments(r) {
 }
 function segSay(g) { if (g.rest) return; plSay(g.name + (g.side ? ', ' + g.side : '') + '. ' + (g.mode === 'reps' ? g.v + ' rounds. ' : '') + (g.cue || '')); }
 ROUTES.flow = function (id) {
+  setTimeout(function () { var g = PL && PL.segs[PL.i]; if (g && !g.rest) demoStart(g.k, 170); }, 0);
   var r = routineById(id); if (!r) return head('Routine') + '<div class="empty-s">Not found.</div>';
   if (!PL || PL.id !== r.id) { var sg = segments(r); PL = { id: r.id, segs: sg, i: 0, left: sg[0].sec, rep: 1, run: false, done: 0, t: 0, did: {} }; }
   var g = PL.segs[PL.i], total = PL.segs.reduce(function (a, x) { return a + x.sec; }, 0), doneSec = PL.segs.slice(0, PL.i).reduce(function (a, x) { return a + x.sec; }, 0) + (g.sec - PL.left);
@@ -307,7 +310,7 @@ ROUTES.flow = function (id) {
   if (g.rest) h += '<section class="c ctrtxt player"><div class="l">REST</div><h1 class="big">Breathe</h1><div class="ringc">' + ring((1 - PL.left / g.sec) * 100, 200, 14, 'var(--w)', '<text x="100" y="112" text-anchor="middle" class="rt0">' + clock + '</text>') + '</div>' + (nx ? '<p class="p">Next: <b>' + esc(nx.name) + (nx.side ? ' (' + nx.side + ')' : '') + '</b></p>' : '') + '</section>';
   else {
     var repNow = g.mode === 'reps' ? Math.min(g.v, Math.floor((g.sec - PL.left) / g.repSec) + 1) : 0;
-    h += '<section class="c ctrtxt player"><div class="l">' + esc(g.aka) + (g.side ? ' · ' + g.side.toUpperCase() : '') + '</div><h1 class="big">' + esc(g.name) + '</h1><div class="ringc">' + ring((1 - PL.left / g.sec) * 100, 200, 14, 'var(--g)', '<text x="100" y="' + (g.mode === 'reps' ? 100 : 112) + '" text-anchor="middle" class="rt0">' + clock + '</text>' + (g.mode === 'reps' ? '<text x="100" y="132" text-anchor="middle" class="rt2">round ' + repNow + ' of ' + g.v + '</text>' : '')) + '</div><p class="p">' + esc(g.cue) + '</p>' + (g.caution ? '<div class="note warn mt">' + esc(g.caution) + '</div>' : '') + '</section>';
+    h += '<section class="c ctrtxt player"><div class="l">' + esc(g.aka) + (g.side ? ' · ' + g.side.toUpperCase() : '') + '</div><h1 class="big">' + esc(g.name) + '</h1>' + demoHtml(g.k, 170) + '<div class="ringc">' + ring((1 - PL.left / g.sec) * 100, 150, 12, 'var(--g)', '<text x="75" y="' + (g.mode === 'reps' ? 78 : 88) + '" text-anchor="middle" class="rt1">' + clock + '</text>' + (g.mode === 'reps' ? '<text x="75" y="102" text-anchor="middle" class="rt2">round ' + repNow + ' of ' + g.v + '</text>' : '')) + '</div><p class="p">' + esc(g.cue) + '</p>' + (g.caution ? '<div class="note warn mt">' + esc(g.caution) + '</div>' : '') + '</section>';
   }
   h += '<div class="g3"><button class="btn sec" data-act="plPrev" aria-label="Previous">Back</button><button class="btn" data-act="plToggle">' + icon(PL.run ? 'pause' : 'play', 18) + (PL.run ? 'Pause' : 'Start') + '</button><button class="btn sec" data-act="plNext">' + (g.rest ? 'Skip rest' : 'Next') + '</button></div>';
   h += '<div class="g2"><button class="btn sec" data-act="plMore" data-d="30">+30 s</button><button class="btn sec" data-act="plEnd">Finish now</button></div>';

@@ -7,7 +7,7 @@ var PRANA = {
   sheetali: ['Sheetali', 'Cooling', 4, 2, 6, 0, 12, '', 'Roll the tongue like a tube, breathe in through it, close the mouth and breathe out through the nose.', 'Skip in cold weather or with a cough.'],
   udgeeth: ['Udgeeth', 'Chanting breath (Om)', 4, 0, 12, 0, 7, '', 'Breathe in deep. On the out-breath chant a long Oooo-mmm, the mmm longer than the ooo.', ''],
   ujjayi: ['Ujjayi', 'Ocean breath', 5, 0, 7, 0, 15, '', 'Breathe through the nose with the throat slightly closed, making a soft ocean sound in and out.', ''],
-  bahya: ['Bahya', 'External kumbhak', 4, 0, 6, 8, 5, '', 'Breathe out fully, then hold the breath out with chin lock, belly pulled in and up. Release and breathe in gently.', 'Skip with high BP, heart trouble, on a full stomach or in pregnancy.'],
+  bahya: ['Bahya', 'External kumbhak', 9, 0, 9, 6, 5, '', 'Breathe out fully, then hold the breath out with chin lock, belly pulled in and up. Release and breathe in gently.', 'Skip with high BP, heart trouble, on a full stomach or in pregnancy.'],
   bhramari: ['Bhramari', 'Humming bee breath', 4, 0, 8, 0, 7, '', 'Thumbs close the ears, fingers over the eyes. Breathe in, and hum like a bee all the way out.', ''],
   meditative: ['Meditative breathing', '4 : 7 : 8', 4, 7, 8, 0, 8, '', 'In through the nose for 4, hold for 7, out through the mouth with a whoosh for 8. Calms the mind before sleep.', 'Feeling dizzy? Shorten the hold.'],
   surya: ['Surya Bhedana', 'Right nostril (warming)', 5, 2, 6, 0, 12, 'R', 'Breathe in only through the right nostril, out only through the left.', 'Skip with high BP or acidity.'],
@@ -16,6 +16,10 @@ var PRANA = {
   kapal: ['Kapalbhati', 'Skull purification (fast)', 0, 0, 0, 0, 3, '', 'Short, sharp breaths out through the nose by snapping the belly in. Breathing in happens by itself.', 'Skip with high BP, heart trouble, hernia or pregnancy.', [60, 30, 30]],
   bhastrika: ['Bhastrika', 'Bellows (fast)', 0, 0, 0, 0, 3, '', 'Deep, strong breaths in and out through the nose at an even pace.', 'Skip with high BP or heart trouble.', [30, 20, 30]]
 };
+/* which counts each pranayama uses, in the order you set them: r0 inhale, r1 hold (breath in), r2 exhale, r3 hold (breath out) */
+var PSHOW = { anulom: ['r0', 'r1', 'r2', 'r3'], box: ['r0', 'r1', 'r2', 'r3'], bahya: ['r0', 'r2', 'r3'], meditative: ['r0', 'r1', 'r2'], surya: ['r0', 'r1', 'r2'], chandra: ['r0', 'r1', 'r2'] };
+var PLAB = { r0: 'INHALE', r1: 'HOLD', r2: 'EXHALE', r3: 'HOLD' };
+function pshow(k) { return PSHOW[k] || ['r0', 'r1', 'r2']; }
 var PRANA_ORDER = ['anulom', 'sheetali', 'udgeeth', 'ujjayi', 'bahya', 'bhastrika', 'bhramari', 'meditative', 'kapal', 'surya', 'chandra', 'box'];
 function pcfg(k) {
   var p = PRANA[k], s = (DB.breath || {})[k] || {};
@@ -31,7 +35,7 @@ function mmss(s) { s = Math.max(0, Math.round(s)); var h = Math.floor(s / 3600),
 
 /* ---------- list ---------- */
 ROUTES.breaths = function () {
-  var h = head('Pranayama', 'Set your own counts and rounds');
+  var h = head('Pranayama', 'Set your own counts and rounds') + planTeaser();
   h += PRANA_ORDER.map(function (k) { var p = PRANA[k], c = pcfg(k); return '<button class="res" data-act="go" data-to="breath/' + k + '"><span>' + p[0] + ' <span class="l">(' + p[1] + ')</span><small>' + (c.fast ? c.rounds + ' rounds × ' + c.fast[1] + ' breaths' : c.r.join(' : ') + ' × ' + c.rounds) + ' · ' + mmss(pTotal(k, c)) + '</small></span>' + icon('chev', 18) + '</button>'; }).join('');
   h += '<button class="btn sec" data-act="go" data-to="breathlog">Pranayama report</button>';
   return h;
@@ -67,14 +71,16 @@ ROUTES.breath = function (k) {
   var c = pcfg(k), tot = pTotal(k, c);
   var h = head(p[0], p[1]);
   if (c.fast) {
-    h += '<section class="c"><div class="ratio r4"><span class="l">BREATHS / MIN</span><span class="l">PER ROUND</span><span class="l">REST (s)</span><span class="l">ROUNDS</span>' +
-      ['f0', 'f1', 'f2', 'rounds'].map(function (key, j) { var v = key === 'rounds' ? c.rounds : c.fast[j]; return '<div class="rc"><button class="rb" data-act="bAdj" data-f="' + key + '" data-d="1" aria-label="More">+</button><b>' + v + '</b><button class="rb" data-act="bAdj" data-f="' + key + '" data-d="-1" aria-label="Less">−</button></div>'; }).join('') + '</div></section>';
+    h += '<section class="c strip"><div class="sgrid s4">' + ['BREATHS/MIN', 'PER ROUND', 'REST (S)', 'ROUNDS'].map(function (l) { return '<span class="l">' + l + '</span>'; }).join('') +
+      ['f0', 'f1', 'f2', 'rounds'].map(function (key, j) { var v = key === 'rounds' ? c.rounds : c.fast[j]; return cell(key, v); }).join('') + '</div></section>';
   } else {
-    h += '<section class="c"><div class="ratio r5"><span class="l">INHALE</span><span class="l">HOLD</span><span class="l">EXHALE</span><span class="l">HOLD</span><span class="l">ROUNDS</span>' +
-      ['r0', 'r1', 'r2', 'r3', 'rounds'].map(function (key, j) { var v = key === 'rounds' ? c.rounds : c.r[j]; return '<div class="rc"><button class="rb" data-act="bAdj" data-f="' + key + '" data-d="1" aria-label="More">+</button><b>' + v + '</b><button class="rb" data-act="bAdj" data-f="' + key + '" data-d="-1" aria-label="Less">−</button></div>'; }).join('') + '</div>' +
-      '<div class="chips nm mt">' + [[4, 0, 4, 0], [4, 2, 6, 0], [6, 2, 6, 2], [4, 7, 8, 0], [4, 4, 4, 4], [4, 16, 8, 0]].map(function (r) { var on = r.join() === c.r.join(); return '<button class="chip' + (on ? ' dk' : '') + '" data-act="bRatio" data-r="' + r.join(',') + '">' + r.filter(function (x, i) { return x || i % 2 === 0; }).join(':') + '</button>'; }).join('') + '</div></section>';
+    var sh = pshow(k), labs = sh.map(function (f) { return f === 'r3' && sh.indexOf('r1') >= 0 ? 'HOLD OUT' : PLAB[f]; });
+    h += '<section class="c strip"><div class="sgrid" style="grid-template-columns:28px repeat(' + sh.length + ',minmax(0,1fr)) 28px 64px"><span></span>' + labs.map(function (l) { return '<span class="l">' + l + '</span>'; }).join('') + '<span></span><span class="l">ROUNDS</span>' +
+      '<button class="sarr" data-act="bLevel" data-d="-1" aria-label="Shorter">‹</button>' + sh.map(function (f, i) { return cell(f, c.r[+f[1]], i < sh.length - 1); }).join('') + '<button class="sarr" data-act="bLevel" data-d="1" aria-label="Longer">›</button>' + cell('rounds', c.rounds) + '</div>' +
+      '<div class="l mt6 ctrtxt">Tap ▲ ▼ to change one count · ‹ › to make the whole breath shorter or longer</div></section>';
   }
-  h += '<section class="c ctrtxt"><div class="orbwrap"><div id="orb" class="orb"></div><div class="orbtxt"><b id="bph">' + (BP.run ? '' : 'Ready') + '</b><span id="bsec"></span><span id="bnos" class="l"></span></div></div>' +
+  h += planNote(k);
+  h += '<section class="c ctrtxt"><div class="bfig' + (BP.run ? '' : ' idle') + '" id="bfig">' + breathFig(k, 0.6) + '</div><div class="orbwrap"><div id="orb" class="orb"></div><div class="orbtxt"><b id="bph">' + (BP.run ? '' : 'Ready') + '</b><span id="bsec"></span><span id="bnos" class="l"></span></div></div>' +
     '<div id="bround" class="l mt">' + (c.fast ? c.rounds + ' rounds' : c.rounds + ' rounds') + '</div>' +
     '<div class="clock"><span><b id="bel">' + mmss(BP.el) + '</b><small>done</small></span><span><b id="blf">' + mmss(tot - BP.el) + '</b><small>left</small></span><span><b>' + mmss(tot) + '</b><small>total</small></span></div></section>';
   h += '<div class="g3"><button class="btn sec" data-act="bReset">Reset</button><button class="btn" data-act="bToggle" id="bgo">' + icon(BP.run ? 'pause' : 'play', 18) + (BP.run ? 'Pause' : 'Start') + '</button><button class="btn sec" data-act="bStop">Finish</button></div>';
@@ -84,6 +90,15 @@ ROUTES.breath = function (k) {
   return h;
 };
 ROUTES.breath.after = function () { if (BP && BP.run) bPaint(); };
+function cell(f, v, colon) { return '<div class="scell' + (colon ? ' colon' : '') + '"><button class="sup" data-act="bAdj" data-f="' + f + '" data-d="1" aria-label="More">▲</button><b>' + v + '</b><button class="sup" data-act="bAdj" data-f="' + f + '" data-d="-1" aria-label="Less">▼</button></div>'; }
+/* ‹ › : the whole ratio gets one step shorter or longer, keeping its shape (9:9:6 → 10:10:7) */
+ACT.bLevel = function (el) {
+  if (BP.run) return toast('Pause first to change counts');
+  var c = pcfg(BP.k), d = +el.getAttribute('data-d'), base = c.r[0] || 1, f = (base + d) / base;
+  if (base + d < 1) return;
+  c.r = c.r.map(function (x, i) { return x ? Math.max(1, Math.round(x * f)) : 0; }); c.r[0] = base + d;
+  bSave(c); BP.el = 0; BP.i = 0; rerender();
+};
 function bSave(c) { DB.breath = DB.breath || {}; DB.breath[BP.k] = { r: c.r, rounds: c.rounds, fast: c.fast }; save(); }
 ACT.bAdj = function (el) {
   if (BP.run) return toast('Pause first to change counts');
@@ -116,6 +131,7 @@ function bPaint() {
   var orb = document.getElementById('orb'); if (!orb) return;
   var scale = g.ph === 'in' ? 0.45 + 0.55 * (into / g.sec) : g.ph === 'out' ? 1 - 0.55 * (into / g.sec) : g.ph === 'hold' ? 1 : g.ph === 'hold2' ? 0.45 : g.ph === 'fast' ? (Math.floor(into * g.bpm / 60 * 2) % 2 ? 0.7 : 0.85) : 0.6;
   orb.style.transform = 'scale(' + scale.toFixed(3) + ')';
+  var fb = document.getElementById('fbreath'); if (fb) { fb.setAttribute('r', (+fb.getAttribute('data-r') * (0.35 + scale)).toFixed(1)); document.getElementById('bfig').className = 'bfig'; }
   orb.className = 'orb ' + g.ph;
   document.getElementById('bph').textContent = PHL[g.ph] + (g.ph === 'fast' ? ' · ' + Math.min(g.n, Math.floor(into * g.bpm / 60) + 1) + '/' + g.n : '');
   document.getElementById('bsec').textContent = g.ph === 'fast' ? '' : left;

@@ -199,6 +199,7 @@ function coachRules(k) {
   out.plan.push('Dinner by 8:45 pm' + (left > 0 && left < 900 ? ', about ' + n0(Math.min(left, 600)) + ' kcal' : '') + ', then a 15-minute walk.');
   if (sl && (sl.asleep < 420 || sl.m.deep / sl.staged < 0.13)) out.plan.push('Phone down by 10:45, in bed by 11:15. 5 minutes of Bhramari before sleep.');
   var w = DB.settings.water; out.plan.push('Water: ' + (w.goal / 1000).toFixed(1) + ' L — a glass every hour till 8 pm.');
+  if (typeof makePlan === 'function') { var PL0 = makePlan(), top = PL0.rec.filter(function (r) { return r.p.t === 'p'; })[0]; if (top) out.plan.push('Pranayama: ' + practName(top.p) + ' — ' + top.dose.txt + ' ' + slotTime(top.p.slot, PL0.X) + '.'); }
   if (typeof meds === 'function' && meds().length) {
     var yd = dosesFor(y), ym = yd.filter(function (d) { return d.st !== 'taken'; });
     if (yd.length) { if (ym.length) out.wrong.push('Medicines: ' + ym.length + ' of ' + yd.length + ' doses not marked taken yesterday (' + ym.map(function (d) { return d.m.name + ' ' + t12(d.tm); }).join(', ') + ').'); else out.right.push('All ' + yd.length + ' medicine doses taken yesterday.'); }
