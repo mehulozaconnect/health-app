@@ -47,7 +47,7 @@ function sumItems(list) {
   return s;
 }
 function dayItems(k) { var d = dayIf(k); if (!d) return []; var a = []; MEALS.forEach(function (m) { a = a.concat(d.meals[m[0]] || []); }); return a; }
-function dayTotals(k) { return sumItems(dayItems(k)); }
+function dayTotals(k) { var s = sumItems(dayItems(k)); if (typeof suppMicros === 'function') { var sp = suppMicros(k); s.supp = sp; for (var i = 0; i < sp.length; i++) s.mi[i] += sp[i]; } return s; }
 function mealTotals(k, m) { var d = dayIf(k); return sumItems(d ? d.meals[m] || [] : []); }
 
 /* micronutrients per 100 g are stored in r[14] in this order; daily targets from ICMR-NIN 2020 (men, women); lim = upper limit, not a goal */
@@ -198,6 +198,12 @@ function coachRules(k) {
   out.plan.push('Dinner by 8:45 pm' + (left > 0 && left < 900 ? ', about ' + n0(Math.min(left, 600)) + ' kcal' : '') + ', then a 15-minute walk.');
   if (sl && (sl.asleep < 420 || sl.m.deep / sl.staged < 0.13)) out.plan.push('Phone down by 10:45, in bed by 11:15. 5 minutes of Bhramari before sleep.');
   var w = DB.settings.water; out.plan.push('Water: ' + (w.goal / 1000).toFixed(1) + ' L — a glass every hour till 8 pm.');
+  if (typeof meds === 'function' && meds().length) {
+    var yd = dosesFor(y), ym = yd.filter(function (d) { return d.st !== 'taken'; });
+    if (yd.length) { if (ym.length) out.wrong.push('Medicines: ' + ym.length + ' of ' + yd.length + ' doses not marked taken yesterday (' + ym.map(function (d) { return d.m.name + ' ' + t12(d.tm); }).join(', ') + ').'); else out.right.push('All ' + yd.length + ' medicine doses taken yesterday.'); }
+    var td = dosesFor(k).filter(function (d) { return !d.st; }); if (td.length) out.plan.push('Medicines: ' + td.map(function (d) { return d.m.name + ' at ' + t12(d.tm); }).join(', ') + '.');
+    medInsights().filter(function (x) { return x.lvl === 'warn'; }).slice(0, 2).forEach(function (x) { out.body.push(x.text); });
+  }
   return out;
 }
 function dayScore(k) {

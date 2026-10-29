@@ -24,6 +24,7 @@ ROUTES.home = function () {
   h += tileT('Heart rate', hr ? hr.bpm + ' <small>bpm</small>' : hd ? hd.avg + ' <small>avg</small>' : '—', hr ? '<div class="l mt6">last reading ' + (Date.now() - hr.t < 86400000 ? hm(hr.t) : ago(hr.t)) + (hd ? ' · ' + hd.min + '–' + hd.max + ' today' : '') + '</div>' : '<div class="l">No reading yet</div>', 'vitals');
   h += '</div>';
   h += waterCard(true);
+  h += medsCard();
   var bp = merged('bp')[0], su = merged('sugar')[0];
   h += '<div class="g2">';
   h += bp ? tile('BP · ' + (Date.now() - bp.t < 86400000 ? hm(bp.t) : ago(bp.t)), bp.sys + '/' + bp.dia, '<div class="st ' + bpLabel(bp.sys, bp.dia)[1] + '">' + bpLabel(bp.sys, bp.dia)[0] + '</div>', 'bp') : tile('Blood pressure', '—', '<button class="lnk" data-act="logBp">+ Log BP</button>');
@@ -119,7 +120,7 @@ ROUTES.vitals = function () {
     var ex = (hd.exercise || []).filter(function (e) { return dkey(new Date(e.start)) === k; });
     h += '<section class="c"><div class="row sb"><div><div class="l">Activity today</div><b class="m22">' + n0(st) + ' <small>steps</small></b></div><div class="r"><b class="m20">' + n0(earnedKcal(k)) + '</b><div class="l">active kcal</div></div></div>' + bar(st / 100) + ex.map(function (e) { return '<div class="rd"><span>' + esc(e.title || 'Workout') + ' · ' + hm(e.start) + '</span><b>' + dur((e.end - e.start) / 60000) + '</b></div>'; }).join('') + '</section>';
   }
-  h += bpCard(false) + sugarCard(false);
+  h += bpCard(false) + sugarCard(false) + (meds().length ? medsCard() : '<section class="c row sb" data-act="go" data-to="meds"><div><div class="l">Medicines</div><b class="m16">Track doses, reminders and stock</b></div>' + icon('chev', 18) + '</section>');
   return h;
 };
 function connectCard() {
@@ -213,6 +214,7 @@ window.onHealth = function (json) {
 };
 window.onHealthPerm = function (ok) { if (ok) { toast('Connected. Reading your data…'); refreshHealth(true); } else toast('No permission given. You can try again any time.'); };
 window.onResume = function () {
+  takeMedAdds();
   try { var adds = JSON.parse(native('takeWaterAdds') || '[]'); adds.forEach(function (a) { day(dkey(new Date(a.t))).water.push({ t: a.t, ml: a.ml }); }); if (adds.length) save(); } catch (e) { }
   if (SEL !== today() && cur.name !== 'food') SEL = today();
   refreshHealth(false); rerender();

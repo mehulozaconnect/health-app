@@ -142,6 +142,7 @@ ROUTES.more = function () {
   h += row('weight', 'scale', 'Weight', lastWeight() ? n1(lastWeight()) + ' kg · goal ' + n1(DB.profile.goal) : 'Track towards your goal');
   h += row('yoga', 'yoga', 'Yoga', yogaMin(today()) + ' min today');
   h += row('water', 'drop', 'Water', (waterMl(today()) / 1000).toFixed(2) + ' L today · reminders');
+  h += row('meds', 'pill', 'Medicines', meds().length ? meds().length + ' active · ' + (adherence(7).pct == null ? 'no doses yet' : adherence(7).pct + '% taken this week') : 'Doses, reminders, stock');
   h += row('bp', 'bp', 'Blood pressure', merged('bp').length + ' readings');
   h += row('sugar', 'pulse', 'Blood sugar', merged('sugar').length + ' readings');
   h += row('profile', 'edit', 'Me, calorie budget and macros', n0(baseBudget()) + ' kcal a day');
@@ -240,6 +241,7 @@ ACT.obDone = function () { DB.profile.onboarded = true; save(); go('home'); if (
 function boot() {
   load(); cur = parseHash();
   if (!location.hash) history.replaceState(null, '', '#home');
+  takeMedAdds();
   try { var adds = JSON.parse(native('takeWaterAdds') || '[]'); adds.forEach(function (a) { day(dkey(new Date(a.t))).water.push({ t: a.t, ml: a.ml }); }); if (adds.length) save(); } catch (e) { }
   render(); syncNative(); refreshHealth(true);
   setInterval(function () { if (document.visibilityState === 'visible') { refreshHealth(false); if (cur.name === 'home') rerender(); } }, 300000);

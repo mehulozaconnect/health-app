@@ -278,6 +278,19 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void setMeds(String json) {
+            MedReceiver.prefs(MainActivity.this).edit().putString("cfg", json).apply();
+            MedReceiver.schedule(MainActivity.this);
+        }
+
+        @JavascriptInterface
+        public String takeMedAdds() {
+            String a = MedReceiver.prefs(MainActivity.this).getString("adds", "[]");
+            MedReceiver.prefs(MainActivity.this).edit().putString("adds", "[]").apply();
+            return a;
+        }
+
+        @JavascriptInterface
         public void askNotify() {
             if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != android.content.pm.PackageManager.PERMISSION_GRANTED)
                 ui.post(() -> requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, REQ_NOTIFY));

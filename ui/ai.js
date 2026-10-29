@@ -5,7 +5,7 @@ function gVer(n) { var m = n.match(/gemini-(\d+(?:\.\d+)?)/); return m ? +m[1] :
 function gRank(n) {
   var s = gVer(n) * 100;
   if (/-flash(?!-lite)/.test(n)) s += 50; else if (/-pro/.test(n)) s += 20; else if (/lite/.test(n)) s += 5; else s -= 1000;
-  if (/exp/.test(n)) s -= 3; if ((DB.settings.gbad || []).indexOf(n) >= 0) s -= 5000;
+  if (/exp|preview/.test(n)) s -= 150; if (/-\d{2}-\d{2}|\d{3,}$/.test(n)) s -= 10; if ((DB.settings.gbad || []).indexOf(n) >= 0) s -= 5000;
   return s;
 }
 function gModel() {
@@ -28,14 +28,15 @@ function gAsk(parts, opt) {
     var body = { contents: (opt.history || []).concat([{ role: 'user', parts: parts }]), generationConfig: { temperature: opt.temp == null ? 0.4 : opt.temp } };
     if (opt.system) body.systemInstruction = { parts: [{ text: opt.system }] };
     if (opt.json) body.generationConfig.responseMimeType = 'application/json';
-    if (opt.fast && !opt.noThink) body.generationConfig.thinkingConfig = /gemini-2\./.test(model) ? { thinkingBudget: 0 } : { thinkingLevel: 'low' };
+    if (opt.fast && !opt.noThink) body.generationConfig.thinkingConfig = /gemini-2\./.test(model) ? { thinkingBudget: 0 } : { thinkingLevel: opt.thinkLow ? 'low' : 'minimal' };
     return http('POST', GBASE + 'models/' + encodeURIComponent(model) + ':generateContent', { 'content-type': 'application/json', 'x-goog-api-key': DB.settings.gkey }, JSON.stringify(body)).then(function (r) {
       var d; try { d = JSON.parse(r.text); } catch (e) { throw new Error('Unexpected reply (' + r.status + ')'); }
       if (r.status === 404 || (r.status === 429 && !opt.retried)) {
         if (r.status === 429) DB.settings.gbad = (DB.settings.gbad || []).concat([model]);
         DB.settings.gmodel = ''; save(); opt.retried = true; return gAsk(parts, opt);
       }
-      if (r.status === 400 && opt.fast && !opt.noThink && /think/i.test(r.text)) { opt.noThink = true; return gAsk(parts, opt); }
+      if (r.status === 400 && opt.fast && !opt.noThink && /think/i.test(r.text)) { if (!opt.thinkLow) opt.thinkLow = true; else opt.noThink = true; return gAsk(parts, opt); }
+      if (r.status >= 500 && !opt.retried5) { DB.settings.gbad = (DB.settings.gbad || []).concat([model]); DB.settings.gmodel = ''; save(); opt.retried5 = true; return gAsk(parts, opt); }
       if (r.status !== 200) throw new Error((d.error && d.error.message) || 'HTTP ' + r.status);
       var c = d.candidates && d.candidates[0], txt = c && c.content && c.content.parts ? c.content.parts.filter(function (p) { return p.text && !p.thought; }).map(function (p) { return p.text; }).join('') : '';
       if (!txt) throw new Error('Empty answer' + (c && c.finishReason ? ' (' + c.finishReason + ')' : ''));
@@ -44,12 +45,23 @@ function gAsk(parts, opt) {
     });
   });
 }
+/* quick answers: each model gets `each` ms; a slow or busy model is set aside and the next best one is tried */
+function gQuick(parts, opt, each, tries) {
+  each = each || 25000; tries = tries || 3;
+  var used = DB.settings.gmodel;
+  return withTimeout(gAsk(parts, opt), each).catch(function (e) {
+    if (e.message !== 'TIMEOUT' || tries <= 1) throw e;
+    var m = DB.settings.gmodel || used; if (m) DB.settings.gbad = (DB.settings.gbad || []).concat([m]);
+    DB.settings.gmodel = ''; save();
+    return gQuick(parts, Object.assign({}, opt), each, tries - 1);
+  });
+}
 function withTimeout(pr, ms) {
   return Promise.race([pr, new Promise(function (_, rej) { setTimeout(function () { rej(new Error('TIMEOUT')); }, ms); })]);
 }
 function aiErr(e) {
   DB.settings.lastAiErr = (e && e.message) || String(e); save();
-  if (e.message === 'TIMEOUT') { sheet('<h2>Gemini didn\'t answer</h2><p class="p">No reply in 60 seconds. Check your internet, then go to More → AI, Samsung Health and backup → <b>Test key</b>. It will show exactly what is wrong.</p><button class="btn mt" data-act="go" data-to="settings">Open AI settings</button>'); return; }
+  if (e.message === 'TIMEOUT') { sheet('<h2>Gemini didn\'t answer</h2><p class="p">Google didn\'t reply in time' + (DB.settings.gmodel ? ' (' + esc(DB.settings.gmodel) + ')' : '') + '. Check your internet, then More → AI, Samsung Health and backup → <b>Test key</b>.</p><p class="l">You don\'t need AI to log food: type the parts, like <b>samosa pav</b> or <b>dal rice</b>, and Arogya builds the dish from its own list.</p><button class="btn mt" data-act="go" data-to="settings">Open AI settings</button>'); return; }
   if (e.message === 'NOKEY') { sheet('<h2>Add your Gemini key</h2><p class="p">AI features (reading reports, plate photos and the coach chat) use Google Gemini with your own key. It\'s free for personal use.</p><p class="p">Get one at aistudio.google.com → Get API key, then paste it in More → AI settings. You can use the same key as Trikaal.</p><button class="btn mt" data-act="go" data-to="settings">Open AI settings</button>'); return; }
   sheet('<h2>AI problem</h2><p class="p">' + esc(e.message) + '</p><p class="l">If it mentions the key, paste the key again in More → AI, Samsung Health and backup and tap Test key.</p><button class="btn mt" data-act="closeSheet">OK</button>');
 }
@@ -75,6 +87,7 @@ function healthContext() {
   var bp = merged('bp').slice(0, 5); if (bp.length) L.push('BP readings: ' + bp.map(function (x) { return x.sys + '/' + x.dia + ' (' + dkey(new Date(x.t)) + ')'; }).join(', '));
   var su = merged('sugar').slice(0, 6); if (su.length) L.push('Sugar readings: ' + su.map(function (x) { return x.val + ' ' + x.type + ' (' + dkey(new Date(x.t)) + ')'; }).join(', '));
   var w = merged('weight').slice(0, 6); if (w.length) L.push('Weight: ' + w.map(function (x) { return n1(x.kg) + ' (' + dkey(new Date(x.t)) + ')'; }).join(', '));
+  if (typeof meds === 'function' && meds().length) { L.push('Medicines: ' + meds().map(function (m) { var a = adherence(7, m.id); return medLabel(m) + ' (' + mcls(m.cls)[1] + '), ' + medQty(m) + ' at ' + (m.times || []).join(', ') + ' ' + m.food + ' food, since ' + (m.start || '?') + (a.pct != null ? ', took ' + a.taken + '/' + a.due + ' doses last 7 days' : ''); }).join('; ')); var mi = medInsights(); if (mi.length) L.push('Medicine patterns noticed: ' + mi.map(function (x) { return x.text; }).join(' ')); }
   DB.reports.slice(-3).forEach(function (r) { L.push('Lab report ' + (r.date || '') + ' ' + (r.title || '') + ': ' + (r.values || []).filter(function (v) { return v.status !== 'normal'; }).map(function (v) { return v.name + ' ' + v.value + ' ' + (v.unit || '') + ' ' + v.status; }).join(', ') + (r.summary ? '. ' + r.summary : '')); });
   return L.join('\n');
 }

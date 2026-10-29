@@ -36,7 +36,8 @@ function blank() {
     bp: [], sugar: [], weight: [], reports: [],
     chat: [], coach: {},
     recent: [], usual: {}, custom: [],
-    health: null, healthAt: 0
+    health: null, healthAt: 0,
+    meds: [], medLog: {}
   };
 }
 var DB = blank();
@@ -78,6 +79,7 @@ function native(fn) { try { if (AND && AND[fn]) return AND[fn].apply(AND, [].sli
 function syncNative() {
   var w = DB.settings.water, t = today(), wl = day(t).water;
   native('setWater', JSON.stringify({ date: t, ml: waterMl(t), lastLog: wl.length ? wl[wl.length - 1].t : 0, goal: w.goal, glass: w.glass, remind: !!w.remind, from: w.from, to: w.to, every: +w.every, onlyBehind: !!w.onlyBehind }));
+  if (typeof syncMeds === 'function') syncMeds();
 }
 
 /* ---------- toast / sheet ---------- */
@@ -106,7 +108,7 @@ var IC = {
   heart: '<path d="M12 20s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 9c0 6-8 11-8 11z"/>', moon: '<path d="M20 14A8 8 0 1 1 10 4a6.5 6.5 0 0 0 10 10z"/>',
   bolt: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>', steps: '<path d="M8 3c2 0 3 2 3 5s-1 5-3 5-3-2-3-5 1-5 3-5zM16 9c2 0 3 2 3 5s-1 5-3 5-3-2-3-5 1-5 3-5zM6 15h4M14 21h4"/>',
   play: '<path d="M7 4l13 8-13 8z"/>', pause: '<path d="M8 4v16M16 4v16"/>', x: '<path d="M6 6l12 12M18 6L6 18"/>', refresh: '<path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>',
-  chev: '<path d="M9 5l7 7-7 7"/>', edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>', bp: '<path d="M4 12h3l2-4 3 8 2-4h6"/><rect x="2" y="4" width="20" height="16" rx="4"/>'
+  chev: '<path d="M9 5l7 7-7 7"/>', pill: '<rect x="3" y="9" width="18" height="7" rx="3.5" transform="rotate(-35 12 12.5)"/><path d="M9.5 8.5l5 8"/>', edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>', bp: '<path d="M4 12h3l2-4 3 8 2-4h6"/><rect x="2" y="4" width="20" height="16" rx="4"/>'
 };
 function icon(n, s) { s = s || 22; return '<svg width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (IC[n] || '') + '</svg>'; }
 

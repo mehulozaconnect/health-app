@@ -105,13 +105,68 @@ function searchList(m) {
     h += '<button class="btn sec mt" data-act="customFood">' + icon('plus', 18) + 'Add my own food</button>';
     return h;
   }
-  var r = searchFoods(SQ, 40), ai = aiFoodCard(m);
-  if (r.length) return r.map(function (x) { return resRow(x, m); }).join('') + ai;
+  var r = searchFoods(SQ, 40), ai = aiFoodCard(m), cb = comboCard(m, r);
+  if (r.length && !cb) return r.map(function (x) { return resRow(x, m); }).join('') + ai;
+  if (r.length) return r.slice(0, 3).map(function (x) { return resRow(x, m); }).join('') + cb + r.slice(3).map(function (x) { return resRow(x, m); }).join('') + ai;
   var close = searchFoods(SQ, 12, true);
-  return ai + (close.length ? '<h3 class="sech">Close matches</h3>' + close.map(function (x) { return resRow(x, m); }).join('') : '') +
+  return cb + ai + (close.length ? '<h3 class="sech">Close matches</h3>' + close.map(function (x) { return resRow(x, m); }).join('') : '') +
     (DB.profile.vegOnly ? '<button class="lnk" data-act="toggleVeg">Search all foods (not only veg)</button>' : '') +
     '<button class="btn sec mt" data-act="customFood">' + icon('plus', 18) + 'Enter values myself</button>';
 }
+/* "samosa pav", "dal rice", "roti + sabzi": build the dish from foods already in the list — no internet needed */
+var COMBO = null;
+/* what a plain word means at an Indian table */
+var PART = { dal: 'Dal tadka (toor)', daal: 'Dal tadka (toor)', roti: 'Roti / Phulka (no ghee)', chapati: 'Roti / Phulka (no ghee)', phulka: 'Roti / Phulka (no ghee)', sabzi: 'Mixed vegetable sabzi', sabji: 'Mixed vegetable sabzi', bhaji: 'Mixed vegetable sabzi',
+  rice: 'Rice - plain (cooked)', chawal: 'Rice - plain (cooked)', bhat: 'Rice - plain (cooked)', chai: 'Tea with milk (chai)', tea: 'Tea with milk (chai)', coffee: 'Coffee with milk', chutney: 'Green chutney', pav: 'Pav (bun)', bun: 'Pav (bun)',
+  dahi: 'Curd (Dahi)', curd: 'Curd (Dahi)', salad: 'Green salad', papad: 'Papad roasted', achar: 'Pickle (achar)', pickle: 'Pickle (achar)', kadhi: 'Kadhi', bread: 'Bread white', butter: 'Butter', chaas: 'Buttermilk (Chaas)', buttermilk: 'Buttermilk (Chaas)' };
+function partFood(seg) { var d = PART[seg]; return (d && food(d)) || searchFoods(seg, 1)[0]; }
+function splitParts(q) {
+  var segs = q.toLowerCase().split(/\s*(?:\+|,|&|\band\b|\bwith\b|\baur\b)\s*/).filter(Boolean);
+  if (segs.length > 1) { var a = segs.map(partFood); return a.every(Boolean) ? a : null; }
+  var w = q.trim().split(/\s+/); if (w.length < 2 || w.length > 6) return null;
+  var best = {}, cst = {}; best[0] = []; cst[0] = 0;
+  for (var i = 0; i < w.length; i++) {
+    if (!best[i]) continue;
+    for (var j = w.length; j > i; j--) {
+      if (j - i === w.length) continue;
+      var seg = w.slice(i, j).join(' '); if (seg.length < 2) continue;
+      var f = partFood(seg); if (!f) continue;
+      var cost = (cst[i] || 0) + (j - i > 1 && f[0].toLowerCase().indexOf(seg) !== 0 ? 2.2 : 1);
+      if (!best[j] || cost < cst[j]) { best[j] = best[i].concat([f]); cst[j] = cost; }
+    }
+  }
+  var out = best[w.length]; if (!out || out.length < 2) return null;
+  return out.filter(function (x, k) { return out.indexOf(x) === k; }).length === out.length ? out : null;
+}
+function comboCard(m, exact) {
+  var q = SQ.trim(); if (q.length < 5) return '';
+  if (exact.slice(0, 5).some(function (r) { return r[0].toLowerCase().indexOf(q.toLowerCase()) === 0; })) return '';
+  if (!COMBO || COMBO.q !== q) {
+    var parts = splitParts(q); if (!parts) { COMBO = { q: q, parts: null }; return ''; }
+    COMBO = { q: q, parts: parts.map(function (r) { var us = DB.usual[r[0]], units = unitsOf(r), u = us && units.some(function (x) { return x[0] === us.u; }) ? us.u : units[0][0]; return { n: r[0], q: us ? us.q : 1, u: u }; }) };
+  }
+  if (!COMBO.parts) return '';
+  var tot = 0, rows = COMBO.parts.map(function (p, i) {
+    var r = food(p.n), u = unitsOf(r).filter(function (x) { return x[0] === p.u; })[0] || unitsOf(r)[0], kc = r[1] * u[1] * p.q / 100; tot += kc;
+    return '<div class="exrow"><span>' + esc(r[0]) + '<small>' + frac(p.q) + ' ' + esc(u[0]) + ' · ' + n0(kc) + ' kcal</small></span><button class="exb" data-act="cbq" data-i="' + i + '" data-d="-0.5" aria-label="Less">−</button><b>' + frac(p.q) + '</b><button class="exb" data-act="cbq" data-i="' + i + '" data-d="0.5" aria-label="More">+</button></div>';
+  }).join('');
+  return '<section class="c mintbg"><div class="l2">BUILT FROM AROGYA\'S OWN LIST</div><b class="mid">' + esc(cap(q)) + ' · ' + n0(tot) + ' kcal</b>' + rows + '<button class="btn mt" data-act="cbAdd" data-m="' + m + '">Use this · saved for next time</button></section>';
+}
+function cap(s) { return s.replace(/\b\w/g, function (c) { return c.toUpperCase(); }); }
+ACT.cbq = function (el) { var p = COMBO.parts[+el.getAttribute('data-i')]; p.q = clamp(p.q + +el.getAttribute('data-d'), 0.5, 10); document.getElementById('sres').innerHTML = searchList(cur.arg || mealFor()); };
+ACT.cbAdd = function (el) {
+  var m = el.getAttribute('data-m'), name = cap(COMBO.q), g = 0, k = 0, p = 0, c = 0, f = 0, fi = 0, su = 0, na = 0, mi = MIC.map(function () { return 0; }), veg = 1, txt = [];
+  COMBO.parts.forEach(function (x) {
+    var r = food(x.n), u = unitsOf(r).filter(function (y) { return y[0] === x.u; })[0] || unitsOf(r)[0], gg = u[1] * x.q, s = gg / 100;
+    g += gg; k += r[1] * s; p += r[2] * s; c += r[3] * s; f += r[4] * s; fi += r[5] * s; su += (r[8] || 0) * s; na += (r[9] || 0) * s; if (r[6] !== 1) veg = r[6];
+    (r[14] || []).forEach(function (v, i) { mi[i] += v * s; }); txt.push(r[0].replace(/\s*\(.*\)$/, '') + ' ' + frac(x.q) + ' ' + u[0]);
+  });
+  var per = 100 / g, r1 = function (v) { return Math.round(v * per * 10) / 10; };
+  DB.custom = DB.custom.filter(function (r) { return r[0] !== name; });
+  DB.custom.push([name, Math.round(k * per), r1(p), r1(c), r1(f), r1(fi), veg, 'plate:' + Math.round(g), r1(su), Math.round(na * per), r1(mi[1]), Math.round(mi[0] * per), 'Mine', 'Made from ' + txt.join(' + '), mi.map(function (v) { return Math.round(v * per * 100) / 100; })]);
+  save(); DISH = { q: 1, u: 'plate', ex: {} }; COMBO = null;
+  go('dish/' + m + '/' + encodeURIComponent(name));
+};
 function aiFoodCard(m) {
   var q = SQ.trim(); if (q.length < 3) return '';
   return '<section class="c aicard"><div class="row g10"><span class="mic">' + icon('spark', 20) + '</span><div class="f1"><b>Not in the list? Get “' + esc(q) + '” from AI</b><div class="l">Home-style values per katori or piece, saved to your foods for next time.</div></div></div><button class="btn mt" data-act="aiFood" data-m="' + m + '">' + (AIF_BUSY ? 'Working it out… ' + AIF_SEC + ' s' : 'Get nutrition from AI') + '</button></section>';
@@ -122,7 +177,7 @@ ACT.aiFood = function (el) {
   if (!DB.settings.gkey) return aiErr(new Error('NOKEY'));
   AIF_BUSY = true; AIF_SEC = 0; document.getElementById('sres').innerHTML = searchList(m);
   clearInterval(AIF_T); AIF_T = setInterval(function () { AIF_SEC++; var b = document.querySelector('[data-act=aiFood]'); if (b) b.textContent = 'Working it out… ' + AIF_SEC + ' s'; }, 1000);
-  withTimeout(gAsk([{ text: 'Give nutrition for this food as eaten in an Indian home: "' + q + '". Assume a typical home recipe (normal home amounts of oil/ghee, not restaurant), cooked weight. Use IFCT 2017 / Indian Nutrient Databank style values. Return JSON: {"name": clear dish name in English with the Hindi/regional name in brackets if different, "kcal": per 100 g, "protein": g per 100 g, "carb": g per 100 g, "fat": g per 100 g, "fibre": g per 100 g, "sugar": added sugar g per 100 g, "sodium": mg per 100 g, "veg": "veg"|"egg"|"nonveg", "units": [1 to 3 household measures, each {"name": "katori"|"piece"|"plate"|"bowl"|"glass"|"tea cup"|"tablespoon"|"slice" or a specific piece name like "roti", "grams": weight of one}], "note": one short line on what was assumed}. Use katori = 150 g, bowl = 200 g, glass = 200 ml, tea cup = 100 ml. If it is not a real food, return {"error": "reason"}.' }], { json: true, temp: 0.1, fast: true }), 60000)
+  gQuick([{ text: 'Give nutrition for this food as eaten in an Indian home: "' + q + '". Assume a typical home recipe (normal home amounts of oil/ghee, not restaurant), cooked weight. Use IFCT 2017 / Indian Nutrient Databank style values. Return JSON: {"name": clear dish name in English with the Hindi/regional name in brackets if different, "kcal": per 100 g, "protein": g per 100 g, "carb": g per 100 g, "fat": g per 100 g, "fibre": g per 100 g, "sugar": added sugar g per 100 g, "sodium": mg per 100 g, "veg": "veg"|"egg"|"nonveg", "units": [1 to 3 household measures, each {"name": "katori"|"piece"|"plate"|"bowl"|"glass"|"tea cup"|"tablespoon"|"slice" or a specific piece name like "roti", "grams": weight of one}], "note": one short line on what was assumed}. Use katori = 150 g, bowl = 200 g, glass = 200 ml, tea cup = 180 ml. If it is not a real food, return {"error": "reason"}.' }], { json: true, temp: 0.1, fast: true }, 22000, 3)
     .then(function (j) {
       clearInterval(AIF_T);
       if (j.error) throw new Error(j.error);
@@ -179,7 +234,7 @@ ROUTES.dish = function (arg) {
   if (r[8] > 10) tags.push('<span class="tag warn">Sugary</span>');
   if (r[9] > 500) tags.push('<span class="tag warn">Salty</span>');
   var h = head('', 'Adding to ' + mealName(m));
-  h += '<section class="c"><h1 class="big">' + esc(r[0]) + '</h1><div class="l">Per 100 g: ' + n0(r[1]) + ' kcal · ' + (r[12] === 'INDB' ? 'Indian Nutrient Databank' : r[12] === 'INDB-adj' ? 'Indian Nutrient Databank, corrected for oil actually absorbed' : r[12] === 'Mine' ? 'Your home version' : r[12] === 'AI' ? 'AI estimate for a home recipe' + (r[13] ? ': ' + r[13] : '') + '. Adjust if yours is made differently.' : 'Standard home-style values') + '</div><div class="chips mt">' + tags.join('') + '</div></section>';
+  h += '<section class="c"><h1 class="big">' + esc(r[0]) + '</h1><div class="l">Per 100 g: ' + n0(r[1]) + ' kcal · ' + (r[12] === 'INDB' ? 'Indian Nutrient Databank' : r[12] === 'INDB-adj' ? 'Indian Nutrient Databank, corrected for oil actually absorbed' : r[12] === 'Mine' ? 'Your home version' + (r[13] ? ': ' + esc(r[13]) : '') : r[12] === 'AI' ? 'AI estimate for a home recipe' + (r[13] ? ': ' + r[13] : '') + '. Adjust if yours is made differently.' : 'Standard home-style values') + '</div><div class="chips mt">' + tags.join('') + '</div></section>';
   h += '<section class="c"><div class="l">HOW MUCH?</div><div class="stepper"><button class="step" data-act="dq" data-d="-1" aria-label="Less">−</button><div class="ctr"><b class="huge">' + (u[0] === 'grams' ? Math.round(DISH.q) : frac(DISH.q)) + '</b><div class="l">' + esc(u[0]) + (u[0] === 'grams' ? '' : ' · ' + Math.round(g) + ' g') + '</div></div><button class="step" data-act="dq" data-d="1" aria-label="More">+</button></div>';
   if (u[0] !== 'grams') h += '<div class="chips c4">' + [0.5, 1, 1.5, 2].map(function (q) { return '<button class="chip' + (DISH.q === q ? ' on' : '') + '" data-act="dqSet" data-q="' + q + '">' + frac(q) + '</button>'; }).join('') + '</div>';
   h += '<div class="chips">' + units.map(function (x) { return '<button class="chip' + (x[0] === u[0] ? ' dk' : '') + '" data-act="du" data-u="' + esc(x[0]) + '">' + esc(x[0]) + '</button>'; }).join('') + '</div>';
