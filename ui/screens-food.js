@@ -26,7 +26,7 @@ ROUTES.food = function () {
     if (items.length) { var lt = Math.max.apply(null, items.map(function (x) { return x.t; })); sub += ' · ' + hm(lt); }
     h += '<section class="c meal' + (items.length ? '' : ' empty') + '"><div class="row sb"><div><h2>' + m[1] + '</h2><div class="l ' + cls + '">' + sub + '</div></div><button class="add" data-act="go" data-to="add/' + m[0] + '" aria-label="Add to ' + m[1] + '">' + icon('plus', 20) + '</button></div>';
     items.forEach(function (it) {
-      h += '<button class="it" data-act="editItem" data-m="' + m[0] + '" data-id="' + it.id + '"><span>' + esc(it.n) + '<small>' + frac(it.q) + ' ' + esc(it.u) + (it.u === 'grams' ? '' : ' · ' + Math.round(it.g) + ' g') + '</small></span><b>' + n0(iv(it, 'k')) + '</b></button>';
+      h += '<button class="it" data-act="editItem" data-m="' + m[0] + '" data-id="' + it.id + '"><span>' + esc(it.n) + '<small>' + frac(it.q) + ' ' + esc(it.u) + (it.u === 'grams' ? '' : ' · ' + Math.round(it.g) + ' g') + (it.exTxt ? ' · ' + esc(it.exTxt) : '') + '</small></span><b>' + n0(iv(it, 'k')) + '</b></button>';
     });
     if (!items.length && k === today()) {
       var sug = suggestFor(m[0], left);
@@ -62,7 +62,7 @@ ACT.addSuggest = function (el) {
 };
 function pushItem(k, m, it) {
   day(k).meals[m].push(it);
-  var u = DB.usual[it.n] || { n: 0 }; u.n++; u.q = it.q; u.u = it.u; u.m = m; DB.usual[it.n] = u;
+  var u = DB.usual[it.n] || { n: 0 }; u.n++; u.q = it.q; u.u = it.u; u.m = m; u.ex = it.ex || {}; DB.usual[it.n] = u;
 }
 
 /* edit an item */
@@ -113,15 +113,17 @@ function searchList(m) {
 }
 function aiFoodCard(m) {
   var q = SQ.trim(); if (q.length < 3) return '';
-  return '<section class="c aicard"><div class="row g10"><span class="mic">' + icon('spark', 20) + '</span><div class="f1"><b>Not in the list? Get “' + esc(q) + '” from AI</b><div class="l">Home-style values per katori or piece, saved to your foods for next time.</div></div></div><button class="btn mt" data-act="aiFood" data-m="' + m + '">' + (AIF_BUSY ? 'Working it out…' : 'Get nutrition from AI') + '</button></section>';
+  return '<section class="c aicard"><div class="row g10"><span class="mic">' + icon('spark', 20) + '</span><div class="f1"><b>Not in the list? Get “' + esc(q) + '” from AI</b><div class="l">Home-style values per katori or piece, saved to your foods for next time.</div></div></div><button class="btn mt" data-act="aiFood" data-m="' + m + '">' + (AIF_BUSY ? 'Working it out… ' + AIF_SEC + ' s' : 'Get nutrition from AI') + '</button></section>';
 }
-var AIF_BUSY = false;
+var AIF_BUSY = false, AIF_SEC = 0, AIF_T = 0;
 ACT.aiFood = function (el) {
   var q = SQ.trim(), m = el.getAttribute('data-m'); if (!q || AIF_BUSY) return;
   if (!DB.settings.gkey) return aiErr(new Error('NOKEY'));
-  AIF_BUSY = true; document.getElementById('sres').innerHTML = searchList(m);
-  gAsk([{ text: 'Give nutrition for this food as eaten in an Indian home: "' + q + '". Assume a typical home recipe (normal home amounts of oil/ghee, not restaurant), cooked weight. Use IFCT 2017 / Indian Nutrient Databank style values. Return JSON: {"name": clear dish name in English with the Hindi/regional name in brackets if different, "kcal": per 100 g, "protein": g per 100 g, "carb": g per 100 g, "fat": g per 100 g, "fibre": g per 100 g, "sugar": added sugar g per 100 g, "sodium": mg per 100 g, "veg": "veg"|"egg"|"nonveg", "units": [1 to 3 household measures, each {"name": "katori"|"piece"|"plate"|"bowl"|"glass"|"tea cup"|"tablespoon"|"slice" or a specific piece name like "roti", "grams": weight of one}], "note": one short line on what was assumed}. Use katori = 150 g, bowl = 200 g, glass = 200 ml, tea cup = 100 ml. If it is not a real food, return {"error": "reason"}.' }], { json: true, temp: 0.1 })
+  AIF_BUSY = true; AIF_SEC = 0; document.getElementById('sres').innerHTML = searchList(m);
+  clearInterval(AIF_T); AIF_T = setInterval(function () { AIF_SEC++; var b = document.querySelector('[data-act=aiFood]'); if (b) b.textContent = 'Working it out… ' + AIF_SEC + ' s'; }, 1000);
+  withTimeout(gAsk([{ text: 'Give nutrition for this food as eaten in an Indian home: "' + q + '". Assume a typical home recipe (normal home amounts of oil/ghee, not restaurant), cooked weight. Use IFCT 2017 / Indian Nutrient Databank style values. Return JSON: {"name": clear dish name in English with the Hindi/regional name in brackets if different, "kcal": per 100 g, "protein": g per 100 g, "carb": g per 100 g, "fat": g per 100 g, "fibre": g per 100 g, "sugar": added sugar g per 100 g, "sodium": mg per 100 g, "veg": "veg"|"egg"|"nonveg", "units": [1 to 3 household measures, each {"name": "katori"|"piece"|"plate"|"bowl"|"glass"|"tea cup"|"tablespoon"|"slice" or a specific piece name like "roti", "grams": weight of one}], "note": one short line on what was assumed}. Use katori = 150 g, bowl = 200 g, glass = 200 ml, tea cup = 100 ml. If it is not a real food, return {"error": "reason"}.' }], { json: true, temp: 0.1, fast: true }), 60000)
     .then(function (j) {
+      clearInterval(AIF_T);
       if (j.error) throw new Error(j.error);
       var k = +j.kcal, p = +j.protein || 0, c = +j.carb || 0, f = +j.fat || 0, at = 4 * p + 4 * c + 9 * f;
       if (!(k > 0 && k < 950)) throw new Error('Could not work it out. Try a clearer name.');
@@ -134,25 +136,39 @@ ACT.aiFood = function (el) {
       save(); AIF_BUSY = false; DISH = { q: 1, u: units[0].split(':')[0] };
       go('dish/' + m + '/' + encodeURIComponent(name));
     })
-    .catch(function (e) { AIF_BUSY = false; if (cur.name === 'add') document.getElementById('sres').innerHTML = searchList(m); aiErr(e); });
+    .catch(function (e) { clearInterval(AIF_T); AIF_BUSY = false; if (cur.name === 'add') document.getElementById('sres').innerHTML = searchList(m); aiErr(e); });
 };
 function resRow(r, m, usual) {
   var us = unitsOf(r), u = usual ? (us.filter(function (x) { return x[0] === usual.u; })[0] || us[0]) : us[0], q = usual ? usual.q : 1;
-  var kc = r[1] * u[1] * q / 100;
+  var kc = r[1] * u[1] * q / 100 + (usual && usual.ex ? exTotals(usual.ex, u[0] === 'grams' ? 1 : q).k : 0);
   return '<button class="res" data-act="pickFood" data-n="' + esc(r[0]) + '" data-m="' + m + '"><span>' + esc(r[0]) + '<small>' + frac(q) + ' ' + esc(u[0]) + ' · ' + n0(kc) + ' kcal · ' + n1(r[2] * u[1] * q / 100) + ' g protein</small></span>' + icon('chev', 18) + '</button>';
 }
 INP.sq = function (el) { SQ = el.value; document.getElementById('sres').innerHTML = searchList(cur.arg || mealFor()); };
 ACT.toggleVeg = function () { DB.profile.vegOnly = !DB.profile.vegOnly; save(); rerender(); };
-ACT.pickFood = function (el) { var n = el.getAttribute('data-n'), m = el.getAttribute('data-m'), us = DB.usual[n], r = food(n), units = unitsOf(r); DISH = { q: us ? us.q : 1, u: us && units.some(function (x) { return x[0] === us.u; }) ? us.u : units[0][0] }; go('dish/' + m + '/' + encodeURIComponent(n)); };
+ACT.pickFood = function (el) { var n = el.getAttribute('data-n'), m = el.getAttribute('data-m'), us = DB.usual[n], r = food(n), units = unitsOf(r); DISH = { q: us ? us.q : 1, u: us && units.some(function (x) { return x[0] === us.u; }) ? us.u : units[0][0], ex: us && us.ex ? Object.assign({}, us.ex) : {} }; go('dish/' + m + '/' + encodeURIComponent(n)); };
 
 /* ---------- dish detail ---------- */
-var DISH = { q: 1, u: '' };
+var DISH = { q: 1, u: '', ex: {} };
+/* things added on top of a dish, per one serving: [key, label, kcal, carb, fat, sugar] per teaspoon */
+var EXTRAS = [['sugar', 'Sugar', 20, 5, 0, 5], ['jaggery', 'Jaggery', 19, 4.8, 0, 4.8], ['honey', 'Honey', 22, 5.6, 0, 5.6], ['ghee', 'Ghee', 45, 0, 5, 0], ['oil', 'Oil', 45, 0, 5, 0], ['butter', 'Butter', 36, 0, 4, 0]];
+var DRINK = /chai|tea\b|coffee|milk|lassi|juice|shake|kehwa|sharbat|nimbu|lemon/i;
+function exTotals(ex, mult) {
+  var t = { k: 0, c: 0, f: 0, su: 0, txt: [] };
+  EXTRAS.forEach(function (e) { var n = (ex || {})[e[0]] || 0; if (!n) return; t.k += e[2] * n * mult; t.c += e[3] * n * mult; t.f += e[4] * n * mult; t.su += e[5] * n * mult; t.txt.push('+' + frac(n) + ' tsp ' + e[1].toLowerCase()); });
+  return t;
+}
+function withExtras(it, ex) {
+  var mult = it.u === 'grams' ? 1 : it.q, t = exTotals(ex, mult); if (!t.k) return it;
+  var per = 100 / it.g; it.k += t.k * per; it.c += t.c * per; it.f += t.f * per; it.su = (it.su || 0) + t.su * per;
+  it.ex = ex; it.exTxt = t.txt.join(', ');
+  return it;
+}
 var UHELP = { katori: '1 katori = a 150 ml steel bowl, filled level', plate: '1 plate = a full quarter plate', bowl: 'A bowl as served (bigger than a katori)', glass: '1 glass = 200 ml', cup: '1 cup = 150 ml tea cup', tablespoon: '1 tablespoon = a serving spoon', grams: 'Weighing it? Use grams', piece: '1 piece as usually made at home' };
 ROUTES.dish = function (arg) {
   var p = arg.split('/'), m = p[0], name = p.slice(1).join('/'), r = food(name);
   if (!r) return head('Not found') + '<div class="empty-s">This food is missing.</div>';
   var units = unitsOf(r), u = units.filter(function (x) { return x[0] === DISH.u; })[0] || units[0];
-  var g = u[0] === 'grams' ? DISH.q : u[1] * DISH.q, it = itemOf(r, DISH.q, u[0], g), s = sumItems([it]);
+  var g = u[0] === 'grams' ? DISH.q : u[1] * DISH.q, it = withExtras(itemOf(r, DISH.q, u[0], g), DISH.ex), s = sumItems([it]);
   var tg = macroTargets(), b = budgetFor(SEL), t = dayTotals(SEL), left = b.total - t.kcal - s.kcal;
   var tags = [];
   if (r[6] === 1) tags.push('<span class="tag ok">VEG</span>'); else if (r[6] === 2) tags.push('<span class="tag warn">EGG</span>'); else tags.push('<span class="tag bad">NON-VEG</span>');
@@ -167,6 +183,9 @@ ROUTES.dish = function (arg) {
   if (u[0] !== 'grams') h += '<div class="chips c4">' + [0.5, 1, 1.5, 2].map(function (q) { return '<button class="chip' + (DISH.q === q ? ' on' : '') + '" data-act="dqSet" data-q="' + q + '">' + frac(q) + '</button>'; }).join('') + '</div>';
   h += '<div class="chips">' + units.map(function (x) { return '<button class="chip' + (x[0] === u[0] ? ' dk' : '') + '" data-act="du" data-u="' + esc(x[0]) + '">' + esc(x[0]) + '</button>'; }).join('') + '</div>';
   h += '<div class="hint">' + esc(UHELP[u[0]] || ('1 ' + u[0] + ' ≈ ' + u[1] + ' g')) + '</div></section>';
+  var list = DRINK.test(name) ? EXTRAS.slice(0, 3) : EXTRAS.filter(function (e) { return e[0] !== 'honey'; });
+  h += '<section class="c"><div class="l">ADDED ON TOP' + (u[0] === 'grams' ? '' : ' (per ' + esc(u[0]) + ')') + '</div>' + (/with sugar/i.test(name) ? '<div class="hint">This already has about 1 tsp sugar per tea cup. For exact numbers pick the “no sugar” version and add your sugar here.</div>' : '') +
+    list.map(function (e) { var n = DISH.ex[e[0]] || 0; return '<div class="exrow"><span>' + e[1] + '<small>' + e[2] + ' kcal per tsp</small></span><button class="exb" data-act="exd" data-k="' + e[0] + '" data-d="-0.5" aria-label="Less ' + e[1] + '">−</button><b>' + (n ? frac(n) + ' tsp' : '0') + '</b><button class="exb" data-act="exd" data-k="' + e[0] + '" data-d="0.5" aria-label="More ' + e[1] + '">+</button></div>'; }).join('') + '</section>';
   h += '<section class="c"><div class="row sb end"><div><div class="l">Calories</div><b class="huge">' + n0(s.kcal) + '</b></div><div class="r"><div class="l">of today\'s budget</div><b class="mid">' + Math.round(s.kcal / b.total * 100) + '%</b></div></div><div class="g4 mt">' +
     mac('Protein', s.p, tg.p) + mac('Carbs', s.c, tg.c) + mac('Fat', s.f, tg.f) + mac('Fibre', s.fi, tg.fi) + '</div><div class="l mt">Bars show this portion\'s share of your daily target.' + (r[9] ? ' Sodium ' + n0(r[9] * g / 100) + ' mg, sugar ' + n1(r[8] * g / 100) + ' g.' : '') + '</div></section>';
   var over = left < 0, tip;
@@ -182,9 +201,10 @@ ROUTES.dish = function (arg) {
 };
 function mac(n, v, t) { return '<div class="mac"><span class="l">' + n + '</span><b>' + n1(v) + ' g</b>' + bar(v / t * 100) + '</div>'; }
 ACT.dq = function (el) { var d = +el.getAttribute('data-d'); if (DISH.u === 'grams') DISH.q = clamp(DISH.q + d * 25, 10, 2000); else DISH.q = clamp(DISH.q + d * 0.5, 0.5, 20); rerender(); };
+ACT.exd = function (el) { var k = el.getAttribute('data-k'), v = clamp((DISH.ex[k] || 0) + +el.getAttribute('data-d'), 0, 10); DISH.ex = Object.assign({}, DISH.ex); if (v) DISH.ex[k] = v; else delete DISH.ex[k]; rerender(); };
 ACT.dqSet = function (el) { DISH.q = +el.getAttribute('data-q'); rerender(); };
 ACT.du = function (el) { DISH.u = el.getAttribute('data-u'); DISH.q = DISH.u === 'grams' ? 100 : 1; rerender(); };
-function dishItem(name) { var r = food(name), units = unitsOf(r), u = units.filter(function (x) { return x[0] === DISH.u; })[0] || units[0]; return itemOf(r, DISH.q, u[0], u[0] === 'grams' ? DISH.q : u[1] * DISH.q); }
+function dishItem(name) { var r = food(name), units = unitsOf(r), u = units.filter(function (x) { return x[0] === DISH.u; })[0] || units[0]; return withExtras(itemOf(r, DISH.q, u[0], u[0] === 'grams' ? DISH.q : u[1] * DISH.q), DISH.ex); }
 ACT.addDish = function (el) {
   var m = el.getAttribute('data-m'), name = el.getAttribute('data-n'), it = dishItem(name);
   if (SEL === today()) it.t = Date.now(); else { var mt = MEALS.filter(function (x) { return x[0] === m; })[0][3].split(':'); var d = fromKey(SEL); d.setHours(+mt[0], +mt[1]); it.t = d.getTime(); }

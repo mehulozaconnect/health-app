@@ -180,7 +180,7 @@ ACT.preset = function (el) { var v = el.getAttribute('data-p').split(','); DB.pr
 ROUTES.settings = function () {
   var s = DB.settings, h = head('Settings');
   h += '<section class="c"><h2>AI (Google Gemini)</h2><p class="p">Reads reports and plate photos and powers the coach. Get a free key at aistudio.google.com → Get API key. The Trikaal key works too.</p><label class="fld">Gemini API key<input id="gk" type="password" autocomplete="off" value="' + esc(s.gkey) + '" data-chg="gkey"></label>' +
-    '<div class="g2"><button class="btn sec" data-act="testKey">Test key</button>' + (s.gmodel ? '<div class="l ctrtxt">Using ' + esc(s.gmodel) + '</div>' : '') + '</div></section>';
+    '<div class="g2"><button class="btn sec" data-act="testKey">Test key</button>' + (s.gmodel ? '<div class="l ctrtxt">Using ' + esc(s.gmodel) + '</div>' : '') + '</div>' + (s.lastAiErr ? '<div class="note warn mt">Last AI error: ' + esc(s.lastAiErr) + '</div>' : '') + '</section>';
   var hs = DB.health ? DB.health.status : 'not connected';
   h += '<section class="c"><h2>Samsung Health</h2><div class="rd"><span>Status</span><b>' + (hs === 'ok' ? 'Connected · ' + ago(DB.healthAt) : esc(hs.replace(/_/g, ' '))) + '</b></div><div class="g2 mt"><button class="btn sec" data-act="connectHealth">' + (hs === 'ok' ? 'Permissions' : 'Connect') + '</button><button class="btn sec" data-act="refreshHealth">Read now</button></div></section>';
   h += '<section class="c"><h2>Your data</h2><p class="p">Everything is stored only on this phone. Make a backup file before changing phones or reinstalling.</p><div class="g2"><button class="btn sec" data-act="backup">Backup</button><button class="btn sec" data-act="restore">Restore</button></div></section>';
@@ -192,7 +192,7 @@ ACT.testKey = function () {
   var i = document.getElementById('gk'); if (i) { DB.settings.gkey = i.value.trim(); DB.settings.gmodel = ''; save(); }
   if (!DB.settings.gkey) return toast('Paste your key first');
   toast('Checking…');
-  gAsk([{ text: 'Reply with the single word OK.' }]).then(function () { toast('Key works · ' + DB.settings.gmodel, 3000); rerender(); }).catch(aiErr);
+  withTimeout(gAsk([{ text: 'Reply with the single word OK.' }], { fast: true }), 45000).then(function () { DB.settings.lastAiErr = ''; save(); toast('Key works · ' + DB.settings.gmodel, 3000); rerender(); }).catch(aiErr);
 };
 ACT.backup = function () { native('saveFile', 'arogya-backup-' + today() + '.json', 'application/json', JSON.stringify(DB)) === null && !AND && toast('Backup works in the phone app'); };
 ACT.restore = function () { native('openFile'); };
