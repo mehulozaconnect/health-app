@@ -155,3 +155,10 @@ details summary{list-style:none;cursor:pointer}details summary::-webkit-details-
 .tog.sm{font-size:13.5px;padding:8px 0;margin-top:6px}
 .btn.sec.onDark{background:transparent;color:#fff;box-shadow:inset 0 0 0 2px rgba(255,255,255,.5)}
 .fld textarea{border-radius:12px;border:2px solid var(--line);padding:10px 12px;font:600 15px Roboto,system-ui,sans-serif;color:var(--ink);resize:vertical;outline:0}.fld textarea:focus{border-color:var(--g)}
+.ratio{display:grid;gap:4px 6px;text-align:center;align-items:center}.ratio.r5{grid-template-columns:repeat(5,minmax(0,1fr))}.ratio.r4{grid-template-columns:repeat(4,minmax(0,1fr))}.ratio .l{font-size:11px;letter-spacing:.03em}
+.rc{display:flex;flex-direction:column;align-items:center;gap:4px}.rc b{font-size:28px;font-weight:800;line-height:1.1}.rb{width:44px;height:36px;border:0;border-radius:10px;background:var(--g2);color:var(--g);font-size:22px;font-weight:800}
+.orbwrap{position:relative;height:230px;display:flex;align-items:center;justify-content:center}.orb{position:absolute;width:210px;height:210px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#9FE0C6,#0F6E56);transform:scale(.45);transition:transform .12s linear;opacity:.9}.orb.hold,.orb.hold2{background:radial-gradient(circle at 40% 35%,#C9C0F0,#4B36A6)}.orb.rest{background:radial-gradient(circle at 40% 35%,#cfe0f3,#2F6FB5)}
+.orbtxt{position:relative;display:flex;flex-direction:column;align-items:center;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.35)}.orbtxt b{font-size:24px}.orbtxt span{font-size:40px;font-weight:800;line-height:1.1}.orbtxt .l{color:#fff;font-size:13px}
+.clock{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.clock span{background:var(--bg);border-radius:12px;padding:8px 0;display:flex;flex-direction:column}.clock b{font-size:18px;font-variant-numeric:tabular-nums}.clock small{font-size:11px;color:var(--mute);font-weight:700}
+.tbl{display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:10px 8px;font-size:14px}.tbl .r{text-align:right}
+details.c summary{font-weight:800}

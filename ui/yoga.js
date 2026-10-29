@@ -96,6 +96,8 @@ ROUTES.yoga = function () {
   var p = pickFlow(), fav = mine.filter(function (r) { return r.fav; })[0], f = fav || routineById(p[0]);
   h += '<section class="c dark"><div class="kick">' + (fav ? 'YOUR DAILY ROUTINE' : 'PICKED FOR NOW · ' + esc(p[1].toUpperCase())) + '</div><h2 class="w">' + esc(f.name) + ' · ' + Math.round(routineSec(f) / 60) + ' min</h2>' + (f.for ? '<p class="p dim">' + esc(f.for) + '</p>' : '<p class="p dim">' + f.steps.length + ' poses</p>') +
     '<div class="g2 mt"><button class="btn mintb" data-act="startRoutine" data-id="' + f.id + '">' + icon('play', 18) + 'Start</button><button class="btn sec onDark" data-act="go" data-to="routine/' + f.id + '">' + (f.id.indexOf('b_') === 0 ? 'Customise' : 'Edit') + '</button></div></section>';
+  var bt = (DB.days[k] && DB.days[k].yoga || []).filter(function (x) { return x.prana; }).reduce(function (a, x) { return a + x.sec; }, 0);
+  h += '<section class="c row g14" data-act="go" data-to="breaths"><span class="mic">' + icon('drop', 20) + '</span><div class="f1"><b class="m16">Pranayama</b><div class="l">Anulom Vilom, Bhramari, Kapalbhati and 9 more. Set inhale : hold : exhale and rounds.' + (bt ? ' Today ' + mmss(bt) + '.' : '') + '</div></div>' + icon('chev', 18) + '</section>';
   h += '<div class="row sb"><h3 class="sech">My routines</h3><button class="lnk" data-act="newRoutine">+ Create routine</button></div>';
   if (mine.length) h += mine.map(function (r) { return routineRow(r); }).join('');
   else h += '<div class="empty-s">Make your own routine: pick poses, set time or rounds for each, and the order. Or open any routine below and tap Customise.</div>';
