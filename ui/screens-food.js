@@ -104,10 +104,38 @@ function searchList(m) {
     h += '<button class="btn sec mt" data-act="customFood">' + icon('plus', 18) + 'Add my own food</button>';
     return h;
   }
-  var r = searchFoods(SQ, 40);
-  if (!r.length) return '<div class="empty-s">No match for “' + esc(SQ) + '”.' + (DB.profile.vegOnly ? ' Try “Show all”, or' : '') + ' add it as your own food.</div><button class="btn sec mt" data-act="customFood">' + icon('plus', 18) + 'Add “' + esc(SQ) + '” as my own food</button>';
-  return r.map(function (x) { return resRow(x, m); }).join('');
+  var r = searchFoods(SQ, 40), ai = aiFoodCard(m);
+  if (r.length) return r.map(function (x) { return resRow(x, m); }).join('') + ai;
+  var close = searchFoods(SQ, 12, true);
+  return ai + (close.length ? '<h3 class="sech">Close matches</h3>' + close.map(function (x) { return resRow(x, m); }).join('') : '') +
+    (DB.profile.vegOnly ? '<button class="lnk" data-act="toggleVeg">Search all foods (not only veg)</button>' : '') +
+    '<button class="btn sec mt" data-act="customFood">' + icon('plus', 18) + 'Enter values myself</button>';
 }
+function aiFoodCard(m) {
+  var q = SQ.trim(); if (q.length < 3) return '';
+  return '<section class="c aicard"><div class="row g10"><span class="mic">' + icon('spark', 20) + '</span><div class="f1"><b>Not in the list? Get “' + esc(q) + '” from AI</b><div class="l">Home-style values per katori or piece, saved to your foods for next time.</div></div></div><button class="btn mt" data-act="aiFood" data-m="' + m + '">' + (AIF_BUSY ? 'Working it out…' : 'Get nutrition from AI') + '</button></section>';
+}
+var AIF_BUSY = false;
+ACT.aiFood = function (el) {
+  var q = SQ.trim(), m = el.getAttribute('data-m'); if (!q || AIF_BUSY) return;
+  if (!DB.settings.gkey) return aiErr(new Error('NOKEY'));
+  AIF_BUSY = true; document.getElementById('sres').innerHTML = searchList(m);
+  gAsk([{ text: 'Give nutrition for this food as eaten in an Indian home: "' + q + '". Assume a typical home recipe (normal home amounts of oil/ghee, not restaurant), cooked weight. Use IFCT 2017 / Indian Nutrient Databank style values. Return JSON: {"name": clear dish name in English with the Hindi/regional name in brackets if different, "kcal": per 100 g, "protein": g per 100 g, "carb": g per 100 g, "fat": g per 100 g, "fibre": g per 100 g, "sugar": added sugar g per 100 g, "sodium": mg per 100 g, "veg": "veg"|"egg"|"nonveg", "units": [1 to 3 household measures, each {"name": "katori"|"piece"|"plate"|"bowl"|"glass"|"tea cup"|"tablespoon"|"slice" or a specific piece name like "roti", "grams": weight of one}], "note": one short line on what was assumed}. Use katori = 150 g, bowl = 200 g, glass = 200 ml, tea cup = 100 ml. If it is not a real food, return {"error": "reason"}.' }], { json: true, temp: 0.1 })
+    .then(function (j) {
+      if (j.error) throw new Error(j.error);
+      var k = +j.kcal, p = +j.protein || 0, c = +j.carb || 0, f = +j.fat || 0, at = 4 * p + 4 * c + 9 * f;
+      if (!(k > 0 && k < 950)) throw new Error('Could not work it out. Try a clearer name.');
+      if (at > 0 && Math.abs(at - k) / k > 0.25) k = Math.round(at);
+      var units = (j.units || []).filter(function (u) { return u && u.name && +u.grams > 0 && +u.grams < 1000; }).map(function (u) { return String(u.name).toLowerCase().replace(/[:|]/g, '') + ':' + Math.round(+u.grams); });
+      if (!units.length) units = ['katori:150'];
+      var name = String(j.name || q).trim();
+      DB.custom = DB.custom.filter(function (r) { return r[0] !== name; });
+      DB.custom.push([name, k, p, c, f, +j.fibre || 0, j.veg === 'nonveg' ? 0 : j.veg === 'egg' ? 2 : 1, units.join('|') + '|tablespoon:15', +j.sugar || 0, +j.sodium || 0, 0, 0, 'AI', j.note || '']);
+      save(); AIF_BUSY = false; DISH = { q: 1, u: units[0].split(':')[0] };
+      go('dish/' + m + '/' + encodeURIComponent(name));
+    })
+    .catch(function (e) { AIF_BUSY = false; if (cur.name === 'add') document.getElementById('sres').innerHTML = searchList(m); aiErr(e); });
+};
 function resRow(r, m, usual) {
   var us = unitsOf(r), u = usual ? (us.filter(function (x) { return x[0] === usual.u; })[0] || us[0]) : us[0], q = usual ? usual.q : 1;
   var kc = r[1] * u[1] * q / 100;
@@ -134,7 +162,7 @@ ROUTES.dish = function (arg) {
   if (r[8] > 10) tags.push('<span class="tag warn">Sugary</span>');
   if (r[9] > 500) tags.push('<span class="tag warn">Salty</span>');
   var h = head('', 'Adding to ' + mealName(m));
-  h += '<section class="c"><h1 class="big">' + esc(r[0]) + '</h1><div class="l">Per 100 g: ' + n0(r[1]) + ' kcal · ' + (r[12] === 'INDB' ? 'Indian Nutrient Databank' : r[12] === 'INDB-adj' ? 'Indian Nutrient Databank, corrected for oil actually absorbed' : r[12] === 'Mine' ? 'Your home version' : 'Standard home-style values') + '</div><div class="chips mt">' + tags.join('') + '</div></section>';
+  h += '<section class="c"><h1 class="big">' + esc(r[0]) + '</h1><div class="l">Per 100 g: ' + n0(r[1]) + ' kcal · ' + (r[12] === 'INDB' ? 'Indian Nutrient Databank' : r[12] === 'INDB-adj' ? 'Indian Nutrient Databank, corrected for oil actually absorbed' : r[12] === 'Mine' ? 'Your home version' : r[12] === 'AI' ? 'AI estimate for a home recipe' + (r[13] ? ': ' + r[13] : '') + '. Adjust if yours is made differently.' : 'Standard home-style values') + '</div><div class="chips mt">' + tags.join('') + '</div></section>';
   h += '<section class="c"><div class="l">HOW MUCH?</div><div class="stepper"><button class="step" data-act="dq" data-d="-1" aria-label="Less">−</button><div class="ctr"><b class="huge">' + (u[0] === 'grams' ? Math.round(DISH.q) : frac(DISH.q)) + '</b><div class="l">' + esc(u[0]) + (u[0] === 'grams' ? '' : ' · ' + Math.round(g) + ' g') + '</div></div><button class="step" data-act="dq" data-d="1" aria-label="More">+</button></div>';
   if (u[0] !== 'grams') h += '<div class="chips c4">' + [0.5, 1, 1.5, 2].map(function (q) { return '<button class="chip' + (DISH.q === q ? ' on' : '') + '" data-act="dqSet" data-q="' + q + '">' + frac(q) + '</button>'; }).join('') + '</div>';
   h += '<div class="chips">' + units.map(function (x) { return '<button class="chip' + (x[0] === u[0] ? ' dk' : '') + '" data-act="du" data-u="' + esc(x[0]) + '">' + esc(x[0]) + '</button>'; }).join('') + '</div>';
