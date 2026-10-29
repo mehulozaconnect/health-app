@@ -35,7 +35,7 @@ ROUTES.home = function () {
     '<div class="r" data-act="go" data-to="yoga"><div class="l">Yoga today</div><b class="m22">' + ym + ' / ' + yogaGoal() + ' min</b><div class="sm gtxt">' + (ym >= yogaGoal() ? 'Done today' : 'Start your routine') + '</div></div></section>';
   return h;
 };
-function tileT(label, val, extra) { return tile(label, val, extra, 'shdata'); }
+function tileT(label, val, extra) { return tile(label, val, extra, 'vitals'); }
 function tile(label, val, extra, to) { return '<section class="c tile"' + (to ? ' data-act="go" data-to="' + to + '"' : '') + '><div class="l">' + label + '</div><b class="m24">' + val + '</b>' + (extra || '') + '</section>'; }
 function nowTip(cr, t, tg, b) {
   var hr = new Date().getHours(), left = b.total - t.kcal;
