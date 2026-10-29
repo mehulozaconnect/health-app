@@ -5,7 +5,8 @@ function liveChip() {
   var h = DB.health;
   if (!AND) return '<span class="live off">Phone data off in browser</span>';
   if (!h || h.status !== 'ok') return '<button class="live off" data-act="connectHealth">Connect watch data</button>';
-  return '<button class="live" data-act="refreshHealth"><i></i>Watch · ' + ago(DB.healthAt) + '</button>';
+  var hr = latestHr(), old = hr && Date.now() - hr.t > 25 * 60000;
+  return '<button class="live' + (old ? ' stale' : '') + '" data-act="' + (old ? 'syncWatch' : 'refreshHealth') + '"><i></i>' + (hr ? 'Watch data · ' + hm(hr.t) : 'Watch · ' + ago(DB.healthAt)) + '</button>';
 }
 ROUTES.home = function () {
   var k = today(), b = budgetFor(k), t = dayTotals(k), tg = macroTargets(), left = b.total - t.kcal, pct = t.kcal / b.total * 100;
@@ -21,7 +22,7 @@ ROUTES.home = function () {
   h += tile('Steps', st != null ? n0(st) : '—', st != null ? bar(st / 100) + '<div class="l mt6">of 10,000' + (DB.health && DB.health.distance && DB.health.distance[k] ? ' · ' + n1(DB.health.distance[k] / 1000) + ' km' : '') + '</div>' : '<div class="l">Connect watch</div>', 'vitals');
   h += tile('Sleep score', sl ? sl.score + ' <small>/100</small>' : '—', sl ? '<div class="l mt6">' + dur(sl.asleep) + ' · deep ' + Math.round(sl.m.deep / sl.staged * 100) + '%</div>' : '<div class="l">No sleep data yet</div>', 'vitals');
   h += tile('Energy score', en != null ? en : '—', '<div class="l mt6">' + (en == null ? 'No score yet today' : en >= 80 ? 'Good · go for it' : en >= 60 ? 'Fair · go easy after 4 pm' : 'Low · rest more today') + '</div>', 'vitals');
-  h += tileT('Heart rate', hr ? hr.bpm + ' <small>bpm</small>' : hd ? hd.avg + ' <small>avg</small>' : '—', hr ? '<div class="l mt6">last reading ' + (Date.now() - hr.t < 86400000 ? hm(hr.t) : ago(hr.t)) + (hd ? ' · ' + hd.min + '–' + hd.max + ' today' : '') + '</div>' : '<div class="l">No reading yet</div>', 'vitals');
+  h += tileT('Heart rate', hr ? hr.bpm + ' <small>bpm</small>' : hd ? hd.avg + ' <small>avg</small>' : '—', (hr ? '<div class="l mt6">last reading ' + (Date.now() - hr.t < 86400000 ? hm(hr.t) : ago(hr.t)) + (hd ? ' · ' + hd.min + '–' + hd.max + ' today' : '') + '</div>' : '<div class="l">No reading yet</div>') + staleNote());
   h += '</div>';
   h += waterCard(true);
   h += medsCard();
@@ -199,6 +200,16 @@ ACT.connectHealth = function () {
   if (s === 'not_installed' || s === 'old_version') return native('openStore', 'com.sec.android.app.shealth');
   native('healthConnect');
 };
+/* the watch hands readings to Samsung Health on the phone in batches; opening Samsung Health pulls them in now */
+var SYNCING = false;
+function staleNote() {
+  var hr = latestHr(); if (!AND || !hr || Date.now() - hr.t < 25 * 60000) return '';
+  return '<button class="lnk" data-act="syncWatch">Watch last sent data at ' + hm(hr.t) + ' · Sync now</button>';
+}
+ACT.syncWatch = function () {
+  if (native('openApp', 'com.sec.android.app.shealth')) { SYNCING = true; toast('Opening Samsung Health. Pull down there to sync, then come back.', 4000); }
+  else { toast('Reading Samsung Health…'); refreshHealth(true); }
+};
 ACT.refreshHealth = function () { toast('Reading Samsung Health…'); refreshHealth(true); };
 function refreshHealth(force) {
   if (!AND || !AND.healthRead) return;
@@ -217,5 +228,5 @@ window.onResume = function () {
   takeMedAdds();
   try { var adds = JSON.parse(native('takeWaterAdds') || '[]'); adds.forEach(function (a) { day(dkey(new Date(a.t))).water.push({ t: a.t, ml: a.ml }); }); if (adds.length) save(); } catch (e) { }
   if (SEL !== today() && cur.name !== 'food') SEL = today();
-  refreshHealth(false); rerender();
+  refreshHealth(SYNCING); SYNCING = false; rerender();
 };

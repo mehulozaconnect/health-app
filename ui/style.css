@@ -173,3 +173,4 @@ details.c summary{font-weight:800}
 .ins.warn{background:#FFF1E6}.ins.warn svg{color:var(--warn)}.ins.good{background:#E3F4EC}.ins.good svg{color:var(--g)}.ins.info svg{color:var(--g)}
 .wk{display:flex;justify-content:space-between}.wd{display:flex;flex-direction:column;align-items:center;gap:4px}.wd i{width:26px;height:26px;border-radius:50%}.wd small{color:var(--mute);font-weight:700;font-size:12px}
 .chips.c7{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.btn.sm0{width:auto;margin:0;padding:0 14px;height:48px;align-self:flex-end}
+.live.stale{background:#FFF1E6;color:#A4501B}.live.stale i{background:var(--warn);animation:none}

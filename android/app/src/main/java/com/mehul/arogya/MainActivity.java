@@ -255,6 +255,15 @@ public class MainActivity extends Activity {
             }).start();
         }
 
+        /** open another app (Samsung Health makes the watch send its latest readings) */
+        @JavascriptInterface
+        public boolean openApp(String pkg) {
+            Intent i = getPackageManager().getLaunchIntentForPackage(pkg);
+            if (i == null) return false;
+            ui.post(() -> startActivity(i));
+            return true;
+        }
+
         @JavascriptInterface
         public void openStore(String pkg) {
             ui.post(() -> {
