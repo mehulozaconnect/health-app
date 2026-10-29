@@ -292,6 +292,46 @@ public class MainActivity extends Activity {
             MedReceiver.schedule(MainActivity.this);
         }
 
+        /** what the pop-up reminder card needs: draw over other apps, full-screen on lock screen, notifications */
+        @JavascriptInterface
+        public String medPerms() {
+            try {
+                android.app.NotificationManager nm = getSystemService(android.app.NotificationManager.class);
+                return new JSONObject().put("overlay", android.provider.Settings.canDrawOverlays(MainActivity.this))
+                        .put("fullscreen", Build.VERSION.SDK_INT < 34 || nm.canUseFullScreenIntent())
+                        .put("notify", Build.VERSION.SDK_INT < 33 || checkSelfPermission("android.permission.POST_NOTIFICATIONS") == android.content.pm.PackageManager.PERMISSION_GRANTED).toString();
+            } catch (Exception e) { return "{}"; }
+        }
+
+        @JavascriptInterface
+        public void openOverlaySettings() {
+            ui.post(() -> { try { startActivity(new Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()))); } catch (Exception ignored) { } });
+        }
+
+        @JavascriptInterface
+        public void openFullScreenSettings() {
+            ui.post(() -> { try { startActivity(new Intent(Build.VERSION.SDK_INT >= 34 ? "android.settings.MANAGE_APP_USE_FULL_SCREEN_INTENT" : android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS, Uri.parse("package:" + getPackageName())).putExtra("android.provider.extra.APP_PACKAGE", getPackageName())); } catch (Exception ignored) { } });
+        }
+
+        /** status and navigation bar follow the theme */
+        @JavascriptInterface
+        public void setBars(final String color, final boolean dark) {
+            ui.post(() -> {
+                try {
+                    int c = android.graphics.Color.parseColor(color);
+                    getWindow().setStatusBarColor(c); getWindow().setNavigationBarColor(c);
+                    android.view.View d = getWindow().getDecorView(); int f = d.getSystemUiVisibility();
+                    if (dark) f &= ~(android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+                    else f |= android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+                    d.setSystemUiVisibility(f);
+                    web.setBackgroundColor(c);
+                } catch (Exception ignored) { }
+            });
+        }
+
+        @JavascriptInterface
+        public void testMed() { MedReceiver.notify(MainActivity.this, "test|now", java.time.LocalDate.now().toString()); }
+
         @JavascriptInterface
         public String takeMedAdds() {
             String a = MedReceiver.prefs(MainActivity.this).getString("adds", "[]");

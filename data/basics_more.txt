@@ -1,0 +1,249 @@
+# name | protein | carb | fat | fibre | veg | units | added sugar g | sodium mg | INDB proxy keyword (for vitamins/minerals) | other names people search
+# all values per 100 g (or 100 ml for drinks); kcal = 4p + 4c + 9f + 2 fibre
+# --- breakfast ---
+Kanda poha (onion poha) | 3 | 26 | 5 | 1.8 | 1 | plate:180;katori:150 | 0.5 | 250 | poha | kande pohe onion poha
+Batata poha (aloo poha) | 3 | 27 | 5 | 2 | 1 | plate:180;katori:150 | 0.5 | 250 | poha | potato poha aloo poha
+Indori poha (with sev and jeeravan) | 4 | 29 | 7.5 | 2 | 1 | plate:180 | 1.5 | 330 | poha | indore poha sev poha
+Sabudana kheer | 2.6 | 20 | 3.5 | 0.2 | 1 | katori:150 | 9 | 40 | apple sago payasam | sago kheer upvas vrat
+Sabudana thalipeeth | 4 | 35 | 10 | 2 | 1 | piece:70 | 0 | 220 | sago cutlet | upvas vrat
+Sama khichdi (vrat) | 3.5 | 24 | 5 | 3 | 1 | katori:150;plate:250 | 0 | 180 | plain khitchdi | samak bhagar vari rice moraiyo sama ke chawal upvas vrat sama khichadi
+Sama vada (vrat) | 5 | 30 | 14 | 3.5 | 1 | piece:40 | 0 | 200 | sago cutlet | samo vada upvas vrat
+Kuttu ki puri (vrat) | 6 | 40 | 18 | 5 | 1 | piece:30 | 0 | 150 | poori | buckwheat puri kuttu upvas vrat
+Rajgira roti (vrat) | 7 | 45 | 9 | 6 | 1 | piece:40 | 0 | 120 | chapati | amaranth roti rajgira paratha upvas vrat
+Singhara halwa (vrat) | 2 | 38 | 12 | 1.5 | 1 | katori:100 | 18 | 20 | halwa | water chestnut flour halwa singhade upvas vrat
+Farali chivda (vrat) | 7 | 52 | 28 | 4 | 1 | katori:50 | 2 | 350 | chiwda | upvas chivda potato chivda farali chiwda
+Farali pattice (vrat) | 4 | 30 | 12 | 3 | 1 | piece:60 | 0 | 260 | cutlet | upvas pattice
+Shengdana amti (peanut curry, vrat) | 6 | 8 | 9 | 2 | 1 | katori:150 | 2 | 300 |  | peanut amti upvas vrat
+Shakarkandi (sweet potato) boiled | 1.6 | 20 | 0.1 | 3 | 1 | medium:150;katori:100 | 0 | 40 |  | ratalu shakarkand upvas vrat
+Vrat aloo (jeera aloo, sendha namak) | 2 | 17 | 5 | 2 | 1 | katori:150 | 0 | 250 | dry potato | upvas batata bhaji farali aloo
+# --- Mumbai street and sandwiches ---
+Bombay sada sandwich (chutney, veg) | 5.5 | 29 | 8.5 | 3 | 1 | piece:140 | 1 | 420 | cucumber sandwich | sada sandwich plain sandwich chutney sandwich bombay sandwich
+Masala toast sandwich | 6 | 33 | 10 | 3 | 1 | piece:170 | 1 | 450 | sandwich | aloo masala toast bombay masala toast
+Cheese chilli toast | 10 | 30 | 14 | 2 | 1 | piece:90 | 1 | 560 | cheese and tomato sandwich | cheese chilli toast sandwich chilly cheese toast
+Veg cheese grilled sandwich | 9 | 29 | 13 | 2.5 | 1 | piece:200 | 1 | 560 | cheese and tomato sandwich | grilled sandwich bombay grilled cheese grill
+Paneer sandwich | 9 | 27 | 9 | 2.5 | 1 | piece:170 | 1 | 400 | paneer pea sandwich | paneer tikka sandwich
+Corn cheese sandwich | 8 | 29 | 11 | 2.5 | 1 | piece:170 | 2 | 480 | sandwich | sweet corn sandwich
+Veg club sandwich | 8 | 28 | 12 | 3 | 1 | piece:250 | 2 | 520 | sandwich | club sandwich
+Bread butter | 7.5 | 45 | 14 | 2.4 | 1 | slice:30 | 2 | 420 | =Bread white | butter toast bread butter toast
+Pav butter (butter pav) | 7.5 | 45 | 12 | 2 | 1 | piece:50 | 2 | 420 | =Pav (bun) | maska pav pav butter
+Bun maska (brun maska) | 7 | 44 | 16 | 2 | 1 | piece:70 | 4 | 400 | =Pav (bun) | brun maska bun maska
+Samosa pav | 6.5 | 42 | 11 | 2.6 | 1 | piece:115 | 1 | 430 | potato samosa | samosa pao
+Thecha vada pav | 6 | 38 | 13 | 2.6 | 1 | piece:155 | 1 | 540 | potato bonda | thecha vadapav
+Bhajji pav (kanda bhaji pav) | 7 | 41 | 13 | 3 | 1 | piece:120 | 1 | 420 | onion pakora | bhaji pav pakoda pav kanda bhajji pav
+Punjabi bhel | 7 | 30 | 9 | 5 | 1 | plate:150 | 3 | 450 | bhel puri | chana bhel
+Diet bhel (no sev) | 5 | 24 | 2 | 3 | 1 | plate:120 | 2 | 300 | bhel puri | sukha bhel healthy bhel
+Mirchi vada | 5 | 28 | 17 | 3 | 1 | piece:80 | 0 | 350 | onion pakora | mirchi bada jodhpuri mirchi vada
+Pyaz kachori | 7 | 42 | 24 | 3.5 | 1 | piece:70 | 1 | 380 | khasta kachori | pyaaz kachori onion kachori
+Dahi kachori (kachori chaat) | 6 | 30 | 12 | 3 | 1 | plate:200 | 6 | 400 | dahi vada | kachori chaat dahi kachori chaat
+Mawa kachori | 7 | 52 | 24 | 1.5 | 1 | piece:80 | 28 | 60 | khasta kachori | jodhpuri mawa kachori sweet kachori
+Pakwan | 8 | 55 | 22 | 4 | 1 | piece:40 | 0 | 300 | poori | sindhi pakwan
+Dal pakwan (plate) | 7 | 28 | 9 | 4 | 1 | plate:250 | 1 | 330 | split bengal gram dal (channa dal) | sindhi dal pakwan
+Cheese pav bhaji (plate) | 5 | 20 | 11 | 3 | 1 | plate:400 | 1 | 450 | pav bhaji | cheese pavbhaji
+Butter pav bhaji (plate) | 4.5 | 21 | 10.5 | 3.2 | 1 | plate:380 | 1 | 430 | pav bhaji | amul pav bhaji
+Chilli potato | 2.5 | 30 | 12 | 2.5 | 1 | plate:150 | 3 | 420 | dry potato | chilli potatoes honey chilli potato
+Potato chips (wafers) | 7 | 50 | 35 | 4.4 | 1 | packet:30;katori:30 | 0.5 | 520 | dry potato | wafers lays aloo chips potato wafers
+Popcorn (butter) | 9 | 60 | 14 | 12 | 1 | bowl:25 | 0 | 400 |  | pop corn
+Kurkure / puffed corn snack | 6 | 58 | 33 | 2 | 1 | packet:30 | 1 | 700 |  | kurkure cheetos
+Chana jor garam | 18 | 50 | 10 | 12 | 1 | katori:40 | 0 | 500 | =Roasted chana | chana jor
+Masala peanuts | 18 | 28 | 38 | 6 | 1 | katori:40 | 0 | 550 | =Peanuts roasted (Moongfali) | coated peanuts haldiram peanuts
+Bhakarwadi | 8 | 50 | 28 | 4 | 1 | katori:50;piece:10 | 6 | 600 | namkeen | bakarwadi chitale
+Chakli | 7 | 55 | 25 | 3 | 1 | piece:15;katori:50 | 0 | 450 | chakli | chakri murukku
+Mathri | 7 | 50 | 28 | 2 | 1 | piece:15 | 0 | 400 | mathri | mathi namak para
+Gathiya | 13 | 40 | 33 | 5 | 1 | katori:50 | 0 | 650 | sev | ganthiya bhavnagari gathiya
+Chorafali | 13 | 38 | 28 | 5 | 1 | katori:50 | 0 | 600 | sev | chorafali
+Fafda | 12 | 40 | 25 | 5 | 1 | plate:60 | 0 | 550 | gram flour chilla | fafda jalebi
+# --- Gujarati ---
+Patra (alu vadi) | 4 | 20 | 9 | 4 | 1 | piece:30 | 4 | 300 | gram flour chilla | alu vadi patrode paatra
+Methi muthiya | 6 | 26 | 8 | 4 | 1 | piece:30 | 2 | 300 | muthia | muthia muthiya dudhi muthiya
+Khichu | 3 | 30 | 3 | 1 | 1 | katori:150 | 0 | 350 | rice | khichiyu papdi no lot
+Sev usal | 8 | 20 | 9 | 6 | 1 | plate:250 | 1 | 450 | moth | sev usal
+Sev khamani | 9 | 22 | 10 | 4 | 1 | plate:150 | 4 | 400 | khaman | amiri khaman
+Dhebra (bajra methi) | 7 | 45 | 11 | 6 | 1 | piece:40 | 1 | 250 | makki ki roti | dhebra methi na dhebra
+Bajra rotla | 10 | 62 | 5 | 9 | 1 | piece:60 | 0 | 5 | makki ki roti | bajre ki roti bajra roti rotlo bajra bhakri
+Lasaniya batata | 2 | 18 | 7 | 2 | 1 | katori:150 | 1 | 350 | dry potato | lasaniya bataka garlic potato
+Dal vada (Gujarati) | 12 | 30 | 14 | 5 | 1 | piece:25 | 0 | 300 | dal vada | dalwada moong dal vada
+Sukhdi (gol papdi) | 6 | 55 | 25 | 3 | 1 | piece:40 | 30 | 20 | ladoo | gol papdi sukhadi
+Doodhpak | 5 | 20 | 6 | 0 | 1 | katori:150 | 12 | 50 | rabri | dudhpak
+Mohanthal | 7 | 48 | 28 | 2 | 1 | piece:40 | 28 | 30 | gram flour burfi | mohan thal
+Basundi | 7 | 25 | 8 | 0 | 1 | katori:100 | 18 | 60 | rabri | basundi
+Amrakhand | 8 | 35 | 6 | 0.3 | 1 | katori:100 | 28 | 40 | shrikhand | mango shrikhand
+# --- Maharashtrian ---
+Kothimbir vadi | 7 | 25 | 12 | 5 | 1 | piece:30 | 1 | 330 | gram flour chilla | kothimbir wadi
+Amti (Maharashtrian dal) | 5 | 12 | 4 | 3 | 1 | katori:150 | 2 | 300 | arhar | katachi amti amti dal
+Bharli vangi | 3 | 10 | 9 | 4 | 1 | katori:150 | 1 | 300 | stuffed brinjal | stuffed brinjal bharwa baingan
+Tomato saar | 1 | 5 | 2 | 1 | 1 | katori:150 | 2 | 300 | tomato soup | tomato saar
+Solkadhi | 1.2 | 4 | 5 | 0.5 | 1 | glass:200 | 1 | 250 |  | sol kadhi kokum kadhi
+Veg kolhapuri | 3 | 11 | 8 | 3.5 | 1 | katori:150 | 1 | 400 | cabbage and peas | kolhapuri mix veg kolhapuri sabzi
+Paneer kolhapuri | 9 | 8 | 15 | 2 | 1 | katori:150 | 1 | 420 | paneer curry | kolhapuri paneer
+Shankarpali | 7 | 60 | 20 | 1.5 | 1 | katori:50 | 22 | 50 | poori | shakarpara shakkarpara
+Karanji (gujiya) | 6 | 50 | 22 | 2 | 1 | piece:35 | 20 | 30 | poori | gujiya ghughra karanji
+# --- Rajasthani ---
+Dal baati (plate with ghee) | 8 | 35 | 12 | 4 | 1 | plate:350 | 0 | 300 | panchmel dal | dal bati
+Baati (ghee dipped) | 8 | 50 | 20 | 4 | 1 | piece:80 | 0 | 200 | chapati | bati baati
+Churma | 7 | 55 | 25 | 3 | 1 | katori:100 | 25 | 10 | ladoo | churma
+Churma ladoo | 7 | 55 | 22 | 3 | 1 | piece:50 | 25 | 10 | ladoo | churma ladoo
+Gatte ki sabzi | 6.5 | 13 | 8 | 2.5 | 1 | katori:150 | 1 | 400 | gatte | gatta curry besan gatte gatte methi gatta methi
+Gatte ka pulao | 5 | 25 | 7 | 2 | 1 | plate:250 | 0 | 350 | pulao | gatta pulao
+Ker sangri sabzi | 5 | 14 | 10 | 9 | 1 | katori:100 | 1 | 450 |  | ker sangri kair sangri panchkuta
+Ker sangri achar | 3 | 12 | 18 | 8 | 1 | tablespoon:15 | 2 | 1800 |  | ker sangri pickle kair sangri achar
+Haldi ki sabzi (raw turmeric) | 4 | 12 | 22 | 4 | 1 | katori:100 | 1 | 300 |  | kachi haldi ki sabzi
+Papad ki sabzi | 6 | 10 | 8 | 2 | 1 | katori:150 | 1 | 600 | besan kadhi | papad sabzi
+Methi papad sabzi | 5 | 14 | 10 | 4 | 1 | katori:150 | 4 | 550 | besan kadhi | methi papad
+Mangodi ki sabzi | 7 | 13 | 5 | 3 | 1 | katori:150 | 1 | 350 | washed moong dal | mangodi
+Lahsun chutney | 4 | 20 | 20 | 4 | 1 | tablespoon:15 | 1 | 900 | garlic chutney | garlic chutney lehsun chutney
+Besan chakki | 8 | 50 | 28 | 2 | 1 | piece:40 | 30 | 20 | gram flour burfi | besan ki chakki
+Ghevar | 5 | 55 | 25 | 0.8 | 1 | piece:100 | 35 | 30 | poori | ghevar
+Malai ghevar | 6 | 50 | 27 | 0.6 | 1 | piece:120 | 32 | 40 | poori | rabdi ghevar
+Bajra khichdi | 5 | 22 | 5 | 3.5 | 1 | katori:200 | 0 | 280 | plain khitchdi | bajre ki khichdi
+# --- sabzi ---
+Aloo bhindi sabzi | 2.5 | 13 | 6.5 | 3 | 1 | katori:150 | 0 | 280 | bhindi | bhindi aloo bhindi batata
+Bhindi masala | 2.5 | 9 | 8 | 3.5 | 1 | katori:150 | 1 | 330 | bhindi | masala bhindi bhindi do pyaza
+Aloo jeera | 2.2 | 17 | 6 | 2 | 1 | katori:150 | 0 | 280 | dry potato | jeera aloo aloo jeera
+Turai aloo sabzi | 2 | 9 | 4.5 | 2 | 1 | katori:150 | 0 | 260 | dry potato | turiya aloo tori aloo dodka batata
+Moong sabzi (sukha moong) | 9 | 17 | 4 | 5 | 1 | katori:150 | 0 | 280 | whole moong | moong ki sabzi whole moong sabzi mag nu shaak
+Dum aloo | 2.5 | 16 | 9 | 2.5 | 1 | katori:150 | 1 | 330 | potato curry | dum aloo kashmiri punjabi dum aloo
+Navratan korma | 4 | 11 | 11 | 2 | 1 | katori:150 | 4 | 300 | paneer makhana korma | navrattan korma
+Shahi paneer | 8 | 9 | 16 | 1 | 1 | katori:150 | 3 | 350 | paneer in butter | shahi paneer
+Paneer lababdar | 9 | 9 | 15 | 1.5 | 1 | katori:150 | 2 | 360 | paneer in butter | paneer lababdar
+Paneer do pyaza | 9 | 7 | 14 | 2 | 1 | katori:150 | 1 | 340 | paneer curry | paneer do pyaaza
+Mushroom matar | 3.5 | 9 | 6 | 3 | 1 | katori:150 | 1 | 300 | mushroom | mushroom mutter
+Lauki kofta | 3 | 10 | 9 | 2.5 | 1 | katori:150 | 1 | 320 | paneer kofta curry | ghiya kofta dudhi kofta
+Dal fry | 6 | 14 | 4.5 | 3 | 1 | katori:150 | 0 | 300 | mixed dal | dal fry toor dal fry
+Chana masala (chole, dry) | 8 | 21 | 6 | 7 | 1 | katori:150 | 1 | 380 | chickpeas curry | chana masala pindi chole amritsari chole
+# --- dosa, idli, uttapam ---
+Butter sada dosa | 3.8 | 27 | 7.5 | 1.2 | 1 | piece:100 | 0 | 260 | plain dosa | butter plain dosa butter dosa
+Paper dosa | 4 | 30 | 8 | 1.2 | 1 | piece:120 | 0 | 260 | plain dosa | paper plain dosa
+Paper masala dosa | 3.6 | 25 | 8.5 | 2 | 1 | piece:250 | 0 | 300 | masala dosa | paper masala
+Mysore masala dosa | 3.6 | 23 | 9 | 2.2 | 1 | piece:220 | 0 | 330 | masala dosa | mysore masala mysore dosa
+Cheese masala dosa | 6.5 | 21 | 11 | 1.8 | 1 | piece:230 | 0 | 420 | masala dosa | cheese dosa
+Cheese mysore masala dosa | 6.5 | 21 | 12 | 2 | 1 | piece:250 | 0 | 440 | masala dosa | cheese mysore
+Cheese rava dosa | 7 | 25 | 13 | 1 | 1 | piece:130 | 0 | 420 | semolina dosa | cheese rava sada dosa
+Onion rava dosa | 4 | 25 | 9.5 | 1.2 | 1 | piece:120 | 0 | 280 | semolina dosa | onion rava
+Podi dosa (gunpowder, ghee) | 4.5 | 28 | 9 | 2 | 1 | piece:110 | 0 | 320 | plain dosa | murugan podi dosa gunpowder dosa milagai podi dosa ghee podi
+Ghee roast dosa | 3.8 | 26 | 11 | 1.2 | 1 | piece:110 | 0 | 260 | plain dosa | ghee roast
+Set dosa | 4 | 30 | 4 | 1.5 | 1 | piece:60 | 0 | 220 | plain dosa | sponge dosa
+Neer dosa | 2 | 26 | 2.5 | 0.5 | 1 | piece:50 | 0 | 150 | plain dosa | neer dose
+Podi idli | 4.5 | 27 | 6 | 2 | 1 | piece:40 | 0 | 280 | idli | ghee podi idli
+Onion uttapam | 4.2 | 24 | 5 | 2 | 1 | piece:150 | 0 | 260 | uttapam | kanda uttapam onion uthappam
+Tomato uttapam | 4.2 | 24 | 5 | 2 | 1 | piece:150 | 0 | 260 | uttapam | tomato uthappam
+Mixed veg uttapam | 4.5 | 23 | 5 | 2.4 | 1 | piece:160 | 0 | 260 | uttapam | vegetable uttapam
+Cheese uttapam | 7 | 22 | 9 | 1.8 | 1 | piece:170 | 0 | 400 | uttapam | cheese uthappam
+Podi uttapam | 4.8 | 25 | 7 | 2 | 1 | piece:150 | 0 | 300 | uttapam | gunpowder uttapam
+# --- breads ---
+Butter roti | 8.5 | 46 | 12 | 7 | 1 | piece:35 | 0 | 150 | chapati | butter chapati butter phulka
+Tandoori roti | 9 | 50 | 2 | 5 | 1 | piece:50 | 0 | 300 | chapati | tandoori roti tandoor roti
+Butter naan | 7.5 | 46 | 11 | 2 | 1 | piece:100 | 2 | 420 | naan | butter naan
+Garlic naan | 8 | 48 | 8 | 2 | 1 | piece:100 | 2 | 430 | naan | garlic naan lehsun naan
+Lachha paratha | 7 | 44 | 15 | 3 | 1 | piece:80 | 0 | 280 | parantha | laccha paratha
+Plain kulcha | 8 | 50 | 7 | 2 | 1 | piece:75 | 2 | 400 | naan | kulcha
+Butter kulcha | 7.5 | 46 | 12 | 2 | 1 | piece:85 | 2 | 420 | naan | butter kulcha
+Masala kulcha (stuffed) | 6 | 40 | 10 | 3 | 1 | piece:110 | 1 | 450 | potato parantha | aloo kulcha amritsari kulcha masala kulcha
+Paneer kulcha | 9 | 40 | 11 | 2.5 | 1 | piece:110 | 1 | 400 | paneer parantha | paneer kulcha
+Onion kulcha | 7 | 42 | 10 | 2.5 | 1 | piece:100 | 1 | 420 | naan | pyaz kulcha
+Chole kulche (plate) | 7 | 30 | 8 | 5 | 1 | plate:300 | 1 | 450 | chickpeas curry | chole kulcha
+Multigrain bread | 10 | 43 | 4 | 7 | 1 | slice:30 | 4 | 420 | bread | multi grain bread
+# --- rice ---
+Veg fried rice | 4 | 26 | 5.5 | 1.5 | 1 | plate:250;katori:150 | 0 | 450 | fried rice | fried rice veg fried rice
+Schezwan fried rice | 4 | 27 | 7 | 1.7 | 1 | plate:250 | 1 | 560 | fried rice | schezwan rice
+Triple schezwan fried rice | 4 | 24 | 8 | 2 | 1 | plate:400 | 2 | 560 | fried rice | triple schezwan triple rice
+Masala khichdi | 4.5 | 20 | 4.5 | 2.5 | 1 | katori:200 | 0 | 300 | plain khitchdi | vaghareli khichdi masala khichadi veg khichdi
+Palak khichdi | 4.5 | 19 | 4 | 2.5 | 1 | katori:200 | 0 | 280 | plain khitchdi | spinach khichdi
+Moong dal khichdi | 4.5 | 19 | 3.5 | 2 | 1 | katori:200 | 0 | 250 | plain khitchdi | moong khichdi
+Tomato rice | 3 | 27 | 5 | 1.2 | 1 | katori:150;plate:250 | 0 | 300 | plain pulao | thakkali sadam
+Coconut rice | 3 | 27 | 9 | 2 | 1 | katori:150;plate:250 | 0 | 250 | plain pulao | thengai sadam
+Tamarind rice (puliyogare) | 3 | 30 | 7 | 2 | 1 | katori:150;plate:250 | 2 | 400 | tamarind rice | puliogare puliyodharai imli rice
+Paneer biryani | 5.5 | 24 | 7 | 1.5 | 1 | plate:300 | 0 | 380 | vegetable biryani | paneer biryani
+Matar pulao | 3.5 | 26 | 4.5 | 2.2 | 1 | katori:150;plate:250 | 0 | 280 | mixed vegetable pulao | peas pulao mutter pulao
+Kashmiri pulao | 3.5 | 28 | 7 | 1.5 | 1 | katori:150;plate:250 | 3 | 250 | pulao | kashmiri pulav
+Bisi bele bath | 4 | 19 | 5 | 3 | 1 | katori:200 | 1 | 350 | mixed dal | bisibelebath
+Ghee rice | 2.8 | 28 | 6 | 0.5 | 1 | katori:150 | 0 | 200 | plain pulao | ghee bhaat
+# --- Chinese ---
+Dry manchurian | 5 | 22 | 12 | 3 | 1 | katori:150;plate:200 | 2 | 520 | manchurian | manchurian dry veg manchurian dry gobi manchurian dry
+Schezwan noodles | 4 | 25 | 7.5 | 2 | 1 | plate:250 | 2 | 560 | vegetable chowmein | schezwan noodles
+American chopsuey | 4 | 28 | 9 | 2 | 1 | plate:300 | 6 | 450 | vegetable chowmein | chopsuey
+Manchow soup | 1.5 | 6 | 2.5 | 1 | 1 | bowl:250 | 0.5 | 380 | mixed vegetable soup | manchow
+Hot and sour soup | 1.5 | 6 | 2 | 1 | 1 | bowl:250 | 1 | 400 | soup | hot n sour
+Sweet corn soup | 2 | 9 | 1.5 | 1 | 1 | bowl:250 | 2 | 350 | corn soup | sweetcorn soup
+Fried momos (veg) | 5 | 30 | 10 | 2 | 1 | piece:30 | 0 | 350 | vegetable chowmein | fried momo
+Patanjali atta noodles (dry) | 10 | 60 | 17 | 5 | 1 | packet:60 | 2 | 900 | home made plain noodles | atta noodles patanjali maggi whole wheat noodles
+# --- pizza, burger ---
+Cheese burst pizza | 10 | 29 | 13 | 2 | 1 | slice:110 | 2 | 600 | pizza | cheese burst
+Margherita pizza | 11 | 30 | 10 | 2 | 1 | slice:100 | 2 | 550 | pizza | margarita pizza
+Farmhouse pizza | 9.5 | 29 | 10 | 2.5 | 1 | slice:110 | 2 | 550 | pizza | veggie pizza
+# --- sweets ---
+Rabdi | 7 | 30 | 12 | 0 | 1 | katori:100 | 22 | 60 | rabri | rabri rabdi
+Malpua | 5 | 50 | 16 | 1 | 1 | piece:50 | 25 | 40 | malpua | malpura
+Soan papdi | 5 | 60 | 25 | 1 | 1 | piece:25 | 45 | 20 | gram flour burfi | son papdi patisa
+Peda | 9 | 55 | 14 | 0 | 1 | piece:25 | 40 | 60 | plain burfi | pedha kesar peda doodh peda mathura peda
+Milk barfi | 10 | 50 | 16 | 0 | 1 | piece:25 | 35 | 60 | plain burfi | mawa barfi khoa barfi barfi
+Besan barfi | 8 | 50 | 25 | 2 | 1 | piece:30 | 30 | 20 | gram flour burfi | besan burfi
+Kalakand | 12 | 38 | 15 | 0 | 1 | piece:40 | 25 | 70 | plain burfi | milk cake
+Sandesh | 10 | 38 | 10 | 0 | 1 | piece:30 | 28 | 50 | plain burfi | sondesh
+Boondi ladoo | 5 | 58 | 20 | 1.5 | 1 | piece:40 | 40 | 20 | gram flour ladoo | bundi laddu
+Imarti | 3 | 60 | 14 | 0.5 | 1 | piece:40 | 45 | 20 |  | amriti
+Mysore pak | 6 | 50 | 32 | 1.5 | 1 | piece:30 | 38 | 10 | gram flour burfi | mysorepak
+Atta halwa (kada prasad) | 5 | 45 | 22 | 2 | 1 | katori:100 | 25 | 10 | halwa | kada prasad aate ka halwa wheat halwa sheera
+Lapsi | 5 | 45 | 9 | 4 | 1 | katori:150 | 20 | 10 | dalia | fada lapsi
+Seviyan kheer | 4 | 22 | 5 | 0.4 | 1 | katori:150 | 12 | 50 | vermicelli kheer | semiya payasam sevai kheer
+Kulfi | 6 | 25 | 10 | 0 | 1 | piece:60 | 20 | 60 | kulfi | malai kulfi matka kulfi
+Falooda | 4 | 30 | 5 | 0.5 | 1 | glass:300 | 22 | 50 | saffron milk | faluda royal falooda
+Vanilla ice cream | 3.5 | 24 | 11 | 0 | 1 | scoop:60;cup:100 | 20 | 80 |  | icecream ice-cream
+Kala jamun | 4.5 | 50 | 14 | 0.5 | 1 | piece:45 | 38 | 30 | gulab jamun | kala jamun
+# --- drinks (per 100 ml) ---
+Lemon-lime soda (Sprite, 7Up) | 0 | 10 | 0 | 0 | 1 | glass:250;can:300;bottle:600 | 10 | 10 |  | sprite 7up seven up limca lemon soda
+Orange soda (Fanta, Mirinda) | 0 | 12 | 0 | 0 | 1 | glass:250;can:300;bottle:600 | 12 | 10 |  | fanta mirinda orange soft drink
+Mango drink (Frooti, Maaza, Slice) | 0 | 14.5 | 0 | 0.1 | 1 | tetra pack:200;glass:250;bottle:600 | 13 | 10 | =Mango (Aam) | frooti maaza slice mango drink
+Mountain Dew | 0 | 12 | 0 | 0 | 1 | glass:250;can:300 | 12 | 10 |  | dew
+Packaged fruit juice (Real, Tropicana) | 0.2 | 13 | 0 | 0.2 | 1 | glass:200;tetra pack:200 | 9 | 10 |  | real juice tropicana packaged juice
+Gulkand | 0.5 | 75 | 0.2 | 1 | 1 | teaspoon:10;tablespoon:20 | 65 | 10 |  | gulkand rose petal jam
+Rooh Afza sharbat | 0 | 9.5 | 0 | 0 | 1 | glass:250 | 9 | 5 |  | rose sharbat rose sherbet rooh afza roohafza gulab sharbat
+Rooh Afza milk | 2.8 | 11 | 2.6 | 0 | 1 | glass:250 | 7 | 45 | =Milk toned | rose milk rooh afza doodh
+Glucon-D powder | 0 | 99 | 0 | 0 | 1 | tablespoon:15 | 0 | 10 |  | glucon d glucose powder
+Glucon-D drink | 0 | 9 | 0 | 0 | 1 | glass:250 | 0 | 5 |  | glucon d water glucose water
+Nimbu pani (salted, no sugar) | 0.1 | 1.5 | 0 | 0.1 | 1 | glass:250 | 0 | 150 |  | lemon water namkeen nimbu pani
+Masala chaas | 1.2 | 1.8 | 0.8 | 0 | 1 | glass:250 | 0 | 220 | =Buttermilk (Chaas) | masala chhas spiced buttermilk
+Mango lassi | 2.5 | 17 | 2.8 | 0.3 | 1 | glass:250 | 10 | 45 | =Sweet lassi | aam lassi
+Jaljeera | 0.2 | 5 | 0.1 | 0.2 | 1 | glass:250 | 4 | 300 |  | jal jeera
+Mango shake | 2.6 | 17 | 2.5 | 0.4 | 1 | glass:300 | 9 | 45 | =Milk toned | mango milkshake aam shake
+Banana shake | 2.8 | 18 | 2.4 | 0.6 | 1 | glass:300 | 7 | 45 | =Milk toned | banana milkshake
+Chikoo shake | 2.6 | 20 | 2.6 | 1 | 1 | glass:300 | 8 | 45 | =Milk toned | chiku shake sapota shake
+Strawberry shake | 2.6 | 15 | 2.4 | 0.4 | 1 | glass:300 | 9 | 45 | =Milk toned | strawberry milkshake
+Chocolate shake | 3 | 18 | 3 | 0.5 | 1 | glass:300 | 12 | 60 | =Milk toned | chocolate milkshake
+Thick shake with ice cream | 3.5 | 25 | 7 | 0.3 | 1 | glass:350 | 18 | 70 | =Milk toned | oreo shake kitkat shake thick shake
+Dry fruit shake | 4 | 16 | 5 | 0.8 | 1 | glass:300 | 8 | 45 | =Milk toned | dryfruit milkshake
+Badam milk | 3.5 | 12 | 4.5 | 0.5 | 1 | glass:250 | 8 | 45 | milk | badam doodh almond milk kesar badam
+Masala milk | 3.4 | 10 | 3.5 | 0.2 | 1 | glass:250 | 6 | 45 | =Milk toned | masala doodh kesar milk
+Filter coffee | 1.8 | 8 | 1.8 | 0 | 1 | tumbler:150;cup:150 | 5 | 30 | =Coffee with milk | south indian filter coffee kaapi
+Cappuccino | 2 | 3 | 1.8 | 0 | 1 | cup:180 | 0 | 40 | =Coffee with milk | cappucino
+Cafe latte | 2 | 3.3 | 2 | 0 | 1 | cup:240 | 0 | 40 | =Coffee with milk | latte
+Espresso | 0.1 | 0 | 0.2 | 0 | 1 | shot:30 | 0 | 5 |  | expresso
+Cafe mocha | 2.5 | 9 | 3 | 0.5 | 1 | cup:240 | 7 | 45 | =Coffee with milk | mocha
+Cold coffee (cafe style) | 3 | 16 | 4 | 0 | 1 | glass:300 | 12 | 45 | =Coffee with milk | frappe iced coffee cafe frappe
+Mosambi juice | 0.5 | 9.5 | 0.1 | 0.2 | 1 | glass:250 | 0 | 2 |  | sweet lime juice mosambi
+Watermelon juice | 0.4 | 7 | 0.1 | 0.2 | 1 | glass:250 | 0 | 2 |  | tarbuj juice
+Pineapple juice | 0.4 | 12 | 0.1 | 0.2 | 1 | glass:250 | 3 | 2 |  | ananas juice
+Pomegranate juice | 0.4 | 14 | 0.2 | 0.1 | 1 | glass:250 | 0 | 5 |  | anar juice
+Apple juice | 0.1 | 11.5 | 0.1 | 0.2 | 1 | glass:250 | 0 | 4 |  | apple juice
+Mixed fruit juice | 0.5 | 12 | 0.2 | 0.3 | 1 | glass:250 | 2 | 4 |  | mix fruit juice
+Carrot juice | 0.9 | 9 | 0.2 | 0.8 | 1 | glass:250 | 0 | 60 |  | gajar juice
+Amla juice | 0.3 | 3 | 0 | 0.5 | 1 | glass:100 | 0 | 5 |  | gooseberry juice
+Lauki juice | 0.3 | 2.5 | 0 | 0.5 | 1 | glass:250 | 0 | 5 |  | dudhi juice bottle gourd juice
+# --- fruits ---
+Muskmelon (Kharbuja) | 0.8 | 7.5 | 0.2 | 0.9 | 1 | katori:150;slice:120 | 0 | 16 |  | kharbooja cantaloupe
+Strawberry | 0.7 | 7.7 | 0.3 | 2 | 1 | katori:100;piece:12 | 0 | 1 |  | strawberries
+Custard apple (Sitaphal) | 2.1 | 23.6 | 0.6 | 4.4 | 1 | medium:150 | 0 | 9 |  | sitafal sharifa
+Jamun | 0.7 | 14 | 0.2 | 0.6 | 1 | 10 jamun:50;katori:100 | 0 | 14 |  | java plum black plum
+Litchi | 0.8 | 16.5 | 0.4 | 1.3 | 1 | 10 litchi:100 | 0 | 1 |  | lychee
+Plum (Aloo bukhara) | 0.7 | 11.4 | 0.3 | 1.4 | 1 | medium:65 | 0 | 0 |  | aloo bukhara
+Peach (Aadu) | 0.9 | 9.5 | 0.3 | 1.5 | 1 | medium:150 | 0 | 0 |  | aadoo
+Cherry | 1 | 16 | 0.2 | 2.1 | 1 | 10 cherries:70 | 0 | 0 |  | cherries
+Fig fresh (Anjeer) | 0.8 | 19 | 0.3 | 2.9 | 1 | medium:50 | 0 | 1 |  | anjir fresh fig
+Dried fig (Anjeer) | 3.3 | 64 | 0.9 | 9.8 | 1 | piece:10 | 0 | 10 |  | sukha anjeer dry anjeer
+Jackfruit (Kathal) | 1.7 | 23 | 0.6 | 1.5 | 1 | katori:150 | 0 | 2 |  | phanas fanas kathal
+Dragon fruit | 1.2 | 13 | 0.4 | 3 | 1 | medium:300;katori:150 | 0 | 0 |  | pitaya
+Avocado | 2 | 8.5 | 14.7 | 6.7 | 1 | medium:170 | 0 | 7 |  | butter fruit
+Amla (Indian gooseberry) | 0.9 | 10 | 0.1 | 3.4 | 1 | piece:30 | 0 | 5 |  | amla gooseberry avla
+Ber (Indian jujube) | 1 | 17 | 0.2 | 1.6 | 1 | 10 ber:80 | 0 | 3 |  | bor jujube
+Fresh coconut (Nariyal) | 3.3 | 15 | 33 | 9 | 1 | piece:30 | 0 | 20 |  | khopra nariyal ka tukda
+Tender coconut malai | 1.5 | 7 | 8 | 3 | 1 | katori:80 | 0 | 20 |  | malai coconut
+Meetha achar (chunda) | 0.6 | 60 | 0.3 | 1.5 | 1 | tablespoon:20 | 50 | 600 |  | meetha achar sweet pickle chunda gor keri methia sweet mango pickle meetha achaar

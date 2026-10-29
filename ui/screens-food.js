@@ -119,7 +119,10 @@ var COMBO = null;
 var PART = { dal: 'Dal tadka (toor)', daal: 'Dal tadka (toor)', roti: 'Roti / Phulka (no ghee)', chapati: 'Roti / Phulka (no ghee)', phulka: 'Roti / Phulka (no ghee)', sabzi: 'Mixed vegetable sabzi', sabji: 'Mixed vegetable sabzi', bhaji: 'Mixed vegetable sabzi',
   rice: 'Rice - plain (cooked)', chawal: 'Rice - plain (cooked)', bhat: 'Rice - plain (cooked)', chai: 'Tea with milk (chai)', tea: 'Tea with milk (chai)', coffee: 'Coffee with milk', chutney: 'Green chutney', pav: 'Pav (bun)', bun: 'Pav (bun)',
   dahi: 'Curd (Dahi)', curd: 'Curd (Dahi)', salad: 'Green salad', papad: 'Papad roasted', achar: 'Pickle (achar)', pickle: 'Pickle (achar)', kadhi: 'Kadhi', bread: 'Bread white', butter: 'Butter', chaas: 'Buttermilk (Chaas)', buttermilk: 'Buttermilk (Chaas)' };
-function partFood(seg) { var d = PART[seg]; return (d && food(d)) || searchFoods(seg, 1)[0]; }
+/* words that describe a dish but are not a food on their own: never split them out as a part */
+var NOTPART = /^(masala|sada|plain|dry|fried|kanda|batata|paper|mysore|sukhi|sukha|punjabi|diet|triple|garlic|onion|tomato|green|red|jeera|hot|cold|sweet|meetha|teekha|tikha|spicy|special|veg|chilli|chilly|grilled|toast|butter|cheese|cutting|ki|ka|ke|nu|no|ni|aur|bombay|indori|desi|homemade|home|style|small|big|half|full|ghee|tadka|fry|curry|gravy|shahi|kadai|kadhai|schezwan|manchurian|hakka|tandoori|stuffed|bharwa|methi|aloo|gobi|matar|palak|paneer|moong|rava|sooji|suji)$/;
+function partFood(seg) { if (NOTPART.test(seg)) return null; var d = PART[seg]; return (d && food(d)) || searchFoods(seg, 1)[0]; }
+function _old_partFood(seg) { var d = PART[seg]; return (d && food(d)) || searchFoods(seg, 1)[0]; }
 function splitParts(q) {
   var segs = q.toLowerCase().split(/\s*(?:\+|,|&|\band\b|\bwith\b|\baur\b)\s*/).filter(Boolean);
   if (segs.length > 1) { var a = segs.map(partFood); return a.every(Boolean) ? a : null; }

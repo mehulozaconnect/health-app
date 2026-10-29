@@ -23,7 +23,7 @@ import java.util.List;
 
 /** Medicine reminders: one alarm at the next due time; the notification's Taken button logs the dose without opening the app. */
 public class MedReceiver extends BroadcastReceiver {
-    static final String CH = "meds", FIRE = "com.mehul.arogya.MED_FIRE", TAKE = "com.mehul.arogya.MED_TAKE", SNOOZE = "com.mehul.arogya.MED_SNOOZE";
+    static final String CH = "meds", FIRE = "com.mehul.arogya.MED_FIRE", TAKE = "com.mehul.arogya.MED_TAKE", SNOOZE = "com.mehul.arogya.MED_SNOOZE", SKIP = "com.mehul.arogya.MED_SKIP";
     static final int NID = 4200;
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("meds", Context.MODE_PRIVATE); }
@@ -116,16 +116,18 @@ public class MedReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context c, Intent i) {
         String a = i.getAction(), keys = i.getStringExtra("keys"), date = i.getStringExtra("date");
-        if (TAKE.equals(a) && keys != null) {
+        if ((TAKE.equals(a) || SKIP.equals(a)) && keys != null) {
+            if (keys.startsWith("test")) { c.getSystemService(NotificationManager.class).cancel(NID); return; }
             try {
                 JSONArray arr = new JSONArray(prefs(c).getString("adds", "[]"));
-                for (String k : keys.split(",")) arr.put(new JSONObject().put("key", k).put("date", date).put("t", System.currentTimeMillis()));
+                for (String k : keys.split(",")) arr.put(new JSONObject().put("key", k).put("date", date).put("t", System.currentTimeMillis()).put("s", TAKE.equals(a) ? "taken" : "skip"));
                 prefs(c).edit().putString("adds", arr.toString()).apply();
             } catch (Exception ignored) { }
             c.getSystemService(NotificationManager.class).cancel(NID);
             schedule(c);
             return;
         }
+        if (SNOOZE.equals(a) && keys != null && keys.startsWith("test")) { c.getSystemService(NotificationManager.class).cancel(NID); return; }
         if (SNOOZE.equals(a) && keys != null) {
             c.getSystemService(NotificationManager.class).cancel(NID);
             Intent it = new Intent(c, MedReceiver.class).setAction(FIRE).putExtra("keys", keys).putExtra("date", date);
@@ -141,7 +143,8 @@ public class MedReceiver extends BroadcastReceiver {
         if (Build.VERSION.SDK_INT >= 33 && c.checkSelfPermission("android.permission.POST_NOTIFICATIONS") != android.content.pm.PackageManager.PERMISSION_GRANTED) return;
         JSONArray doses = cfg(c).optJSONArray("doses");
         List<String> names = new ArrayList<>(), lines = new ArrayList<>(), open = new ArrayList<>();
-        for (String k : keys.split(",")) {
+        if (keys.startsWith("test")) { names.add("your medicine"); lines.add("This is how your medicine reminders will look. Tap Taken, In 15 min or Skip."); open.add(keys); }
+        else for (String k : keys.split(",")) {
             if (done(c, date, k)) continue;
             String id = k.split("\\|")[0];
             for (int i = 0; doses != null && i < doses.length(); i++) {
@@ -161,10 +164,25 @@ public class MedReceiver extends BroadcastReceiver {
                 .setContentText(lines.get(0))
                 .setStyle(new Notification.BigTextStyle().bigText(String.join("\n", lines)))
                 .setContentIntent(show).setAutoCancel(true)
+                .setFullScreenIntent(PendingIntent.getActivity(c, 25, card(c, ks, date, names, lines), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE), true)
                 .setCategory(Notification.CATEGORY_REMINDER)
                 .addAction(new Notification.Action.Builder(null, open.size() > 1 ? "Taken all" : "Taken", take).build())
                 .addAction(new Notification.Action.Builder(null, "In 15 min", snooze).build())
+                .addAction(new Notification.Action.Builder(null, "Skip", PendingIntent.getBroadcast(c, 26, new Intent(c, MedReceiver.class).setAction(SKIP).putExtra("keys", ks).putExtra("date", date), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE)).build())
                 .build();
         c.getSystemService(NotificationManager.class).notify(NID, n);
+        // the Dayline-style card: pops up from the bottom over whatever is on screen (needs "Display over other apps"); on a locked phone the full-screen intent shows it
+        if (cfg(c).optBoolean("popup", true) && (android.provider.Settings.canDrawOverlays(c) || isLocked(c))) {
+            try { c.startActivity(card(c, ks, date, names, lines).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_HISTORY)); } catch (Exception ignored) { }
+        }
+    }
+
+    static boolean isLocked(Context c) { android.app.KeyguardManager km = c.getSystemService(android.app.KeyguardManager.class); return km != null && km.isKeyguardLocked(); }
+
+    static Intent card(Context c, String ks, String date, List<String> names, List<String> lines) {
+        return new Intent(c, ReminderActivity.class).putExtra("keys", ks).putExtra("date", date)
+                .putExtra("title", "Time for " + String.join(", ", names))
+                .putExtra("body", lines.size() == 1 && lines.get(0).contains(" · ") ? lines.get(0).substring(lines.get(0).indexOf(" · ") + 3) : String.join("\n", lines))
+                .putExtra("accent", cfg(c).optString("accent", "#7C5CFF"));
     }
 }

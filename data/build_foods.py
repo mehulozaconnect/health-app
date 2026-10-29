@@ -200,7 +200,7 @@ with open(os.path.join(HERE, 'basics_micro.csv')) as fh:
     for m in csv.DictReader(fh):
         HAND[m['name']] = [float(m[k]) for k in ['ca', 'fe', 'mg', 'zn', 'k', 'p', 'na', 'chol', 'vita', 'vitc', 'folate', 'b1', 'b2', 'b3', 'b6', 'vite', 'vitd']]
 BYNAME = {re.sub(r"\s+", " ", str(x.food_name).replace("\xa0", " ")).strip().lower(): x for _, x in d.iterrows()}
-missing = []
+missing = []; ALIAS = {}
 with open(os.path.join(HERE, 'basics.csv')) as fh:
     for b in csv.DictReader(fh):
         units = b['units'] + ('' if 'tablespoon' in b['units'] or 'teaspoon' in b['units'] else '|tablespoon:15')
@@ -217,11 +217,57 @@ with open(os.path.join(HERE, 'basics.csv')) as fh:
         rows.append([nm, r1(b['kcal']), r1(b['protein']), r1(b['carb']), r1(b['fat']), r1(b['fibre']), int(b['veg']), units, mi[0],
                      full[6] if full else mi[1], full[1] if full else mi[2], full[0] if full else mi[3], 'Basic', '', full])
 
+# more home dishes: kcal from macros, sugar/sodium as written, vitamins and minerals borrowed from the closest databank recipe
+def proxy_row(kw):
+    if not kw: return None
+    if kw.startswith('='):
+        r0 = [x for x in rows if x[0] == kw[1:] and x[14]]
+        if not r0: return None
+        r0 = r0[0]; import pandas as _pd
+        return (r0[0], _pd.Series(dict(zip(['calcium_mg', 'iron_mg', 'magnesium_mg', 'zinc_mg', 'potassium_mg', 'phosphorus_mg', 'sodium_mg', 'cholesterol_mg', 'vita_ug', 'vitc_mg', 'folate_ug', 'vitb1_mg', 'vitb2_mg', 'vitb3_mg', 'vitb6_mg', 'vite_mg', 'vitd2_ug'], r0[14]), protein_g=r0[2], carb_g=r0[3], fat_g=r0[4], carotenoids_ug=0, vitd3_ug=0)))
+    kw = kw.lower(); best = None
+    for nm, x in BYNAME.items():
+        if kw in nm and (best is None or len(nm) < len(best[0])): best = (nm, x)
+    return best
+have = set(x[0].lower() for x in rows); more_log = []
+for line in open(os.path.join(HERE, 'basics_more.txt')):
+    line = line.strip()
+    if not line or line.startswith('#'): continue
+    c = [x.strip() for x in line.split('|')]
+    nm, p, cb, f, fi, veg, units, su, na, kw, al = c[0], float(c[1]), float(c[2]), float(c[3]), float(c[4]), int(c[5]), c[6].replace(';', '|'), float(c[7]), float(c[8]), c[9], c[10]
+    if nm.lower() in have: more_log.append('dup ' + nm); continue
+    kcal = round(4 * p + 4 * cb + 9 * f + 2 * fi)
+    pr = None if nm in HAND else proxy_row(kw); full = list(HAND[nm]) if nm in HAND else []
+    if nm in HAND: full[6] = full[6] or na
+    if pr:
+        more_log.append('proxy ' + nm + ' <- ' + pr[0])
+    if pr:
+        e0 = 4 * float(pr[1].protein_g) + 4 * float(pr[1].carb_g); e1 = 4 * p + 4 * cb
+        full = micros(pr[1], max(0.3, min(3, e1 / e0)) if e0 > 0 else 1, (f / float(pr[1].fat_g)) if float(pr[1].fat_g) > 0 else 1)
+        full[6] = na
+    elif kw: more_log.append('no proxy for ' + nm + ' (' + kw + ')')
+    if 'tablespoon' not in units and 'teaspoon' not in units: units += '|tablespoon:15'
+    rows.append([nm, kcal, p, cb, f, fi, veg, units, su, na, full[1] if full else 0, full[0] if full else 0, 'Basic', '', full])
+    have.add(nm.lower())
+    if al: ALIAS[nm] = al
+for line in open(os.path.join(HERE, 'aliases.txt')):
+    line = line.strip()
+    if not line or line.startswith('#'): continue
+    nm, al = [x.strip() for x in line.split('|')]
+    if nm.lower() not in have: more_log.append('alias target missing: ' + nm); continue
+    ALIAS[nm] = (ALIAS.get(nm, '') + ' ' + al).strip()
+print('\n'.join(more_log))
+# sanity caps: vitamin E comes with the fat (max ~0.45 mg per g fat); vitamin D is near zero in vegetarian food except mushrooms
+for x in rows:
+    m = x[14]
+    if m:
+        m[15] = round(min(m[15], 0.45 * x[4] + 0.5), 2)
+        if 'mushroom' not in x[0].lower(): m[16] = round(min(m[16], 1.0), 2)
 rows.sort(key=lambda x: 0 if x[12] == 'Basic' else 1)
 for x in rows:
     if x[12] == 'Basic' and x[1] > 0:  # keep basics consistent: kcal follows macros within 15%
         at = 4 * x[2] + 4 * x[3] + 9 * x[4] + 2 * x[5]
         assert abs(at - x[1]) / x[1] < 0.3 or x[1] < 60, x
-out = 'window.FOODS=' + json.dumps(rows, ensure_ascii=False, separators=(',', ':')) + ';\n'
+out = 'window.FOODS=' + json.dumps(rows, ensure_ascii=False, separators=(',', ':')) + ';\nwindow.FOOD_ALIAS=' + json.dumps(ALIAS, ensure_ascii=False, separators=(',', ':')) + ';\n'
 open(os.path.join(HERE, '..', 'ui', 'foods.js'), 'w').write(out)
 print(len(trimmed), 'fried dishes trimmed'); print('basics without micros:', [x[0] for x in rows if x[12] == 'Basic' and not x[14]], 'proxy missing:', missing);print(len(rows), 'foods,', sum(1 for x in rows if x[6] == 1), 'veg,', scaled, 'macro-scaled,', round(len(out) / 1024), 'KB')

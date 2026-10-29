@@ -135,6 +135,14 @@ ACT.saveWeight = function () {
 };
 
 /* ---------- more ---------- */
+ROUTES.theme = function () {
+  var cur0 = themeOf()[0], h = head('Look and colours', 'Pick a theme for the whole app');
+  h += '<div class="thm">' + THEMES.map(function (t) { return '<button class="thb' + (t[0] === cur0 ? ' on' : '') + '" data-act="setTheme" data-v="' + t[0] + '" style="background:linear-gradient(135deg,' + t[5] + ',' + t[6] + ');' + (t[0] === 'classic' ? 'color:#fff' : '') + '"><span>' + t[1] + '<small><br>' + t[2] + '</small></span><i><b style="background:' + t[4] + '"></b><b style="background:' + t[5] + '"></b><b style="background:' + t[6] + '"></b></i></button>'; }).join('') + '</div>';
+  h += '<section class="c"><div class="l">PREVIEW</div><div class="row g16 mt"><div>' + ring(68, 92, 10, 'var(--g)', '<text x="46" y="52" text-anchor="middle" class="rt3">68%</text>') + '</div><div class="f1"><b class="m18">Today</b><div class="l">1,240 of 1,800 kcal</div>' + bar(68) + '<div class="chips"><button class="chip dk">Selected</button><button class="chip">Chip</button></div></div></div><button class="btn mt">Primary button</button><button class="btn sec mt">Secondary</button></section>';
+  return h;
+};
+ACT.setTheme = function (el) { DB.settings.theme = el.getAttribute('data-v'); save(); applyTheme(); rerender(); };
+TABOF.theme = 'more';
 ROUTES.more = function () {
   var h = '<h1 class="big">More</h1>';
   var row = function (to, ic, t, s) { return '<button class="res" data-act="go" data-to="' + to + '"><span class="row g12"><span class="mic">' + icon(ic, 20) + '</span><span>' + t + '<small>' + s + '</small></span></span>' + icon('chev', 18) + '</button>'; };
@@ -146,6 +154,7 @@ ROUTES.more = function () {
   h += row('bp', 'bp', 'Blood pressure', merged('bp').length + ' readings');
   h += row('sugar', 'pulse', 'Blood sugar', merged('sugar').length + ' readings');
   h += row('profile', 'edit', 'Me, calorie budget and macros', n0(baseBudget()) + ' kcal a day');
+  h += row('theme', 'spark', 'Look and colours', themeOf()[1] + ' theme');
   h += row('settings', 'gear', 'AI, Samsung Health and backup', DB.settings.gkey ? 'Gemini connected' : 'Add your Gemini key');
   return h;
 };
@@ -239,7 +248,7 @@ ACT.obDone = function () { DB.profile.onboarded = true; save(); go('home'); if (
 
 /* ---------- boot ---------- */
 function boot() {
-  load(); cur = parseHash();
+  load(); applyTheme(); cur = parseHash();
   if (!location.hash) history.replaceState(null, '', '#home');
   takeMedAdds();
   try { var adds = JSON.parse(native('takeWaterAdds') || '[]'); adds.forEach(function (a) { day(dkey(new Date(a.t))).water.push({ t: a.t, ml: a.ml }); }); if (adds.length) save(); } catch (e) { }

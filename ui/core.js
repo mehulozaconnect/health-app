@@ -76,6 +76,17 @@ function http(method, url, headers, body) {
   });
 }
 function native(fn) { try { if (AND && AND[fn]) return AND[fn].apply(AND, [].slice.call(arguments, 1)); } catch (e) { console.log('native ' + fn + ' failed', e); } return null; }
+/* ---------- themes ---------- */
+var THEMES = [['aurora', 'Aurora', 'Deep violet and teal glow', 1, '#0B0A14', '#8B6CFF', '#00C2D1'], ['neon', 'Neon mint', 'Dark with electric mint', 1, '#05110E', '#2BF5B4', '#3DA9FC'],
+  ['sunrise', 'Sunrise', 'Warm coral and pink', 0, '#FFF3EB', '#FF8A3D', '#FF2E7E'], ['ocean', 'Ocean', 'Fresh blue and aqua', 0, '#EDF3FF', '#2563EB', '#06B6D4'], ['classic', 'Classic', 'Calm green, the original', 0, '#EEF2EF', '#0F6E56', '#9FE0C6']];
+function themeOf() { var k = DB.settings.theme || 'aurora'; return THEMES.filter(function (t) { return t[0] === k; })[0] || THEMES[0]; }
+function themeAccent() { return themeOf()[5]; }
+function applyTheme() {
+  var t = themeOf(), d = document.documentElement;
+  d.setAttribute('data-theme', t[0]); if (t[3]) d.setAttribute('data-dark', ''); else d.removeAttribute('data-dark');
+  var m = document.querySelector('meta[name=theme-color]'); if (m) m.setAttribute('content', t[4]);
+  native('setBars', t[4], !!t[3]);
+}
 function syncNative() {
   var w = DB.settings.water, t = today(), wl = day(t).water;
   native('setWater', JSON.stringify({ date: t, ml: waterMl(t), lastLog: wl.length ? wl[wl.length - 1].t : 0, goal: w.goal, glass: w.glass, remind: !!w.remind, from: w.from, to: w.to, every: +w.every, onlyBehind: !!w.onlyBehind }));
@@ -108,7 +119,7 @@ var IC = {
   heart: '<path d="M12 20s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 9c0 6-8 11-8 11z"/>', moon: '<path d="M20 14A8 8 0 1 1 10 4a6.5 6.5 0 0 0 10 10z"/>',
   bolt: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>', steps: '<path d="M8 3c2 0 3 2 3 5s-1 5-3 5-3-2-3-5 1-5 3-5zM16 9c2 0 3 2 3 5s-1 5-3 5-3-2-3-5 1-5 3-5zM6 15h4M14 21h4"/>',
   play: '<path d="M7 4l13 8-13 8z"/>', pause: '<path d="M8 4v16M16 4v16"/>', x: '<path d="M6 6l12 12M18 6L6 18"/>', refresh: '<path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>',
-  chev: '<path d="M9 5l7 7-7 7"/>', pill: '<rect x="3" y="9" width="18" height="7" rx="3.5" transform="rotate(-35 12 12.5)"/><path d="M9.5 8.5l5 8"/>', edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>', bp: '<path d="M4 12h3l2-4 3 8 2-4h6"/><rect x="2" y="4" width="20" height="16" rx="4"/>'
+  chev: '<path d="M9 5l7 7-7 7"/>', bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0"/>', pill: '<rect x="3" y="9" width="18" height="7" rx="3.5" transform="rotate(-35 12 12.5)"/><path d="M9.5 8.5l5 8"/>', edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>', bp: '<path d="M4 12h3l2-4 3 8 2-4h6"/><rect x="2" y="4" width="20" height="16" rx="4"/>'
 };
 function icon(n, s) { s = s || 22; return '<svg width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (IC[n] || '') + '</svg>'; }
 
@@ -159,10 +170,11 @@ ACT.go = function (el) { go(el.getAttribute('data-to')); };
 function head(title, sub, right) {
   return '<header class="hd"><button class="ib" data-act="back" aria-label="Back">' + icon('back') + '</button><div class="hdt"><h1>' + esc(title) + '</h1>' + (sub ? '<div class="l">' + esc(sub) + '</div>' : '') + '</div>' + (right || '') + '</header>';
 }
-function bar(pct, color) { return '<div class="bar"><div style="width:' + clamp(pct, 0, 100) + '%;background:' + (color || 'var(--g)') + '"></div></div>'; }
+function bar(pct, color) { return '<div class="bar"><div style="width:' + clamp(pct, 0, 100) + '%;background:' + (!color || color === 'var(--g)' ? 'var(--grad)' : color) + '"></div></div>'; }
 function ring(pct, size, stroke, color, inner) {
-  var r = (size - stroke) / 2, c = 2 * Math.PI * r, v = clamp(pct, 0, 100) / 100 * c;
-  return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '" aria-hidden="true"><circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" fill="none" stroke="var(--track)" stroke-width="' + stroke + '"/><circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="' + stroke + '" stroke-linecap="round" stroke-dasharray="' + v.toFixed(1) + ' ' + c.toFixed(1) + '" transform="rotate(-90 ' + size / 2 + ' ' + size / 2 + ')"/>' + (inner || '') + '</svg>';
+  var r = (size - stroke) / 2, c = 2 * Math.PI * r, v = clamp(pct, 0, 100) / 100 * c, gid = 'rg' + (ring.n = (ring.n || 0) + 1), defs = '';
+  if (color === 'var(--g)') { defs = '<defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--g)"/><stop offset="1" style="stop-color:var(--g3)"/></linearGradient></defs>'; color = 'url(#' + gid + ')'; }
+  return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '" aria-hidden="true">' + defs + '<circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" fill="none" stroke="var(--track)" stroke-width="' + stroke + '"/><circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="' + stroke + '" stroke-linecap="round" stroke-dasharray="' + v.toFixed(1) + ' ' + c.toFixed(1) + '" transform="rotate(-90 ' + size / 2 + ' ' + size / 2 + ')"/>' + (inner || '') + '</svg>';
 }
 function spark(vals, w, h, color, ref) {
   vals = vals.filter(function (v) { return v != null && !isNaN(v); });

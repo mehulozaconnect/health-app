@@ -19,18 +19,25 @@ var MCLS = [
   ['zinc', 'Zinc', /\bzinc\b|zincovit/i, 3, ['zinc']],
   ['omega', 'Omega-3 / fish oil', /omega|fish oil|flax|maxepa/i, null, []],
   ['multi', 'Multivitamin', /multivit|becosules|supradyn|revital|a.?to.?z|bplex|b.?complex|neurobion forte/i, null, []],
+  ['homeo', 'Homeopathy', /(^|\s|[a-z])(3|6|12|30|200|1000)\s*(c|ch|x)?$|\b(1m|10m|mt|q)$|\bsbl\b|schwabe|bakson|reckeweg|bjain|bryonia|byra|arnica|nux.?vom|rhus.?tox|belladonna|pulsatilla|lycopodium|thuja|natrum|kali.?phos|kali.?mur|mag.?phos|ferrum.?phos|calc.?phos|calc.?carb|biochemic|mother tincture|silicea|sepia|ignatia|gelsemium|aconite|chamomilla|hepar/i, null, []],
+  ['ayur', 'Ayurveda / herbal', /churna|vati|bhasma|asava|arishta|kwath|kadha|guggul|triphala|ashwagandha|giloy|chyawan|shilajit|brahmi|tulsi|neem|amla|divya|patanjali|himalaya|dabur|baidyanath|kapiva|isabgol/i, null, []],
   ['other', 'Other', /$^/, null, []]
 ];
 function mcls(key) { return MCLS.filter(function (c) { return c[0] === key; })[0] || MCLS[MCLS.length - 1]; }
 function guessCls(name) { var c = MCLS.filter(function (x) { return x[2].test(name || ''); })[0]; return c ? c[0] : 'other'; }
-var FORMS = ['tablet', 'capsule', 'syrup', 'drops', 'injection', 'sachet', 'inhaler', 'cream'];
+/* form: [key, label, unit, units, step, default amount, counted in stock] */
+var FORMS = [['tablet', 'Tablet', 'tablet', 'tablets', 0.5, 1, 1], ['capsule', 'Capsule', 'capsule', 'capsules', 1, 1, 1], ['pills', 'Pills (globules)', 'pill', 'pills', 1, 4, 0], ['drops', 'Drops', 'drop', 'drops', 1, 5, 0],
+  ['syrup', 'Syrup / liquid', 'ml', 'ml', 2.5, 5, 0], ['powder', 'Powder / churna', 'tsp', 'tsp', 0.5, 1, 0], ['sachet', 'Sachet', 'sachet', 'sachets', 1, 1, 1], ['injection', 'Injection', 'unit', 'units', 1, 10, 0],
+  ['inhaler', 'Inhaler', 'puff', 'puffs', 1, 2, 0], ['cream', 'Cream / gel', 'application', 'applications', 1, 1, 0]];
+function form(k) { return FORMS.filter(function (f) { return f[0] === k; })[0] || FORMS[0]; }
+function unitOf(m, n) { var f = form(m.form); return (n == null ? +m.qty || 1 : n) === 1 ? f[2] : f[3]; }
 var FOODW = [['after', 'After food'], ['before', 'Before food'], ['with', 'With food'], ['empty', 'Empty stomach'], ['any', 'Any time']];
 var MDOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 function meds(all) { return (DB.meds || []).filter(function (m) { return all || m.on !== false; }); }
 function medById(id) { return (DB.meds || []).filter(function (m) { return m.id === id; })[0]; }
 function medLabel(m) { return m.name + (m.dose ? ' ' + m.dose : ''); }
-function medQty(m) { return frac(+m.qty || 1) + ' ' + (m.form || 'tablet') + ((+m.qty || 1) > 1 && /tablet|capsule|sachet/.test(m.form || 'tablet') ? 's' : ''); }
+function medQty(m) { return frac(+m.qty || 1) + ' ' + unitOf(m) + (m.form === 'drops' && m.cls === 'homeo' ? ' in a little water' : ''); }
 function t12(s) { var p = String(s).split(':'), h = +p[0]; return (h % 12 || 12) + ':' + p[1] + (h < 12 ? ' am' : ' pm'); }
 function tmin(s) { var p = String(s).split(':'); return +p[0] * 60 + +p[1]; }
 /* is this medicine due on day k? */
@@ -55,7 +62,7 @@ function adherence(n, medId) {
   return { taken: tk, due: due, pct: due ? Math.round(tk / due * 100) : null };
 }
 function perDay(m) { var n = (m.times || []).length * (+m.qty || 1); if (m.every > 1) return n / m.every; if (m.days && m.days.length) return n * m.days.length / 7; return n; }
-function daysLeft(m) { return m.stock == null || m.stock === '' ? null : Math.floor(+m.stock / Math.max(0.01, perDay(m))); }
+function daysLeft(m) { return !form(m.form)[6] || m.stock == null || m.stock === '' ? null : Math.floor(+m.stock / Math.max(0.01, perDay(m))); }
 
 /* supplements count towards the day's vitamins and minerals */
 function suppMicros(k) {
@@ -167,6 +174,10 @@ function medInsights(medOnly) {
       dosesFor(k, true).forEach(function (o) { if (o.st === 'taken' && o.m.cls === 'calcium' && Math.abs(o.at - d.at) < 2 * 3600000) add('info', 'Iron and calcium were taken close together today. They compete — keep them at least 2 hours apart.', m.id); });
     });
   });
+  /* 5b. homeopathy: strong flavours near the dose */
+  list.filter(function (m) { return m.cls === 'homeo'; }).forEach(function (m) {
+    dosesFor(k).forEach(function (d) { if (d.m.id !== m.id || d.st !== 'taken') return; var near = itemsNear(k, d.at, 20, 20); if (near.length) add('info', near[0].n.replace(/\s*\(.*\)$/, '') + ' was logged within 20 minutes of ' + m.name + '. Homeopathic doses are usually kept 15–30 minutes clear of food, tea, coffee and mint.', m.id); });
+  });
   /* 6. food that matters with these medicines */
   var tt = dayTotals(k), items = dayItems(k);
   if (list.some(function (m) { return /telm|losar|olmes|valsar|irbes|ramip|cardace|enalap|lisinop|azils|spironol|aldactone|eplere|lasilactone/i.test(m.name); }) && tt.mi && tt.mi[4] > 4000)
@@ -206,6 +217,7 @@ ROUTES.meds = function () {
   var wk = '';
   for (var i = 6; i >= 0; i--) { var dk = addDays(k, -i), dd = dosesFor(dk).filter(function (d) { return !d.m.added || dk >= d.m.added; }), tk = dd.filter(function (d) { return d.st === 'taken'; }).length, pc = dd.length ? tk / dd.length : null; wk += '<div class="wd"><i style="background:' + (pc == null ? 'var(--track)' : pc === 1 ? 'var(--g)' : pc > 0 ? 'var(--warn)' : i === 0 ? 'var(--track)' : 'var(--bad)') + '"></i><small>' + MDOW[fromKey(dk).getDay()] + '</small></div>'; }
   h += '<section class="c"><div class="l">Doses this week</div><div class="wk mt6">' + wk + '</div></section>';
+  h += popupCard();
   var ins = medInsights();
   if (ins.length) h += '<section class="c"><h2>What Arogya noticed</h2>' + insightList(ins) + '<div class="l mt">Patterns from your own logs, not medical advice. Never change a dose without your doctor.</div></section>';
   h += '<h3 class="sech">My medicines</h3>' + meds().map(function (m) { var dl = daysLeft(m); return '<button class="res" data-act="go" data-to="med/' + m.id + '"><span>' + esc(medLabel(m)) + '<small>' + mcls(m.cls)[1] + ' · ' + (m.times || []).map(t12).join(', ') + (dl != null ? ' · ' + dl + ' d left' : '') + '</small></span>' + icon('chev', 18) + '</button>'; }).join('');
@@ -223,7 +235,7 @@ ROUTES.med = function (id) {
     (fw ? '<div class="rd"><span>Food</span><b>' + fw[1] + '</b></div>' : '') + '<div class="rd"><span>Since</span><b>' + (m.start ? niceDate(m.start) : '—') + (m.end ? ' to ' + niceDate(m.end) : '') + '</b></div>' +
     (m.amt ? '<div class="rd"><span>Per dose</span><b>' + esc(m.amt) + ' ' + esc(m.amtU || '') + '</b></div>' : '') + (m.notes ? '<p class="p mt">' + esc(m.notes) + '</p>' : '') + '</section>';
   h += '<section class="c"><div class="row sb"><div><div class="l">Taken on time · 30 days</div><b class="m22">' + (a30.pct == null ? '—' : a30.pct + '%') + '</b><div class="l">' + a30.taken + ' of ' + a30.due + ' doses</div></div>' + (a30.pct != null ? ring(a30.pct, 64, 7, a30.pct >= 90 ? 'var(--g)' : 'var(--warn)', '') : '') + '</div></section>';
-  h += '<section class="c"><div class="row sb"><div><div class="l">Stock</div><b class="m22">' + (m.stock == null || m.stock === '' ? 'Not counted' : n1(m.stock) + ' <small>' + (m.form || 'tablet') + 's</small>') + '</b>' + (dl != null ? '<div class="l">about ' + dl + ' days left</div>' : '') + '</div><button class="btn sec sm0" data-act="medRefill" data-id="' + m.id + '">' + icon('plus', 16) + 'Refill</button></div></section>';
+  h += '<section class="c"><div class="row sb"><div><div class="l">Stock</div><b class="m22">' + (m.stock == null || m.stock === '' ? 'Not counted' : n1(m.stock) + ' <small>' + unitOf(m, m.stock) + '</small>') + '</b>' + (dl != null ? '<div class="l">about ' + dl + ' days left</div>' : '') + '</div><button class="btn sec sm0" data-act="medRefill" data-id="' + m.id + '">' + icon('plus', 16) + 'Refill</button></div></section>';
   /* linked readings */
   if (m.cls === 'bp' || m.cls === 'diuretic') { var bp = merged('bp').slice(0, 14).reverse(); if (bp.length >= 2) h += '<section class="c"><div class="l">Your BP since then (systolic)</div>' + spark(bp.map(function (x) { return x.sys; }), 320, 70, 'var(--bad)', 130) + '<div class="l">' + bp.length + ' recent readings · line at 130</div></section>'; }
   if (m.cls === 'sugar') { var su = merged('sugar').filter(function (x) { return x.type === 'fasting'; }).slice(0, 14).reverse(); if (su.length >= 2) h += '<section class="c"><div class="l">Fasting sugar</div>' + spark(su.map(function (x) { return x.val; }), 320, 70, 'var(--warn)', 100) + '<div class="l">line at 100 mg/dL</div></section>'; }
@@ -232,7 +244,7 @@ ROUTES.med = function (id) {
   h += '<div class="g2">' + (m.on === false ? '<button class="btn sec" data-act="medRestart" data-id="' + m.id + '">Start again</button>' : '<button class="btn sec" data-act="medStop" data-id="' + m.id + '">Stop taking</button>') + '<button class="btn sec" data-act="medDel" data-id="' + m.id + '">' + icon('trash', 18) + 'Delete</button></div>';
   return h;
 };
-ACT.medRefill = function (el) { var m = medById(el.getAttribute('data-id')); sheet('<h2>Refill ' + esc(m.name) + '</h2><p class="l">How many ' + (m.form || 'tablet') + 's did you get?</p><div class="chips">' + [10, 15, 30, 60, 90].map(function (n) { return '<button class="chip" data-act="medRefillN" data-id="' + m.id + '" data-n="' + n + '">+' + n + '</button>'; }).join('') + '</div><label class="fld">Or set the exact count now<input id="rfn" type="number" inputmode="numeric" value="' + (m.stock == null ? '' : m.stock) + '"></label><button class="btn mt" data-act="medRefillSet" data-id="' + m.id + '">Save count</button>'); };
+ACT.medRefill = function (el) { var m = medById(el.getAttribute('data-id')); sheet('<h2>Refill ' + esc(m.name) + '</h2><p class="l">How many ' + unitOf(m, 2) + ' did you get?</p><div class="chips">' + [10, 15, 30, 60, 90].map(function (n) { return '<button class="chip" data-act="medRefillN" data-id="' + m.id + '" data-n="' + n + '">+' + n + '</button>'; }).join('') + '</div><label class="fld">Or set the exact count now<input id="rfn" type="number" inputmode="numeric" value="' + (m.stock == null ? '' : m.stock) + '"></label><button class="btn mt" data-act="medRefillSet" data-id="' + m.id + '">Save count</button>'); };
 ACT.medRefillN = function (el) { var m = medById(el.getAttribute('data-id')); m.stock = (+m.stock || 0) + +el.getAttribute('data-n'); save(); sheet(null); rerender(); toast(n1(m.stock) + ' in stock'); };
 ACT.medRefillSet = function (el) { var m = medById(el.getAttribute('data-id')), v = document.getElementById('rfn').value; m.stock = v === '' ? null : Math.max(0, +v); save(); sheet(null); rerender(); };
 ACT.medStop = function (el) { var m = medById(el.getAttribute('data-id')); m.on = false; m.end = today(); save(); rerender(); toast('Stopped. History is kept.'); };
@@ -245,28 +257,33 @@ var ME = null;
 ROUTES.medEdit = function (id) {
   if (!ME || ME._for !== id) { var src = id !== 'new' && medById(id); ME = src ? JSON.parse(JSON.stringify(src)) : { id: uid(), added: today(), name: '', dose: '', form: 'tablet', qty: 1, times: ['08:00'], food: 'after', days: [], every: 1, start: today(), end: '', cls: 'other', stock: null, refill: 7, notes: '', on: true, remind: true, amt: '', amtU: '' }; ME._for = id; ME._clsSet = !!src; }
   var m = ME, c = mcls(m.cls), h = head(id === 'new' ? 'Add medicine' : 'Edit medicine');
-  h += '<section class="c"><label class="fld">Medicine name<input data-inp="me" data-k="name" value="' + esc(m.name) + '" placeholder="e.g. Telma 40, Thyronorm, Shelcal" autocomplete="off"></label>' +
-    '<div class="g2"><label class="fld">Strength<input data-inp="me" data-k="dose" value="' + esc(m.dose) + '" placeholder="40 mg"></label><label class="fld">Form<select data-chg="me" data-k="form">' + FORMS.map(function (f) { return '<option' + (m.form === f ? ' selected' : '') + '>' + f + '</option>'; }).join('') + '</select></label></div>' +
-    '<label class="fld">What it is for<select data-chg="me" data-k="cls">' + MCLS.map(function (x) { return '<option value="' + x[0] + '"' + (m.cls === x[0] ? ' selected' : '') + '>' + x[1] + '</option>'; }).join('') + '</select></label><div class="l" id="mecls">' + (m.cls !== 'other' && !m._clsSet ? 'Worked out from the name. Change it if wrong.' : '') + '</div></section>';
-  h += '<section class="c"><div class="l">HOW MUCH EACH TIME</div><div class="stepper"><button class="step" data-act="meQty" data-d="-0.5" aria-label="Less">−</button><div class="ctr"><b class="huge">' + frac(+m.qty) + '</b><div class="l">' + esc(m.form) + '</div></div><button class="step" data-act="meQty" data-d="0.5" aria-label="More">+</button></div>' +
+  h += '<section class="c"><label class="fld">Medicine name<input data-inp="me" data-chg="meName" data-k="name" value="' + esc(m.name) + '" placeholder="e.g. Telma 40, Thyronorm, Shelcal" autocomplete="off"></label>' +
+    '<div><label class="fld">Strength or potency<input data-inp="me" data-k="dose" value="' + esc(m.dose) + '" placeholder="40 mg, 30C, 200"></label></div>' + '<div class="l mt">FORM</div><div class="chips">' + FORMS.map(function (f) { return '<button class="chip' + (m.form === f[0] ? ' dk' : '') + '" data-act="meForm" data-v="' + f[0] + '">' + f[1] + '</button>'; }).join('') + '</div>' +
+    '<div class="l mt">WHAT IT IS FOR</div><div class="chips" id="mecc">' + clsChips(m) + '</div><div class="l" id="mecls">' + (m.cls !== 'other' && !m._clsSet ? 'Worked out from the name. Change it if wrong.' : '') + '</div></section>';
+  h += '<section class="c"><div class="l">HOW MUCH EACH TIME</div><div class="stepper"><button class="step" data-act="meQty" data-d="-1" aria-label="Less">−</button><div class="ctr"><b class="huge">' + frac(+m.qty) + '</b><div class="l">' + unitOf(m) + '</div></div><button class="step" data-act="meQty" data-d="1" aria-label="More">+</button></div>' +
     '<div class="l mt">TIMES</div><div class="chips">' + [['07:00', 'Early'], ['08:00', 'Morning'], ['14:00', 'Afternoon'], ['20:00', 'Evening'], ['22:00', 'Bedtime']].map(function (t) { var on = m.times.indexOf(t[0]) >= 0; return '<button class="chip' + (on ? ' dk' : '') + '" data-act="meTime" data-t="' + t[0] + '">' + t[1] + ' ' + t12(t[0]) + '</button>'; }).join('') + '</div>' +
     '<div class="chips">' + m.times.filter(function (t) { return ['07:00', '08:00', '14:00', '20:00', '22:00'].indexOf(t) < 0; }).map(function (t) { return '<button class="chip dk" data-act="meTime" data-t="' + t + '">' + t12(t) + ' ✕</button>'; }).join('') + '</div>' +
     '<div class="row g10 mt"><label class="fld f1">Other time<input id="metm" type="time" value="09:00"></label><button class="btn sec sm0" data-act="meTimeAdd">Add</button></div>' +
-    '<label class="fld">Food<select data-chg="me" data-k="food">' + FOODW.map(function (f) { return '<option value="' + f[0] + '"' + (m.food === f[0] ? ' selected' : '') + '>' + f[1] + '</option>'; }).join('') + '</select></label>' +
+    '<div class="l mt">FOOD</div><div class="chips">' + FOODW.map(function (f) { return '<button class="chip' + (m.food === f[0] ? ' dk' : '') + '" data-act="meFood" data-v="' + f[0] + '">' + (f[0] === 'empty' && m.cls === 'homeo' ? 'Away from food' : f[1]) + '</button>'; }).join('') + '</div>' + (m.cls === 'homeo' ? '<div class="l mt6">Homeopathy: keep 15–30 min clear of food, tea, coffee and mint.</div>' : '') +
     '<div class="l mt">DAYS</div><div class="chips">' + [['daily', 'Every day'], ['week', 'Some weekdays'], ['every', 'Every few days']].map(function (x) { var on = x[0] === 'every' ? m.every > 1 : x[0] === 'week' ? m.every <= 1 && m.days.length > 0 : m.every <= 1 && !m.days.length; return '<button class="chip' + (on ? ' dk' : '') + '" data-act="meDays" data-v="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>' +
     (m.every <= 1 && m.days.length ? '<div class="chips c7">' + MDOW.map(function (d, i) { return '<button class="chip' + (m.days.indexOf(i) >= 0 ? ' dk' : '') + '" data-act="meDow" data-i="' + i + '">' + d + '</button>'; }).join('') + '</div>' : '') +
     (m.every > 1 ? '<div class="stepper"><button class="step" data-act="meEvery" data-d="-1" aria-label="Fewer">−</button><div class="ctr"><b class="huge">' + m.every + '</b><div class="l">every ' + m.every + ' days' + (m.every === 7 ? ' (weekly)' : '') + '</div></div><button class="step" data-act="meEvery" data-d="1" aria-label="More">+</button></div>' : '') +
     '<div class="g2"><label class="fld">Start<input type="date" data-chg="me" data-k="start" value="' + esc(m.start) + '"></label><label class="fld">End (if a course)<input type="date" data-chg="me" data-k="end" value="' + esc(m.end) + '"></label></div></section>';
-  if (c[3] != null) h += '<section class="c"><div class="l">AMOUNT IN EACH ' + esc(m.form.toUpperCase()) + '</div><div class="g2"><label class="fld">Amount<input type="number" inputmode="decimal" data-inp="me" data-k="amt" value="' + esc(m.amt) + '" placeholder="' + (m.cls === 'vitd' ? '60000' : m.cls === 'calcium' ? '500' : '') + '"></label><label class="fld">Unit<select data-chg="me" data-k="amtU">' + (m.cls === 'vitd' ? ['IU', 'µg'] : ['mg']).map(function (u) { return '<option' + (m.amtU === u ? ' selected' : '') + '>' + u + '</option>'; }).join('') + '</select></label></div><div class="l mt">Printed on the strip. Added to your vitamins and minerals on days you take it.</div></section>';
-  h += '<section class="c"><div class="g2"><label class="fld">Tablets in hand<input type="number" inputmode="numeric" data-inp="me" data-k="stock" value="' + (m.stock == null ? '' : m.stock) + '" placeholder="optional"></label><label class="fld">Warn me when<select data-chg="me" data-k="refill">' + [3, 5, 7, 10, 14].map(function (d) { return '<option value="' + d + '"' + (+m.refill === d ? ' selected' : '') + '>' + d + ' days left</option>'; }).join('') + '</select></label></div>' +
+  if (c[3] != null) h += '<section class="c"><div class="l">AMOUNT IN EACH ' + esc(form(m.form)[2].toUpperCase()) + '</div><div class="g2"><label class="fld">Amount<input type="number" inputmode="decimal" data-inp="me" data-k="amt" value="' + esc(m.amt) + '" placeholder="' + (m.cls === 'vitd' ? '60000' : m.cls === 'calcium' ? '500' : '') + '"></label><label class="fld">Unit<select data-chg="me" data-k="amtU">' + (m.cls === 'vitd' ? ['IU', 'µg'] : ['mg']).map(function (u) { return '<option' + (m.amtU === u ? ' selected' : '') + '>' + u + '</option>'; }).join('') + '</select></label></div><div class="l mt">Printed on the strip. Added to your vitamins and minerals on days you take it.</div></section>';
+  h += '<section class="c">' + (form(m.form)[6] ? '<div class="g2">' : '<div>') + (form(m.form)[6] ? '<label class="fld">' + cap(form(m.form)[3]) + ' in hand<input type="number" inputmode="numeric" data-inp="me" data-k="stock" value="' + (m.stock == null ? '' : m.stock) + '" placeholder="optional"></label><label class="fld">Warn me when<select data-chg="me" data-k="refill">' + [3, 5, 7, 10, 14].map(function (d) { return '<option value="' + d + '"' + (+m.refill === d ? ' selected' : '') + '>' + d + ' days left</option>'; }).join('') + '</select></label>' : '') + '</div>' +
     '<button class="tog" data-act="meRemind" role="switch" aria-checked="' + !!m.remind + '"><span>Remind me at these times</span><i class="' + (m.remind ? 'on' : '') + '"></i></button>' +
     '<label class="fld">Notes<input data-inp="me" data-k="notes" value="' + esc(m.notes) + '" placeholder="Prescribed by, why, side effects…"></label></section>';
   h += '<button class="btn big" data-act="meSave">' + (id === 'new' ? 'Add medicine' : 'Save') + '</button>';
   return h;
 };
-INP.me = function (el) { if (!ME) return; var k = el.getAttribute('data-k'); ME[k] = el.value; if (k === 'name' && !ME._clsSet) { var g = guessCls(el.value); if (g !== ME.cls) { ME.cls = g; var s = document.querySelector('[data-k=cls]'); if (s) s.value = g; var n = document.getElementById('mecls'); if (n) n.textContent = g !== 'other' ? 'Looks like ' + mcls(g)[1].toLowerCase() + '. Change it if wrong.' : ''; if (mcls(g)[3] != null || document.querySelector('[data-k=amt]')) rerender(); } } };
+INP.me = function (el) { if (!ME) return; var k = el.getAttribute('data-k'); ME[k] = el.value; if (k === 'name' && !ME._clsSet) { var g = guessCls(el.value); if (g !== ME.cls) { ME.cls = g; var s = document.getElementById('mecc'); if (s) s.innerHTML = clsChips(ME); var n = document.getElementById('mecls'); if (n) n.textContent = g !== 'other' ? 'Looks like ' + mcls(g)[1].toLowerCase() + '. Change it if wrong.' : ''; if (mcls(g)[3] != null || document.querySelector('[data-k=amt]')) rerender(); } } };
 CHG.me = function (el) { if (!ME) return; var k = el.getAttribute('data-k'); ME[k] = el.value; if (k === 'cls') { ME._clsSet = true; if (ME.cls === 'vitd' && !ME.amtU) ME.amtU = 'IU'; if (/calcium|iron|magnesium|zinc/.test(ME.cls) && !ME.amtU) ME.amtU = 'mg'; rerender(); } if (k === 'form') rerender(); };
-ACT.meQty = function (el) { ME.qty = clamp((+ME.qty || 1) + +el.getAttribute('data-d'), 0.5, 10); rerender(); };
+ACT.meQty = function (el) { var st = form(ME.form)[4]; ME.qty = clamp((+ME.qty || 1) + +el.getAttribute('data-d') * st, st, 200); rerender(); };
+ACT.meForm = function (el) { var f = form(el.getAttribute('data-v')); ME._formSet = true; ME.form = f[0]; ME.qty = f[5]; if (!f[6]) ME.stock = null; rerender(); };
+ACT.meCls = function (el) { ME.cls = el.getAttribute('data-v'); ME._clsSet = true; if (ME.cls === 'vitd' && !ME.amtU) ME.amtU = 'IU'; if (/calcium|iron|magnesium|zinc/.test(ME.cls) && !ME.amtU) ME.amtU = 'mg'; if (ME.cls === 'homeo') { if (ME.form === 'tablet') { ME.form = 'pills'; ME.qty = 4; } if (ME.food === 'after') ME.food = 'empty'; } rerender(); };
+CHG.meName = function () { if (ME && ME.cls === 'homeo' && !ME._formSet && ME.form === 'tablet') { ME.form = 'pills'; ME.qty = 4; if (ME.food === 'after') ME.food = 'empty'; rerender(); } };
+ACT.meFood = function (el) { ME.food = el.getAttribute('data-v'); rerender(); };
+function clsChips(m) { return MCLS.map(function (x) { return '<button class="chip' + (m.cls === x[0] ? ' dk' : '') + '" data-act="meCls" data-v="' + x[0] + '">' + x[1] + '</button>'; }).join(''); }
 ACT.meTime = function (el) { var t = el.getAttribute('data-t'), i = ME.times.indexOf(t); if (i >= 0) { if (ME.times.length > 1) ME.times.splice(i, 1); } else ME.times.push(t); ME.times.sort(); rerender(); };
 ACT.meTimeAdd = function () { var t = document.getElementById('metm').value; if (t && ME.times.indexOf(t) < 0) { ME.times.push(t); ME.times.sort(); } rerender(); };
 ACT.meDays = function (el) { var v = el.getAttribute('data-v'); if (v === 'daily') { ME.days = []; ME.every = 1; } if (v === 'week') { ME.every = 1; ME.days = ME.days.length ? ME.days : [1, 3, 5]; } if (v === 'every') { ME.days = []; ME.every = ME.every > 1 ? ME.every : 7; } rerender(); };
@@ -277,7 +294,7 @@ ACT.meSave = function () {
   var m = ME; m.name = String(m.name || '').trim(); if (!m.name) return toast('Add the medicine name');
   if (m.cls === 'other' && !m._clsSet) m.cls = guessCls(m.name);
   m.qty = +m.qty || 1; m.refill = +m.refill || 7; m.every = +m.every || 1; m.stock = m.stock === '' || m.stock == null ? null : +m.stock;
-  var id = m._for; delete m._for; delete m._clsSet;
+  var id = m._for; delete m._for; delete m._clsSet; delete m._formSet;
   DB.meds = DB.meds || []; var i = DB.meds.map(function (x) { return x.id; }).indexOf(m.id); if (i >= 0) DB.meds[i] = m; else DB.meds.push(m);
   ME = null; save(); if (m.remind) native('askNotify'); toast(id === 'new' ? 'Added · reminders set' : 'Saved'); go('med/' + m.id);
 };
@@ -285,11 +302,51 @@ ACT.meSave = function () {
 /* ---------- reminders on the phone ---------- */
 function syncMeds() {
   var k = today(), done = Object.keys((DB.medLog || {})[k] || {});
-  native('setMeds', JSON.stringify({ date: k, done: done, doses: meds().filter(function (m) { return m.remind !== false; }).map(function (m) {
+  native('setMeds', JSON.stringify({ date: k, done: done, popup: DB.settings.medPopup !== false, accent: (typeof themeAccent === 'function' ? themeAccent() : '#7C5CFF'), doses: meds().filter(function (m) { return m.remind !== false; }).map(function (m) {
     var fw = FOODW.filter(function (f) { return f[0] === m.food; })[0];
     return { id: m.id, n: medLabel(m), q: medQty(m) + (fw && fw[0] !== 'any' ? ' · ' + fw[1].toLowerCase() : ''), times: m.times, days: m.days || [], every: +m.every || 1, start: m.start || '', end: m.end || '' };
   }) }));
 }
 function takeMedAdds() {
-  try { var a = JSON.parse(native('takeMedAdds') || '[]'); a.forEach(function (x) { var l = medLog(x.date), m = medById(String(x.key).split('|')[0]); if (l[x.key] && l[x.key].s === 'taken') return; l[x.key] = { s: 'taken', t: x.t }; if (m && m.stock != null && m.stock !== '') m.stock = Math.max(0, +m.stock - (+m.qty || 1)); }); if (a.length) save(); } catch (e) { }
+  try { var a = JSON.parse(native('takeMedAdds') || '[]'); a.forEach(function (x) { var l = medLog(x.date), m = medById(String(x.key).split('|')[0]); if (l[x.key] && l[x.key].s === 'taken') return; var sk = x.s === 'skip'; l[x.key] = { s: sk ? 'skip' : 'taken', t: x.t }; if (!sk && m && m.stock != null && m.stock !== '') m.stock = Math.max(0, +m.stock - (+m.qty || 1)); }); if (a.length) save(); } catch (e) { }
 }
+
+/* ---------- Dayline-style pop-up reminders ---------- */
+function popupCard() {
+  if (!AND) return '';
+  var on = DB.settings.medPopup !== false, p = {}; try { p = JSON.parse(native('medPerms') || '{}'); } catch (e) { }
+  var h = '<section class="c"><div class="row sb"><div><h2>Reminder pop-up</h2><div class="l">A card slides up from the bottom of the screen and rings, like Dayline.</div></div></div>' +
+    '<button class="tog" data-act="medPopTog" role="switch" aria-checked="' + on + '"><span>Pop up on screen</span><i class="' + (on ? 'on' : '') + '"></i></button>';
+  if (on) {
+    if (p.notify === false) h += '<button class="btn sec mt" data-act="medAskNotify">Allow notifications</button>';
+    if (p.overlay === false) h += '<div class="note warn mt">To pop up over other apps, allow <b>Display over other apps</b> for Arogya.</div><button class="btn sec mt" data-act="medOverlay">Allow pop-up over apps</button>';
+    if (p.fullscreen === false) h += '<div class="note warn mt">To show on the lock screen, allow <b>full-screen notifications</b> for Arogya.</div><button class="btn sec mt" data-act="medFull">Allow on lock screen</button>';
+    h += '<button class="btn sec mt" data-act="medTest">' + icon('bell', 18) + 'Try it now</button>';
+  }
+  return h + '</section>';
+}
+ACT.medPopTog = function () { DB.settings.medPopup = DB.settings.medPopup === false; save(); rerender(); };
+ACT.medOverlay = function () { native('openOverlaySettings'); };
+ACT.medFull = function () { native('openFullScreenSettings'); };
+ACT.medAskNotify = function () { native('askNotify'); setTimeout(rerender, 1500); };
+ACT.medTest = function () { native('testMed'); toast('Sending a test reminder…'); };
+
+/* while Arogya is open, a due dose slides up from the bottom too */
+var DUE_SEEN = {};
+function checkDue() {
+  if (!DB.profile.onboarded || !(DB.meds || []).length) return;
+  var k = today(), nm = new Date().getHours() * 60 + new Date().getMinutes();
+  var due = dosesFor(k).filter(function (d) { return !d.st && d.m.remind !== false && tmin(d.tm) <= nm && tmin(d.tm) > nm - 120 && !DUE_SEEN[k + d.key]; });
+  if (!due.length || document.getElementById('sheet').className.indexOf('on') >= 0) return;
+  due.forEach(function (d) { DUE_SEEN[k + d.key] = 1; });
+  var fw = function (m) { var f = FOODW.filter(function (x) { return x[0] === m.food; })[0]; return f && f[0] !== 'any' ? ' · ' + f[1].toLowerCase() : ''; };
+  sheet('<div class="duecard"><div class="kick2">' + icon('pill', 16) + 'MEDICINE · ' + t12(due[0].tm) + '</div><h2 class="m22">Time for ' + esc(due.map(function (d) { return d.m.name; }).join(', ')) + '</h2>' +
+    due.map(function (d) { return '<div class="l mt6">' + esc(medLabel(d.m)) + ' — ' + medQty(d.m) + fw(d.m) + '</div>'; }).join('') +
+    '<button class="btn big mt" data-act="dueTake" data-keys="' + due.map(function (d) { return d.key; }).join(',') + '">' + icon('check', 20) + 'Taken</button>' +
+    '<div class="g2 mt"><button class="btn sec" data-act="closeSheet">Later</button><button class="btn sec" data-act="dueSkip" data-keys="' + due.map(function (d) { return d.key; }).join(',') + '">Skip</button></div></div>');
+  try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) { }
+}
+ACT.dueTake = function (el) { el.getAttribute('data-keys').split(',').forEach(function (key) { var l = medLog(today()), m = medById(key.split('|')[0]); if (l[key] && l[key].s === 'taken') return; l[key] = { s: 'taken', t: Date.now() }; if (m && m.stock != null && m.stock !== '') m.stock = Math.max(0, +m.stock - (+m.qty || 1)); }); save(); sheet(null); rerender(); toast('Marked taken'); };
+ACT.dueSkip = function (el) { el.getAttribute('data-keys').split(',').forEach(function (key) { medLog(today())[key] = { s: 'skip', t: Date.now() }; }); save(); sheet(null); rerender(); };
+setInterval(function () { if (document.visibilityState === 'visible') checkDue(); }, 30000);
+setTimeout(checkDue, 2500);

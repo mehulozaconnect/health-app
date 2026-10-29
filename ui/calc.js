@@ -7,7 +7,8 @@ function food(name) { for (var j = 0; j < DB.custom.length; j++) if (DB.custom[j
 function unitsOf(r) { var u = String(r[7] || '').split('|').filter(Boolean).map(function (s) { var p = s.split(':'); return [p[0], +p[1]]; }); u.push(['grams', 1]); return u; }
 
 /* ---------- search ---------- */
-var SYN = { dudhi: 'lauki', ghiya: 'lauki', lauki: 'bottle gourd', tondli: 'tindora', tendli: 'tindora', karela: 'bitter', batata: 'potato', roti: 'chapati', chapati: 'roti', dahi: 'curd', curd: 'dahi', chawal: 'rice', bhat: 'rice', sabji: 'sabzi', subzi: 'sabzi', sabzi: 'vegetable', aloo: 'potato', gobi: 'cauliflower', gobhi: 'cauliflower', bhindi: 'ladies', palak: 'spinach', chai: 'tea', doodh: 'milk', paratha: 'parantha', parantha: 'paratha', idly: 'idli', dosai: 'dosa', chilla: 'cheela', cheela: 'chilla', rava: 'semolina', suji: 'semolina', sooji: 'semolina', besan: 'gram flour', chole: 'chickpeas', chana: 'chickpeas', rajma: 'kidney', lauki: 'bottle gourd', dudhi: 'bottle gourd', makhana: 'fox nut', poha: 'flattened', kanda: 'onion', pyaz: 'onion', matar: 'pea', mattar: 'pea', khichri: 'khichdi', moong: 'mung', anda: 'egg' };
+var SYN = { khichadi: 'khichdi', khichri: 'khichdi', kadai: 'kadhai', karahi: 'kadhai', turiya: 'turai', tori: 'turai', sada: 'plain', panner: 'paneer', shake: 'milkshake', sabji: 'sabzi', bhajji: 'bhaji', bhajiya: 'bhaji', vadapav: 'vada pav', wada: 'vada', pao: 'pav', laddu: 'ladoo', laddoo: 'ladoo', halva: 'halwa', chapati: 'roti', dudhi: 'lauki', ghiya: 'lauki', lauki: 'bottle gourd', tondli: 'tindora', tendli: 'tindora', karela: 'bitter', batata: 'potato', roti: 'chapati', chapati: 'roti', dahi: 'curd', curd: 'dahi', chawal: 'rice', bhat: 'rice', sabji: 'sabzi', subzi: 'sabzi', sabzi: 'vegetable', aloo: 'potato', gobi: 'cauliflower', gobhi: 'cauliflower', bhindi: 'ladies', palak: 'spinach', chai: 'tea', doodh: 'milk', paratha: 'parantha', parantha: 'paratha', idly: 'idli', dosai: 'dosa', chilla: 'cheela', cheela: 'chilla', rava: 'semolina', suji: 'semolina', sooji: 'semolina', besan: 'gram flour', chole: 'chickpeas', chana: 'chickpeas', rajma: 'kidney', lauki: 'bottle gourd', dudhi: 'bottle gourd', makhana: 'fox nut', poha: 'flattened', kanda: 'onion', pyaz: 'onion', matar: 'pea', mattar: 'pea', khichri: 'khichdi', moong: 'mung', anda: 'egg' };
+var FA = window.FOOD_ALIAS || {};
 function searchFoods(q, limit, partial) {
   q = q.trim().toLowerCase(); if (!q) return [];
   var toks = q.split(/\s+/), vegOnly = DB.profile.vegOnly, out = [];
@@ -15,7 +16,7 @@ function searchFoods(q, limit, partial) {
   var all = DB.custom.concat(F.filter(function (r) { return !mine[r[0]]; }));
   for (var i = 0; i < all.length; i++) {
     var r = all[i]; if (vegOnly && r[6] !== 1) continue;
-    var n = r[0].toLowerCase(), s = 0, ok = true, got = 0;
+    var nm0 = r[0].toLowerCase(), al = FA[r[0]], n = al ? nm0 + ' ' + al.toLowerCase() : nm0, s = 0, ok = true, got = 0;
     for (var t = 0; t < toks.length; t++) {
       var tk = toks[t], alt = SYN[tk], hit = 0;
       [[tk, 1], [alt, 0.75]].forEach(function (x) {
@@ -28,7 +29,7 @@ function searchFoods(q, limit, partial) {
       s += hit; got++;
     }
     if (!ok || !got) continue;
-    s -= n.length * 0.4; if (r[12] === 'Mine' || r[12] === 'AI') s += 45; else if (r[12] === 'Basic') s += 35;
+    s -= nm0.length * 0.4; if (/\b(juice|shake|lassi|milkshake|soda|ice cream|jam|raita|cake)\b/.test(nm0) && !/juice|shake|lassi|soda|ice|jam|raita|cake/.test(q)) s -= 12; if (r[12] === 'Mine' || r[12] === 'AI') s += 45; else if (r[12] === 'Basic') s += 35;
     var used = DB.usual[r[0]]; if (used) s += Math.min(40, used.n * 6);
     out.push([s, r]);
   }
