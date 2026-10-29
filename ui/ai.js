@@ -61,7 +61,7 @@ function healthContext() {
   var tg = macroTargets(); L.push('Daily calorie budget ' + baseBudget() + ' kcal (+ active calories from watch). Targets: protein ' + tg.p + ' g, carbs ' + tg.c + ' g, fat ' + tg.f + ' g, fibre ' + tg.fi + ' g. Water goal ' + DB.settings.water.goal + ' ml.');
   for (var i = 6; i >= 0; i--) {
     var dk = addDays(k, -i), t = dayTotals(dk), it = dayItems(dk), b = budgetFor(dk), sl = sleepFor(dk), st = stepsFor(dk), en = energyFor(dk), parts = [dk + (i === 0 ? ' (today, so far)' : '')];
-    if (it.length) parts.push('ate ' + n0(t.kcal) + '/' + n0(b.total) + ' kcal, P' + n0(t.p) + ' C' + n0(t.c) + ' F' + n0(t.f) + ' fibre' + n0(t.fi) + '; ' + MEALS.map(function (m) { var x = dayIf(dk).meals[m[0]]; return x.length ? m[1] + ': ' + x.map(function (q) { return q.n.replace(/\s*\(.*\)$/, '') + ' ' + frac(q.q) + ' ' + q.u + ' @' + hm(q.t); }).join(', ') : ''; }).filter(Boolean).join('; '));
+    if (it.length) parts.push('ate ' + n0(t.kcal) + '/' + n0(b.total) + ' kcal, P' + n0(t.p) + ' C' + n0(t.c) + ' F' + n0(t.f) + ' fibre' + n0(t.fi) + '; ' + MEALS.map(function (m) { var x = dayIf(dk).meals[m[0]] || []; return x.length ? m[1] + ': ' + x.map(function (q) { return q.n.replace(/\s*\(.*\)$/, '') + ' ' + frac(q.q) + ' ' + q.u + ' @' + hm(q.t); }).join(', ') : ''; }).filter(Boolean).join('; '));
     else parts.push('no food logged');
     parts.push('water ' + waterMl(dk) + ' ml');
     if (st != null) parts.push('steps ' + st + ', active ' + earnedKcal(dk) + ' kcal');

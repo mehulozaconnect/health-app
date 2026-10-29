@@ -26,7 +26,7 @@ function frac(q) { var m = { 0.25: '¼', 0.5: '½', 0.75: '¾', 1.25: '1¼', 1.5
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
 /* ---------- state ---------- */
-var MEALS = [['breakfast', 'Breakfast', 0.25, '08:30'], ['lunch', 'Lunch', 0.35, '13:30'], ['evening', 'Evening snack', 0.12, '17:30'], ['dinner', 'Dinner', 0.28, '20:30']];
+var MEALS = [['breakfast', 'Breakfast', 0.22, '08:30'], ['morning', 'Morning snack', 0.08, '11:00'], ['lunch', 'Lunch', 0.32, '13:30'], ['evening', 'Evening snack', 0.12, '17:30'], ['dinner', 'Dinner', 0.26, '20:30']];
 function blank() {
   return {
     v: 1,
@@ -59,7 +59,8 @@ function save() {
 function day(k) {
   k = k || today();
   var d = DB.days[k];
-  if (!d) d = DB.days[k] = { meals: { breakfast: [], lunch: [], evening: [], dinner: [] }, water: [], yoga: [], over: 0 };
+  if (!d) d = DB.days[k] = { meals: {}, water: [], yoga: [], over: 0 };
+  MEALS.forEach(function (m) { if (!d.meals[m[0]]) d.meals[m[0]] = []; });
   return d;
 }
 function dayIf(k) { return DB.days[k] || null; }

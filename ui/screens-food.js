@@ -2,7 +2,7 @@
 'use strict';
 var SEL = today();
 function mealName(m) { for (var i = 0; i < MEALS.length; i++) if (MEALS[i][0] === m) return MEALS[i][1]; return m; }
-function mealFor(t) { var h = new Date(t || Date.now()).getHours(); return h < 11 ? 'breakfast' : h < 16 ? 'lunch' : h < 19 ? 'evening' : 'dinner'; }
+function mealFor(t) { var d = new Date(t || Date.now()), m = d.getHours() * 60 + d.getMinutes(); return m < 630 ? 'breakfast' : m < 750 ? 'morning' : m < 960 ? 'lunch' : m < 1140 ? 'evening' : 'dinner'; }
 
 ROUTES.food = function () {
   var k = SEL, b = budgetFor(k), t = dayTotals(k), d = day(k), h = '';
@@ -46,7 +46,7 @@ function macroRow(name, v, t, u, capIsLimit) {
 ACT.selDay = function (el) { SEL = el.getAttribute('data-k'); rerender(); };
 
 /* one-tap suggestion: a usual item for that meal that fits, else a sensible default */
-var DEFAULTS = { breakfast: [['Poha', 1, 'katori'], ['Masala chai no sugar', 1, 'cup']], lunch: [['Phulka (no ghee)', 2, 'piece'], ['Mixed dal', 1, 'katori'], ['Green salad', 1, 'katori']], evening: [['Roasted chana', 1, 'fistful'], ['Masala chai no sugar', 1, 'cup']], dinner: [['Gram flour chilla/cheela (Besan chilla/cheela)', 2, ''], ['Curd (Dahi)', 1, 'katori']] };
+var DEFAULTS = { breakfast: [['Poha', 1, 'katori'], ['Tea with milk (chai)', 1, 'tea cup']], morning: [['Apple', 1, 'medium'], ['Buttermilk (Chaas)', 1, 'glass']], lunch: [['Roti / Phulka (no ghee)', 2, 'piece'], ['Dal tadka (toor)', 1, 'katori'], ['Green salad', 1, 'katori']], evening: [['Roasted chana', 1, 'fistful'], ['Tea with milk (chai)', 1, 'tea cup']], dinner: [['Moong dal chilla', 2, 'piece'], ['Curd (Dahi)', 1, 'katori']] };
 function suggestFor(m, left) {
   var picks = Object.keys(DB.usual).map(function (n) { return [n, DB.usual[n]]; }).filter(function (x) { return x[1].m === m && x[1].n >= 3 && food(x[0]); }).sort(function (a, b) { return b[1].n - a[1].n; }).slice(0, 2)
     .map(function (x) { return [x[0], x[1].q, x[1].u]; });
