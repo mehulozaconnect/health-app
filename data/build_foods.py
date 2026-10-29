@@ -26,6 +26,7 @@ rows = []
 d = pd.read_excel(os.path.join(HERE, 'INDB.xlsx'))
 for _, r in d.iterrows():
     name = re.sub(r"\s+", " ", str(r.food_name).replace("\xa0", " ")).strip()
+    name = {'Hot tea (Garam Chai)': 'Hot tea, light milk (Garam Chai)'}.get(name, name)
     kcal = r1(r.energy_kcal)
     if kcal <= 0 or name.lower() in basic_names:
         continue
@@ -43,9 +44,17 @@ for _, r in d.iterrows():
             u = unit.strip().lower()
             if u in ('bowl', 'small bowl', 'curry bowl', 'soup bowl'):
                 u = 'bowl'
-            units.append(f"{u}:{g}")
+            # INDB serving sizes are often whole-recipe yields; use standard Indian household sizes instead
+            FIXED = {'tea cup': 100, 'cup': 150, 'glass': 200, 'tall glass': 300, 'bowl': 200, 'tablespoon': 15, 'teaspoon': 5, 'jar': 0, 'dish': 0, 'souffle dish': 0}
+            if u in FIXED:
+                g = FIXED[u]
+            if u == 'plate':
+                g = min(g, 350)
+            if g:
+                units.append(f"{u}:{g}")
     if LIQ.search(name) and not BOWLY.search(name):
-        units.insert(0, 'glass:200')
+        hot = re.search(r'tea|chai|coffee|kehwa|chocolate', name, re.I)
+        units.insert(0, 'tea cup:100' if hot else 'glass:200')
         units.append('cup:150')
     elif BOWLY.search(name):
         units.insert(0, 'katori:150')
