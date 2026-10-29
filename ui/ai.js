@@ -77,7 +77,7 @@ function healthContext() {
     else parts.push('no food logged');
     parts.push('water ' + waterMl(dk) + ' ml');
     if (st != null) parts.push('steps ' + st + ', active ' + earnedKcal(dk) + ' kcal');
-    if (sl) parts.push('sleep ' + dur(sl.asleep) + ' (deep ' + Math.round(sl.m.deep / sl.staged * 100) + '%, REM ' + Math.round(sl.m.rem / sl.staged * 100) + '%, awake ' + Math.round(sl.m.awake / sl.staged * 100) + '%), score ' + sl.score);
+    if (sl && sl.manual) parts.push('sleep ' + dur(sl.asleep) + ' (logged by hand, felt ' + SLQ[sl.q] + ')'); else if (sl) parts.push('sleep ' + dur(sl.asleep) + ' (deep ' + Math.round(sl.m.deep / sl.staged * 100) + '%, REM ' + Math.round(sl.m.rem / sl.staged * 100) + '%, awake ' + Math.round(sl.m.awake / sl.staged * 100) + '%), score ' + sl.score);
     if (en != null) parts.push('energy score ' + en);
     var hd = hrDay(dk); if (hd) parts.push('HR ' + hd.min + '-' + hd.max + ' avg ' + hd.avg);
     var sp = spo2Night(dk); if (sp) parts.push('SpO2 sleep avg ' + sp.avg + '% min ' + sp.min + '%');

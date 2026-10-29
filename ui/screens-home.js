@@ -12,31 +12,46 @@ ROUTES.home = function () {
   var k = today(), b = budgetFor(k), t = dayTotals(k), tg = macroTargets(), left = b.total - t.kcal, pct = t.kcal / b.total * 100;
   var name = DB.profile.name ? ', ' + esc(DB.profile.name.split(' ')[0]) : '';
   var h = '<header class="row sb"><div><div class="l">' + DOWL[new Date().getDay()] + ', ' + new Date().getDate() + ' ' + MON[new Date().getMonth()] + '</div><h1 class="big">' + greet() + name + '</h1></div>' + liveChip() + '</header>';
-  h += '<section class="c"><div class="row g16"><div class="ringbox" data-act="go" data-to="food">' + ring(pct, 132, 12, left < 0 ? 'var(--bad)' : 'var(--g)', '<text x="66" y="64" text-anchor="middle" class="rt1">' + n0(Math.abs(left)) + '</text><text x="66" y="84" text-anchor="middle" class="rt2">kcal ' + (left < 0 ? 'over' : 'left') + '</text>') + '</div>' +
-    '<div class="col g10 f1"><div><div class="l">Budget</div><b class="m16">' + n0(b.base) + '</b></div>' + (b.earned ? '<div><div class="l">+ Burned by activity</div><b class="m16 gtxt">+' + n0(b.earned) + '</b>' + (loggedKcal(k) && watchKcal(k) ? '<div class="l">watch ' + n0(watchKcal(k)) + ' + logged ' + n0(loggedKcal(k)) + '</div>' : loggedKcal(k) ? '<div class="l">from sessions you logged</div>' : '') + '</div>' : '') + (b.carry ? '<div><div class="l">− Balancing yesterday</div><b class="m16 warnt">−' + n0(b.carry) + '</b></div>' : '') + '<div><div class="l">− Eaten</div><b class="m16">' + n0(t.kcal) + '</b></div></div></div>' +
-    '<div class="g2 mt">' + macroRow('Protein', t.p, tg.p, 'g') + macroRow('Carbs', t.c, tg.c, 'g') + macroRow('Fat', t.f, tg.f, 'g') + macroRow('Fibre', t.fi, tg.fi, 'g') + '</div></section>';
+  /* quick add */
+  var qa = [['food', 'Food', 'qFood'], ['drop', 'Water', 'qWater'], ['yoga', 'Exercise', 'logYoga'], ['bp', 'BP', 'logBp'], ['pulse', 'Sugar', 'logSugar'], ['moon', 'Sleep', 'logSleep']];
+  if ((DB.meds || []).length) qa.push(['pill', 'Medicine', 'qMeds']);
+  qa.push(['scale', 'Weight', 'qWeight']);
+  h += '<div class="qa">' + qa.map(function (q) { return '<button class="qab" data-act="' + q[2] + '"><span>' + icon(q[0], 22) + '</span>' + q[1] + '</button>'; }).join('') + '</div>';
+  /* calories */
+  h += '<section class="c" data-act="go" data-to="food"><div class="row g16"><div class="ringbox">' + ring(pct, 116, 11, left < 0 ? 'var(--bad)' : 'var(--g)', '<text x="58" y="58" text-anchor="middle" class="rt1">' + n0(Math.abs(left)) + '</text><text x="58" y="77" text-anchor="middle" class="rt2">kcal ' + (left < 0 ? 'over' : 'left') + '</text>') + '</div>' +
+    '<div class="f1 kc"><div class="rd"><span>Budget</span><b>' + n0(b.base) + '</b></div>' + (b.earned ? '<div class="rd"><span>+ Exercise</span><b class="gtxt">+' + n0(b.earned) + '</b></div>' : '') + (b.carry ? '<div class="rd"><span>− Yesterday</span><b class="warnt">−' + n0(b.carry) + '</b></div>' : '') + '<div class="rd"><span>− Eaten</span><b>' + n0(t.kcal) + '</b></div></div></div>' +
+    '<div class="g4 mt">' + [['Protein', t.p, tg.p], ['Carbs', t.c, tg.c], ['Fat', t.f, tg.f], ['Fibre', t.fi, tg.fi]].map(function (x) { return '<div class="mm"><div class="l">' + x[0] + '</div><b>' + n0(x[1]) + '<small>/' + n0(x[2]) + 'g</small></b>' + bar(x[1] / x[2] * 100) + '</div>'; }).join('') + '</div></section>';
   var cr = coachRules(k), tip = nowTip(cr, t, tg, b);
-  h += '<section class="c dark" data-act="go" data-to="coach"><div class="kick">' + icon('spark', 16) + 'COACH · RIGHT NOW</div><p class="p15">' + esc(tip) + '</p><span class="lnk mint">See today\'s full read →</span></section>';
-  var st = stepsFor(k), sl = sleepFor(k), en = energyFor(k), hr = latestHr(), hd = hrDay(k);
-  h += '<div class="g2">';
-  h += tile('Steps', st != null ? n0(st) : '—', st != null ? bar(st / 100) + '<div class="l mt6">of 10,000' + (DB.health && DB.health.distance && DB.health.distance[k] ? ' · ' + n1(DB.health.distance[k] / 1000) + ' km' : '') + '</div>' : '<div class="l">Connect watch</div>', 'vitals');
-  h += tile('Sleep score', sl ? sl.score + ' <small>/100</small>' : '—', sl ? '<div class="l mt6">' + dur(sl.asleep) + ' · deep ' + Math.round(sl.m.deep / sl.staged * 100) + '%</div>' : '<div class="l">No sleep data yet</div>', 'vitals');
-  h += tile('Energy score', en != null ? en : '—', '<div class="l mt6">' + (en == null ? 'No score yet today' : en >= 80 ? 'Good · go for it' : en >= 60 ? 'Fair · go easy after 4 pm' : 'Low · rest more today') + '</div>', 'vitals');
-  h += tileT('Heart rate', hr ? hr.bpm + ' <small>bpm</small>' : hd ? hd.avg + ' <small>avg</small>' : '—', (hr ? '<div class="l mt6">last reading ' + (Date.now() - hr.t < 86400000 ? hm(hr.t) : ago(hr.t)) + (hd ? ' · ' + hd.min + '–' + hd.max + ' today' : '') + '</div>' : '<div class="l">No reading yet</div>') + staleNote());
+  h += '<section class="c dark" data-act="go" data-to="coach"><div class="kick">' + icon('spark', 16) + 'COACH</div><p class="p15">' + esc(tip) + '</p></section>';
+  /* body today, with averages */
+  var avg7 = function (m) { var v = []; for (var i = 0; i < 7; i++) { var x = TM[m].day(addDays(k, -i)); if (x != null) v.push(x); } return v.length >= 2 ? (TM[m].two ? [dayAvg(v.map(function (y) { return y[0]; })), dayAvg(v.map(function (y) { return y[1]; }))] : dayAvg(v)) : null; };
+  var st = stepsFor(k), sl = sleepFor(k), en = energyFor(k), hr = latestHr(), hd = hrDay(k), bp = merged('bp')[0], su = merged('sugar').filter(function (x) { return x.type === 'fasting'; })[0], w = merged('weight')[0];
+  var T2 = function (to, label, val, sub) { return '<button class="vt" data-act="go" data-to="' + to + '"><span class="l">' + label + '</span><b>' + val + '</b><small>' + sub + '</small></button>'; };
+  var a;
+  h += '<h3 class="sech">Your body today</h3><div class="vgrid">';
+  a = avg7('steps'); h += T2('trend/steps', 'Steps', st ? n0(st) : '—', a ? '7-day avg ' + n0(a) : st ? 'of 10,000' : 'Wear the watch');
+  a = avg7('sleep'); h += T2('sleep', 'Sleep', sl ? dur(sl.asleep) : '—', a ? '7-day avg ' + dur(a) : sl ? 'score ' + sl.score : '<span class="lnk" data-act="logSleep">+ Log sleep</span>');
+  a = avg7('energy'); h += T2('trend/energy', 'Energy', en != null ? en : '—', a ? '7-day avg ' + Math.round(a) : 'from the watch');
+  a = avg7('rhr'); h += T2('vitals', 'Heart rate', hr ? hr.bpm + ' <small>bpm</small>' : hd ? hd.avg + ' <small>avg</small>' : '—', a ? 'resting avg ' + Math.round(a) : hr ? 'at ' + hm(hr.t) : 'no reading');
+  var bp30 = merged('bp').filter(function (x) { return x.t > Date.now() - 30 * 86400000; });
+  h += T2('bp', 'Blood pressure', bp ? bp.sys + '/' + bp.dia : '—', bp30.length >= 2 ? '30-day avg ' + Math.round(dayAvg(bp30.map(function (x) { return x.sys; }))) + '/' + Math.round(dayAvg(bp30.map(function (x) { return x.dia; }))) : bp ? '<span class="' + bpLabel(bp.sys, bp.dia)[1] + 't">' + bpLabel(bp.sys, bp.dia)[0] + ' · ' + ago(bp.t) + '</span>' : 'tap to log');
+  var su30 = merged('sugar').filter(function (x) { return x.type === 'fasting' && x.t > Date.now() - 30 * 86400000; });
+  h += T2('sugar', 'Fasting sugar', su ? su.val + ' <small>mg/dL</small>' : '—', su30.length >= 2 ? '30-day avg ' + Math.round(dayAvg(su30.map(function (x) { return x.val; }))) : su ? ago(su.t) : 'tap to log');
   h += '</div>';
+  h += staleNote() ? '<div class="ctrtxt">' + staleNote() + '</div>' : '';
   h += waterCard(true);
   h += medsCard();
-  var bp = merged('bp')[0], su = merged('sugar')[0];
-  h += '<div class="g2">';
-  h += bp ? tile('BP · ' + (Date.now() - bp.t < 86400000 ? hm(bp.t) : ago(bp.t)), bp.sys + '/' + bp.dia, '<div class="st ' + bpLabel(bp.sys, bp.dia)[1] + '">' + bpLabel(bp.sys, bp.dia)[0] + '</div>', 'bp') : tile('Blood pressure', '—', '<button class="lnk" data-act="logBp">+ Log BP</button>');
-  h += su ? tile((su.type === 'fasting' ? 'Fasting' : su.type === 'pp' ? 'After meal' : 'Random') + ' sugar', su.val + ' <small>mg/dL</small>', '<div class="st ' + sugarLabel(su.val, su.type)[1] + '">' + sugarLabel(su.val, su.type)[0] + '</div>', 'sugar') : tile('Blood sugar', '—', '<button class="lnk" data-act="logSugar">+ Log sugar</button>');
-  h += '</div>';
-  var w = merged('weight'), wk = w[0], wprev = w.filter(function (x) { return wk && x.t < wk.t - 6 * 86400000; })[0];
+  /* yoga today */
   var ym = yogaMin(k);
-  h += '<section class="c row sb"><div data-act="go" data-to="weight"><div class="l">Weight</div><b class="m22">' + (wk ? n1(wk.kg) + ' kg' : '—') + '</b><div class="sm gtxt">' + (wk && wprev ? (wk.kg <= wprev.kg ? '−' : '+') + n1(Math.abs(wk.kg - wprev.kg)) + ' kg this week · ' : '') + 'goal ' + n1(DB.profile.goal) + '</div></div>' +
-    '<div class="r" data-act="go" data-to="yoga"><div class="l">Yoga today</div><b class="m22">' + ym + ' / ' + yogaGoal() + ' min</b><div class="sm gtxt">' + (ym >= yogaGoal() ? 'Done today' : 'Start your routine') + '</div></div></section>';
+  h += '<section class="c row sb" data-act="go" data-to="yoga"><div><div class="l">Yoga & pranayama</div><b class="m20">' + ym + ' / ' + yogaGoal() + ' min</b><div class="sm gtxt">' + (ym >= yogaGoal() ? 'Done today' : 'Today\'s practice is ready') + '</div></div><span class="mic">' + icon('play', 20) + '</span></section>';
+  var wp = merged('weight').filter(function (x) { return w && x.t < w.t - 6 * 86400000; })[0];
+  h += '<section class="c row sb" data-act="go" data-to="weight"><div><div class="l">Weight</div><b class="m20">' + (w ? n1(w.kg) + ' kg' : '—') + '</b><div class="sm gtxt">' + (w && wp ? (w.kg <= wp.kg ? '−' : '+') + n1(Math.abs(w.kg - wp.kg)) + ' kg this week · ' : '') + 'goal ' + n1(DB.profile.goal) + ' kg</div></div>' + icon('chev', 18) + '</section>';
   return h;
 };
+ACT.qFood = function () { go('add/' + mealFor()); };
+ACT.qWater = function () { var g = DB.settings.water.glass; ACT.water({ getAttribute: function () { return g; } }); };
+ACT.qMeds = function () { go('meds'); };
+ACT.qWeight = function () { go('weight'); };
 function tileT(label, val, extra) { return tile(label, val, extra, 'vitals'); }
 function tile(label, val, extra, to) { return '<section class="c tile"' + (to ? ' data-act="go" data-to="' + to + '"' : '') + '><div class="l">' + label + '</div><b class="m24">' + val + '</b>' + (extra || '') + '</section>'; }
 function nowTip(cr, t, tg, b) {
@@ -66,7 +81,7 @@ ROUTES.water = function () {
   for (var i = 6; i >= 0; i--) { var dk = addDays(k, -i), v = waterMl(dk); mx = Math.max(mx, v); }
   for (i = 6; i >= 0; i--) { dk = addDays(k, -i); v = waterMl(dk); bars += '<div class="wb"><div class="wbf' + (v >= w.goal ? ' ok' : '') + '" style="height:' + Math.round(v / mx * 100) + '%"></div><span>' + DOW[fromKey(dk).getDay()][0] + '</span></div>'; }
   for (i = 1; i < 60 && still; i++) { if (waterMl(addDays(k, -i)) >= w.goal) streak++; else still = false; }
-  h += '<section class="c"><div class="row sb"><h2>Last 7 days</h2><span class="sm gtxt">' + (streak ? streak + '-day streak' : '') + '</span></div><div class="wbars" style="--gl:' + (100 - w.goal / mx * 100) + '%">' + bars + '</div></section>';
+  h += trendBlock('water', { title: 'Water history' + (streak ? ' · ' + streak + '-day streak' : '') });
   h += '<section class="c"><h2>Today</h2>' + (d.water.length ? d.water.slice().reverse().map(function (x) { return '<div class="rd"><span>' + hm(x.t) + '</span><b>' + x.ml + ' ml</b></div>'; }).join('') : '<div class="l">No water logged yet.</div>') + '</section>';
   h += '<section class="c"><h2>Reminders</h2>' +
     tog('Remind me', 'wRemind', w.remind) + tog('Only when I\'m behind', 'wBehind', w.onlyBehind) +
@@ -90,20 +105,7 @@ ACT.waterUndo = function () { var d = day(today()); if (!d.water.length) return;
 ROUTES.vitals = function () {
   var k = today(), hd = DB.health, h = '<div class="row sb"><h1 class="big">Vitals</h1>' + liveChip() + '</div>';
   if (!hd || hd.status !== 'ok') h += connectCard();
-  var sl = sleepFor(k);
-  if (sl) {
-    var m = sl.m, s = sl.staged, pc = function (x) { return Math.round(x / s * 100); };
-    h += '<section class="c"><div class="row sb"><div><div class="l">Last night · ' + hm(sl.start) + ' – ' + hm(sl.end) + '</div><b class="m30">' + sl.score + ' <small>sleep score' + (sl.scoreSrc === 'Arogya' ? '*' : '') + '</small></b></div><div class="r"><b class="m20">' + dur(sl.asleep) + '</b><div class="l">goal 7 h 30 m</div></div></div>' +
-      hypno(sl) +
-      stage('Awake', pc(m.awake), m.awake, '#E4577A') + stage('REM', pc(m.rem), m.rem, '#9C8BE0') + stage('Light', pc(m.light), m.light, '#6B4FBF') + stage('Deep', pc(m.deep), m.deep, '#2E1F7A');
-    var note = [];
-    if (pc(m.deep) < 13) note.push('Deep sleep ' + pc(m.deep) + '% is under the usual 13–23%.');
-    if (pc(m.awake) > 12) note.push('Awake time is high.');
-    var sp = spo2Night(k); if (sp && sp.lowCount) note.push('Oxygen dipped under 90% in ' + sp.lowCount + ' of ' + sp.n + ' readings.');
-    if (note.length) h += '<div class="purplebg">' + esc(note.join(' ')) + '</div>';
-    if (sl.scoreSrc === 'Arogya') h += '<div class="l mt">*Samsung gave no score for this night, so Arogya worked it out from your sleep stages.</div>';
-    h += '</section>';
-  } else if (hd && hd.status === 'ok') h += '<section class="c"><h2>Sleep</h2><div class="l">No sleep recorded for last night. Wear the watch to bed with sleep tracking on.</div></section>';
+  h += nightCard(k) + '<button class="lnk" data-act="go" data-to="sleep">Sleep history and averages →</button>';
   var en = energyFor(k), sp2 = spo2Night(k), rr = hd && hd.resp ? hd.resp[k] : null;
   h += '<div class="g3">' + mini('Energy', en != null ? en : '—', en != null ? (en >= 80 ? 'Good' : en >= 60 ? 'Fair' : 'Low') : 'no score yet') + mini('SpO₂ sleep', sp2 ? sp2.avg + '%' : '—', sp2 ? 'low ' + sp2.min + '%' : 'avg') + mini('Resting HR', hd && hd.restingHr && hd.restingHr[k] ? Math.round(hd.restingHr[k]) : '—', 'bpm') + '</div>';
   if (hd && hd.hr) {
@@ -163,8 +165,21 @@ function sugarCard(full) {
   if (!full && all.length > 3) h += '<button class="lnk" data-act="go" data-to="sugar">See all ' + all.length + ' readings</button>';
   return h + '</section>';
 }
-ROUTES.bp = function () { return head('Blood pressure') + bpCard(true); };
-ROUTES.sugar = function () { return head('Blood sugar') + sugarCard(true); };
+ROUTES.bp = function () {
+  var all = merged('bp'), h = head('Blood pressure') + '<button class="btn" data-act="logBp">' + icon('plus', 18) + 'Log BP</button>';
+  var span = function (d, f) { var r = all.filter(function (x) { return x.t > Date.now() - d * 86400000 && (!f || f(x)); }); return r.length ? Math.round(dayAvg(r.map(function (x) { return x.sys; }))) + '/' + Math.round(dayAvg(r.map(function (x) { return x.dia; }))) + '<small> · ' + r.length + '</small>' : '—'; };
+  var am = function (x) { return new Date(x.t).getHours() < 12; };
+  h += '<section class="c"><h2>Your averages</h2><div class="g3 mt"><div><div class="l">7 days</div><b class="m18">' + span(7) + '</b></div><div><div class="l">30 days</div><b class="m18">' + span(30) + '</b></div><div><div class="l">90 days</div><b class="m18">' + span(90) + '</b></div></div>' +
+    '<div class="g2 mt"><div><div class="l">Mornings · 30 days</div><b class="m18">' + span(30, am) + '</b></div><div><div class="l">Evenings · 30 days</div><b class="m18">' + span(30, function (x) { return !am(x); }) + '</b></div></div><div class="l mt6">Small number = readings. Under 130/85 is the target for most adults.</div></section>';
+  return h + trendBlock('bp', { title: 'Trend' }) + bpCard(true);
+};
+ROUTES.sugar = function () {
+  var all = merged('sugar'), h = head('Blood sugar') + '<button class="btn" data-act="logSugar">' + icon('plus', 18) + 'Log sugar</button>';
+  var span = function (d, f) { var r = all.filter(function (x) { return x.t > Date.now() - d * 86400000 && f(x); }); return r.length ? Math.round(dayAvg(r.map(function (x) { return x.val; }))) + '<small> · ' + r.length + '</small>' : '—'; };
+  var fa = function (x) { return x.type === 'fasting'; }, pp = function (x) { return x.type !== 'fasting'; };
+  h += '<section class="c"><h2>Your averages</h2><div class="tbl mt"><span class="l"></span><span class="l r">Fasting</span><span class="l r">After meals</span>' + [[7, '7 days'], [30, '30 days'], [90, '90 days']].map(function (p) { return '<span>' + p[1] + '</span><b class="r">' + span(p[0], fa) + '</b><b class="r">' + span(p[0], pp) + '</b>'; }).join('') + '</div><div class="l mt6">Targets: fasting under 100, 2 hours after a meal under 140 mg/dL.</div></section>';
+  return h + trendBlock('sugar', { title: 'Fasting trend' }) + trendBlock('sugarpp', { title: 'After-meal trend' }) + sugarCard(true);
+};
 ACT.logBp = function (el, e) {
   if (e) e.stopPropagation();
   sheet('<h2>Log blood pressure</h2><div class="g3 mt"><label class="fld">Upper (sys)<input id="bp_s" type="number" inputmode="numeric" placeholder="120"></label><label class="fld">Lower (dia)<input id="bp_d" type="number" inputmode="numeric" placeholder="80"></label><label class="fld">Pulse<input id="bp_p" type="number" inputmode="numeric" placeholder="72"></label></div>' +

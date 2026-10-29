@@ -143,44 +143,45 @@ public class MedReceiver extends BroadcastReceiver {
         if (Build.VERSION.SDK_INT >= 33 && c.checkSelfPermission("android.permission.POST_NOTIFICATIONS") != android.content.pm.PackageManager.PERMISSION_GRANTED) return;
         JSONArray doses = cfg(c).optJSONArray("doses");
         List<String> names = new ArrayList<>(), lines = new ArrayList<>(), open = new ArrayList<>();
+        String route = "meds", kind = "med";
         if (keys.startsWith("test")) { names.add("your medicine"); lines.add("This is how your medicine reminders will look. Tap Taken, In 15 min or Skip."); open.add(keys); }
         else for (String k : keys.split(",")) {
             if (done(c, date, k)) continue;
             String id = k.split("\\|")[0];
             for (int i = 0; doses != null && i < doses.length(); i++) {
                 JSONObject m = doses.optJSONObject(i);
-                if (m != null && id.equals(m.optString("id"))) { names.add(m.optString("n")); lines.add(m.optString("n") + " · " + m.optString("q")); open.add(k); }
+                if (m != null && id.equals(m.optString("id"))) { if (open.isEmpty()) { route = m.optString("route", "meds"); kind = m.optString("kind", "med"); } names.add(m.optString("n")); lines.add(m.optString("n") + " · " + m.optString("q")); open.add(k); }
             }
         }
         if (open.isEmpty()) return;
         channel(c);
         String ks = String.join(",", open);
-        PendingIntent show = PendingIntent.getActivity(c, 22, new Intent(c, MainActivity.class).putExtra("route", "meds"), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent show = PendingIntent.getActivity(c, 22, new Intent(c, MainActivity.class).putExtra("route", route), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         PendingIntent take = PendingIntent.getBroadcast(c, 23, new Intent(c, MedReceiver.class).setAction(TAKE).putExtra("keys", ks).putExtra("date", date), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         PendingIntent snooze = PendingIntent.getBroadcast(c, 24, new Intent(c, MedReceiver.class).setAction(SNOOZE).putExtra("keys", ks).putExtra("date", date), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Notification n = new Notification.Builder(c, CH)
                 .setSmallIcon(android.R.drawable.ic_popup_reminder)
-                .setContentTitle("💊 Time for " + String.join(", ", names))
+                .setContentTitle(("prana".equals(kind) ? "🧘 Time for " : "💊 Time for ") + String.join(", ", names))
                 .setContentText(lines.get(0))
                 .setStyle(new Notification.BigTextStyle().bigText(String.join("\n", lines)))
                 .setContentIntent(show).setAutoCancel(true)
-                .setFullScreenIntent(PendingIntent.getActivity(c, 25, card(c, ks, date, names, lines), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE), true)
+                .setFullScreenIntent(PendingIntent.getActivity(c, 25, card(c, ks, date, names, lines, route, kind), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE), true)
                 .setCategory(Notification.CATEGORY_REMINDER)
-                .addAction(new Notification.Action.Builder(null, open.size() > 1 ? "Taken all" : "Taken", take).build())
+                .addAction("prana".equals(kind) ? new Notification.Action.Builder(null, "Start now", show).build() : new Notification.Action.Builder(null, open.size() > 1 ? "Taken all" : "Taken", take).build())
                 .addAction(new Notification.Action.Builder(null, "In 15 min", snooze).build())
                 .addAction(new Notification.Action.Builder(null, "Skip", PendingIntent.getBroadcast(c, 26, new Intent(c, MedReceiver.class).setAction(SKIP).putExtra("keys", ks).putExtra("date", date), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE)).build())
                 .build();
         c.getSystemService(NotificationManager.class).notify(NID, n);
         // the Dayline-style card: pops up from the bottom over whatever is on screen (needs "Display over other apps"); on a locked phone the full-screen intent shows it
         if (cfg(c).optBoolean("popup", true) && (android.provider.Settings.canDrawOverlays(c) || isLocked(c))) {
-            try { c.startActivity(card(c, ks, date, names, lines).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_HISTORY)); } catch (Exception ignored) { }
+            try { c.startActivity(card(c, ks, date, names, lines, route, kind).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_HISTORY)); } catch (Exception ignored) { }
         }
     }
 
     static boolean isLocked(Context c) { android.app.KeyguardManager km = c.getSystemService(android.app.KeyguardManager.class); return km != null && km.isKeyguardLocked(); }
 
-    static Intent card(Context c, String ks, String date, List<String> names, List<String> lines) {
-        return new Intent(c, ReminderActivity.class).putExtra("keys", ks).putExtra("date", date)
+    static Intent card(Context c, String ks, String date, List<String> names, List<String> lines, String route, String kind) {
+        return new Intent(c, ReminderActivity.class).putExtra("route", route).putExtra("kind", kind).putExtra("keys", ks).putExtra("date", date)
                 .putExtra("title", "Time for " + String.join(", ", names))
                 .putExtra("body", lines.size() == 1 && lines.get(0).contains(" · ") ? lines.get(0).substring(lines.get(0).indexOf(" · ") + 3) : String.join("\n", lines))
                 .putExtra("accent", cfg(c).optString("accent", "#7C5CFF"));

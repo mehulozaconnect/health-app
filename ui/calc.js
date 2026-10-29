@@ -121,10 +121,10 @@ function sugarLabel(v, type) {
 /* ---------- health (from phone) ---------- */
 var STG = { awake: 'awake', light: 'light', deep: 'deep', rem: 'rem' };
 function sleepFor(k) {
-  var h = DB.health; if (!h || !h.sleep || !h.sleep.length) return null;
+  var h = DB.health, man = typeof manualSleep === 'function' ? manualSleep(k) : null; if (!h || !h.sleep || !h.sleep.length) return man;
   var end0 = fromKey(k).getTime() - 6 * 3600000, end1 = fromKey(k).getTime() + 18 * 3600000;
   var ss = h.sleep.filter(function (s) { return s.end > end0 && s.end <= end1; });
-  if (!ss.length) return null;
+  if (!ss.length) return man;
   ss.sort(function (a, b) { return (b.end - b.start) - (a.end - a.start); });
   var s = ss[0], m = { awake: 0, rem: 0, light: 0, deep: 0 }, total = (s.end - s.start) / 60000;
   (s.stages || []).forEach(function (g) { var t = STG[g.type] || 'light'; m[t] += (g.e - g.s) / 60000; });
@@ -166,7 +166,7 @@ function coachRules(k) {
   var sl = sleepFor(k), st = stepsFor(y), sp = spo2Night(k);
   var bp = merged('bp')[0], su = merged('sugar').filter(function (x) { return x.type === 'fasting'; })[0];
   if (sl) {
-    var dp = sl.m.deep / sl.staged;
+    var dp = sl.manual ? 0.15 : sl.m.deep / sl.staged;
     if (sl.asleep < 390) out.body.push('Short night: ' + dur(sl.asleep) + ' asleep. Under 6½ hours raises hunger and next-morning sugar.');
     if (dp < 0.13) out.body.push('Deep sleep only ' + Math.round(dp * 100) + '% (usual 13–23%). Late dinners and screens before bed cut deep sleep.');
     if (sl.asleep >= 420 && dp >= 0.13) out.right.push('Good sleep: ' + dur(sl.asleep) + ' with ' + Math.round(dp * 100) + '% deep.');
@@ -197,7 +197,7 @@ function coachRules(k) {
   if (pl > 25) out.plan.push('Get ' + n0(pl) + ' g more protein today: moong chilla, paneer bhurji, dal + curd, or sprouts.');
   if (yt.c * 4 > yt.kcal * 0.6 || yItems.length === 0) out.plan.push('At lunch: roti or rice, not both. Fill half the plate with sabzi and salad.');
   out.plan.push('Dinner by 8:45 pm' + (left > 0 && left < 900 ? ', about ' + n0(Math.min(left, 600)) + ' kcal' : '') + ', then a 15-minute walk.');
-  if (sl && (sl.asleep < 420 || sl.m.deep / sl.staged < 0.13)) out.plan.push('Phone down by 10:45, in bed by 11:15. 5 minutes of Bhramari before sleep.');
+  if (sl && (sl.asleep < 420 || (!sl.manual && sl.m.deep / sl.staged < 0.13))) out.plan.push('Phone down by 10:45, in bed by 11:15. 5 minutes of Bhramari before sleep.');
   var w = DB.settings.water; out.plan.push('Water: ' + (w.goal / 1000).toFixed(1) + ' L — a glass every hour till 8 pm.');
   if (typeof makePlan === 'function') { var PL0 = makePlan(), top = PL0.rec.filter(function (r) { return r.p.t === 'p'; })[0]; if (top) out.plan.push('Pranayama: ' + practName(top.p) + ' — ' + top.dose.txt + ' ' + slotTime(top.p.slot, PL0.X) + '.'); }
   if (typeof meds === 'function' && meds().length) {

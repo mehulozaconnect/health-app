@@ -301,11 +301,13 @@ ACT.meSave = function () {
 
 /* ---------- reminders on the phone ---------- */
 function syncMeds() {
-  var k = today(), done = Object.keys((DB.medLog || {})[k] || {});
+  var k = today(), done = Object.keys((DB.medLog || {})[k] || {}).concat(Object.keys((DB.pschedLog || {})[k] || {}).map(function (id) { return 'ps_' + id + '|' + (pschedById(id) || {}).time; }));
   native('setMeds', JSON.stringify({ date: k, done: done, popup: DB.settings.medPopup !== false, accent: (typeof themeAccent === 'function' ? themeAccent() : '#7C5CFF'), doses: meds().filter(function (m) { return m.remind !== false; }).map(function (m) {
     var fw = FOODW.filter(function (f) { return f[0] === m.food; })[0];
     return { id: m.id, n: medLabel(m), q: medQty(m) + (fw && fw[0] !== 'any' ? ' · ' + fw[1].toLowerCase() : ''), times: m.times, days: m.days || [], every: +m.every || 1, start: m.start || '', end: m.end || '' };
-  }) }));
+  }).concat((DB.psched || []).filter(function (s) { return s.remind && s.items.length; }).map(function (s) {
+    return { id: 'ps_' + s.id, n: s.name, q: s.items.map(function (k) { return PRANA[k][0]; }).join(', ') + ' · ' + Math.round(pschedSec(s) / 60) + ' min', times: [s.time], days: [], every: 1, start: '', end: '', route: 'psched/' + s.id, kind: 'prana' };
+  })) }));
 }
 function takeMedAdds() {
   try { var a = JSON.parse(native('takeMedAdds') || '[]'); a.forEach(function (x) { var l = medLog(x.date), m = medById(String(x.key).split('|')[0]); if (l[x.key] && l[x.key].s === 'taken') return; var sk = x.s === 'skip'; l[x.key] = { s: sk ? 'skip' : 'taken', t: x.t }; if (!sk && m && m.stock != null && m.stock !== '') m.stock = Math.max(0, +m.stock - (+m.qty || 1)); }); if (a.length) save(); } catch (e) { }

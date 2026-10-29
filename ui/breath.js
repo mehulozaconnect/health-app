@@ -35,7 +35,7 @@ function mmss(s) { s = Math.max(0, Math.round(s)); var h = Math.floor(s / 3600),
 
 /* ---------- list ---------- */
 ROUTES.breaths = function () {
-  var h = head('Pranayama', 'Pick one, press Start'), P = makePlan(), rec = {}, av = {};
+  var h = head('Pranayama', 'Pick one, press Start') + pschedCards() + '<h3 class="sech">All pranayama</h3>', P = makePlan(), rec = {}, av = {};
   P.rec.forEach(function (r) { if (r.p.t === 'p') rec[r.p.k] = r; }); P.avoid.forEach(function (a) { if (a.p.t === 'p') av[a.p.k] = a; });
   var order = PRANA_ORDER.slice().sort(function (a, b) { return (av[a] ? 2 : rec[a] ? 0 : 1) - (av[b] ? 2 : rec[b] ? 0 : 1) || ((rec[b] || {}).sc || 0) - ((rec[a] || {}).sc || 0); });
   h += order.map(function (k) { var p = PRANA[k], c = pcfg(k); return '<button class="res' + (av[k] ? ' dim2' : '') + '" data-act="go" data-to="breath/' + k + '"><span>' + p[0] + (rec[k] && !av[k] ? ' <em class="badge">For you</em>' : '') + (av[k] ? ' <em class="badge off">Avoid for now</em>' : '') + '<small>' + esc(p[1]) + ' · ' + mmss(pTotal(k, c)) + '</small></span>' + icon('chev', 18) + '</button>'; }).join('');
@@ -81,7 +81,7 @@ ROUTES.breath = function (k) {
       '<button class="sarr" data-act="bLevel" data-d="-1" aria-label="Shorter">‹</button>' + sh.map(function (f, i) { return cell(f, c.r[+f[1]], i < sh.length - 1); }).join('') + '<button class="sarr" data-act="bLevel" data-d="1" aria-label="Longer">›</button>' + cell('rounds', c.rounds) + '</div>' +
       '</section>';
   }
-  h += planNote(k);
+  h += psBanner(k) || planNote(k);
   h += '<section class="c ctrtxt bcard"><div class="bfig' + (BP.run ? '' : ' idle') + '" id="bfig">' + breathFig(k, 0.6) + '</div>' +
     '<div class="bph"><b id="bph">' + (BP.run ? '' : 'Ready') + '</b> <span id="bsec"></span></div><div id="bnos" class="l"></div>' +
     '<div class="l mt6"><span id="bround">' + c.rounds + ' rounds</span> · <span id="blf">' + mmss(tot - BP.el) + '</span> left<span id="bel" hidden></span></div>' +
@@ -142,9 +142,11 @@ function bPaint() {
   if (BP.spoke !== i) { BP.spoke = i; plSay(g.ph === 'fast' ? 'Round ' + g.round + '. Go' : g.ph === 'rest' ? 'Rest. Breathe normally' : PHL[g.ph] + (g.nos ? ' ' + g.nos : '')); }
 }
 function bLog() {
+  var doneK = BP.k;
   var c = pcfg(BP.k), p = PRANA[BP.k], sec = Math.round(BP.el);
   day(today()).yoga.push({ t: Date.now(), min: Math.round(sec / 6) / 10, sec: sec, kind: 'yoga', prana: BP.k, name: p[0], ratio: c.fast ? c.rounds + '×' + c.fast[1] : c.r.filter(function (x, i) { return x || i % 2 === 0; }).join(':') + ' ×' + Math.round(sec / Math.max(1, pTotal(BP.k, c)) * c.rounds) });
   save(); toast('Saved ' + p[0] + ' · ' + mmss(sec) + ' · ' + sessionKcal(day(today()).yoga[day(today()).yoga.length - 1]) + ' kcal'); BP.el = 0; BP.i = 0; rerender();
+  psNext(doneK);
 }
 function breathHist(k) {
   var out = []; Object.keys(DB.days).sort().reverse().forEach(function (dk) { (DB.days[dk].yoga || []).slice().reverse().forEach(function (s) { if (s.prana && (!k || s.prana === k)) out.push({ k: dk, s: s }); }); });

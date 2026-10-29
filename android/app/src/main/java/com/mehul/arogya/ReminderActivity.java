@@ -43,6 +43,8 @@ public class ReminderActivity extends Activity {
         else getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         Intent i = getIntent();
+        final boolean prana = "prana".equals(i.getStringExtra("kind"));
+        final String route = i.getStringExtra("route");
         keys = i.getStringExtra("keys"); date = i.getStringExtra("date");
         String title = i.getStringExtra("title"), body = i.getStringExtra("body");
         int accent = Color.parseColor(i.getStringExtra("accent") != null ? i.getStringExtra("accent") : "#7C5CFF");
@@ -69,12 +71,12 @@ public class ReminderActivity extends Activity {
         LinearLayout top = new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL); top.setGravity(Gravity.CENTER_VERTICAL);
         TextView pill = new TextView(this);
-        pill.setText("💊"); pill.setTextSize(26); pill.setGravity(Gravity.CENTER);
+        pill.setText(prana ? "🧘" : "💊"); pill.setTextSize(26); pill.setGravity(Gravity.CENTER);
         GradientDrawable pb = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{accent, Color.parseColor("#00D1C1")});
         pb.setCornerRadius(dp(18)); pill.setBackground(pb);
         top.addView(pill, new LinearLayout.LayoutParams(dp(56), dp(56)));
         LinearLayout tx = new LinearLayout(this); tx.setOrientation(LinearLayout.VERTICAL); tx.setPadding(dp(14), 0, 0, 0);
-        TextView kick = new TextView(this); kick.setText("MEDICINE · " + new java.text.SimpleDateFormat("h:mm a").format(new java.util.Date()).toLowerCase());
+        TextView kick = new TextView(this); kick.setText((prana ? "PRANAYAMA · " : "MEDICINE · ") + new java.text.SimpleDateFormat("h:mm a").format(new java.util.Date()).toLowerCase());
         kick.setTextColor(Color.parseColor("#9F95FF")); kick.setTextSize(12); kick.setTypeface(Typeface.DEFAULT_BOLD); kick.setLetterSpacing(0.08f);
         TextView t = new TextView(this); t.setText(title); t.setTextColor(Color.WHITE); t.setTextSize(21); t.setTypeface(Typeface.DEFAULT_BOLD);
         tx.addView(kick); tx.addView(t);
@@ -85,7 +87,7 @@ public class ReminderActivity extends Activity {
         LinearLayout.LayoutParams bl = new LinearLayout.LayoutParams(-1, -2); bl.topMargin = dp(14); bl.bottomMargin = dp(20);
         card.addView(bd, bl);
 
-        Button taken = btn("✓  Taken", accent, Color.WHITE);
+        Button taken = btn(prana ? "▶  Start now" : "✓  Taken", accent, Color.WHITE);
         card.addView(taken, new LinearLayout.LayoutParams(-1, dp(56)));
         LinearLayout row = new LinearLayout(this); row.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(-1, dp(52)); rl.topMargin = dp(10);
@@ -103,7 +105,10 @@ public class ReminderActivity extends Activity {
         card.setTranslationY(dp(420));
         card.animate().translationY(0).setDuration(380).setInterpolator(new DecelerateInterpolator(2f)).start();
 
-        taken.setOnClickListener(v -> act(MedReceiver.TAKE));
+        taken.setOnClickListener(v -> {
+            if (prana) { quiet(); startActivity(new Intent(this, MainActivity.class).putExtra("route", route).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); getSystemService(NotificationManager.class).cancel(MedReceiver.NID); finish(); }
+            else act(MedReceiver.TAKE);
+        });
         snooze.setOnClickListener(v -> act(MedReceiver.SNOOZE));
         skip.setOnClickListener(v -> act(MedReceiver.SKIP));
         ring();

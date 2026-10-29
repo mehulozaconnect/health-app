@@ -42,7 +42,7 @@ function planContext() {
   /* sleep, heart, energy, oxygen, activity */
   var days = lastDays(7), sl = days.map(sleepFor).filter(Boolean);
   if (sl.length >= 2) {
-    var as = avgN(sl.map(function (x) { return x.asleep; })), dp = avgN(sl.map(function (x) { return x.m.deep / x.staged; }));
+    var as = avgN(sl.map(function (x) { return x.asleep; })), dp = avgN(sl.filter(function (x) { return !x.manual; }).map(function (x) { return x.m.deep / x.staged; })) || 0.15;
     if (as < 360) add('sleep', 3, 'Short sleep', 'Sleeping ' + dur(as) + ' a night on average'); else if (as < 420) add('sleep', 2, 'Sleep a bit short', 'Sleeping ' + dur(as) + ' a night on average');
     if (dp > 0 && dp < 0.13) add('sleep', Math.max(1, (C.sleep || {}).sev || 0), (C.sleep || {}).label || 'Light sleep', 'Deep sleep only ' + Math.round(dp * 100) + '% (usual 13–23%)');
     ev.bed = avgN(sl.map(function (x) { var m = minOfDay(x.start); return m < 720 ? m + 1440 : m; }));
