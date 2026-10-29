@@ -44,12 +44,21 @@ PIECES = [
     (r"\bbread\b", "slice", 30), (r"scone", "piece", 50), (r"doughnut|donut", "piece", 60), (r"sweet\b.*\bball|balls\b", "piece", 30),
 ]
 PIECES = [(re.compile(p, re.I), u, g) for p, u, g in PIECES]
-RENAME = {'Hot tea (Garam Chai)': 'Hot tea, light milk (Garam Chai)'}
+RENAME = {}
+# micronutrients for everyday basics: name -> (added sugar g, sodium mg, iron mg, calcium mg) per 100 g
+MICRO = {
+  'Tea with milk and sugar': (4.2, 22, 0.05, 55), 'Tea with milk (no sugar)': (0, 22, 0.05, 55), 'Masala chai with sugar': (4.2, 22, 0.1, 57), 'Masala chai (no sugar)': (0, 22, 0.1, 57),
+  'Coffee with milk and sugar': (4.2, 30, 0.05, 70), 'Coffee with milk (no sugar)': (0, 30, 0.05, 70), 'Milk toned': (0, 45, 0.1, 120), 'Milk full cream (Buffalo)': (0, 50, 0.2, 210),
+  'Curd (Dahi)': (0, 45, 0.1, 120), 'Greek yogurt plain': (0, 36, 0.1, 110), 'Buttermilk (Chaas)': (0, 180, 0.05, 60), 'Sweet lassi': (8, 40, 0.1, 100), 'Paneer': (0, 25, 0.2, 480), 'Tofu': (0, 7, 2.7, 350),
+  'Dal tadka (toor)': (0, 280, 1.3, 25), 'Moong dal (yellow)': (0, 260, 1.2, 25), 'Masoor dal': (0, 270, 1.6, 20), 'Chana dal': (0, 270, 1.8, 30), 'Rajma curry': (0, 300, 1.9, 40), 'Chole (chickpea curry)': (0, 320, 2.2, 45),
+  'Roti / Phulka (no ghee)': (0, 300, 2.8, 30), 'Idli': (0, 260, 0.6, 15), 'Poha': (0, 300, 2.5, 15), 'Upma': (0, 320, 0.8, 15), 'Palak paneer': (0, 330, 1.6, 230), 'Paneer bhurji': (0, 320, 0.6, 300),
+  'Apple': (0, 1, 0.1, 6), 'Banana (Kela)': (0, 1, 0.3, 5), 'Almonds (Badam)': (0, 1, 3.7, 270), 'Ragi': (0, 10, 3.9, 344), 'Sprouts moong (raw)': (0, 6, 0.9, 13), 'Boiled chana': (0, 7, 2.9, 49), 'Coconut water': (0, 105, 0.3, 24),
+}
 # INDB recipes replaced by a home-style version in basics.csv (textbook recipes use much more oil)
 REPLACED = {'poha', 'semolina upma (suji/rava upma)', 'idli', 'masala dosa', 'chapati/roti', 'plain parantha/paratha', 'potato parantha/paratha (aloo ka parantha/paratha)',
             'poori', 'boiled rice (uble chawal)', 'curd rice (dahi bhaat/dahi chawal/ perugu annam/daddojanam/thayir saadam)', 'kadhi', 'rajmah curry', 'dal makhani',
             'paneer parantha/paratha', 'sweet lassi (meethi lassi)', 'khaman (dhokla)', 'potato samosa (aloo ka samosa)', 'vegetable cutlet',
-            'onion pakora/pakoda (pyaaz ke pakode)', 'dahi vadas/dahi bhalla', 'banana chips (kele ke chips)', 'spinach paneer (palak paneer)', 'pea paneer curry (matar paneer)', 'paneer in butter sauce', 'gram flour chilla/cheela (besan chilla/cheela)'}
+            'onion pakora/pakoda (pyaaz ke pakode)', 'dahi vadas/dahi bhalla', 'banana chips (kele ke chips)', 'spinach paneer (palak paneer)', 'pea paneer curry (matar paneer)', 'paneer in butter sauce', 'gram flour chilla/cheela (besan chilla/cheela)', 'hot tea (garam chai)'}
 
 # INDB counts ALL the frying oil in a recipe as eaten, so fried dishes come out 2x too high.
 # For these dishes, oil is trimmed until fat gives a realistic share of calories (45%; 55% for dry fried namkeen).
@@ -143,7 +152,8 @@ for _, r in d.iterrows():
 with open(os.path.join(HERE, 'basics.csv')) as fh:
     for b in csv.DictReader(fh):
         units = b['units'] + ('' if 'tablespoon' in b['units'] or 'teaspoon' in b['units'] else '|tablespoon:15')
-        rows.append([b['name'], r1(b['kcal']), r1(b['protein']), r1(b['carb']), r1(b['fat']), r1(b['fibre']), int(b['veg']), units, 0, 0, 0, 0, 'Basic'])
+        mi = MICRO.get(b['name'], (0, 0, 0, 0))
+        rows.append([b['name'], r1(b['kcal']), r1(b['protein']), r1(b['carb']), r1(b['fat']), r1(b['fibre']), int(b['veg']), units, mi[0], mi[1], mi[2], mi[3], 'Basic'])
 
 rows.sort(key=lambda x: 0 if x[12] == 'Basic' else 1)
 for x in rows:

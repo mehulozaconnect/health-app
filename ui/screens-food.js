@@ -163,7 +163,7 @@ function withExtras(it, ex) {
   it.ex = ex; it.exTxt = t.txt.join(', ');
   return it;
 }
-var UHELP = { katori: '1 katori = a 150 ml steel bowl, filled level', plate: '1 plate = a full quarter plate', bowl: 'A bowl as served (bigger than a katori)', glass: '1 glass = 200 ml', cup: '1 cup = 150 ml tea cup', tablespoon: '1 tablespoon = a serving spoon', grams: 'Weighing it? Use grams', piece: '1 piece as usually made at home' };
+var UHELP = { 'tea cup': '1 tea cup = 120 ml, a normal home cup', cutting: 'Cutting = half glass, about 75 ml', mug: '1 mug = 200 ml', katori: '1 katori = a 150 ml steel bowl, filled level', plate: '1 plate = a full quarter plate', bowl: 'A bowl as served (bigger than a katori)', glass: '1 glass = 200 ml', cup: '1 cup = 150 ml tea cup', tablespoon: '1 tablespoon = a serving spoon', grams: 'Weighing it? Use grams', piece: '1 piece as usually made at home' };
 ROUTES.dish = function (arg) {
   var p = arg.split('/'), m = p[0], name = p.slice(1).join('/'), r = food(name);
   if (!r) return head('Not found') + '<div class="empty-s">This food is missing.</div>';
@@ -172,8 +172,8 @@ ROUTES.dish = function (arg) {
   var tg = macroTargets(), b = budgetFor(SEL), t = dayTotals(SEL), left = b.total - t.kcal - s.kcal;
   var tags = [];
   if (r[6] === 1) tags.push('<span class="tag ok">VEG</span>'); else if (r[6] === 2) tags.push('<span class="tag warn">EGG</span>'); else tags.push('<span class="tag bad">NON-VEG</span>');
-  var pk = r[2] * 4 / r[1]; if (pk >= 0.2) tags.push('<span class="tag ok">High protein</span>'); else if (pk < 0.1) tags.push('<span class="tag warn">Low protein</span>');
-  if (r[4] * 9 / r[1] > 0.45) tags.push('<span class="tag warn">High fat</span>');
+  var pk = r[2] * 4 / r[1]; if (r[1] < 60) pk = 0.15; if (pk >= 0.2) tags.push('<span class="tag ok">High protein</span>'); else if (pk < 0.1) tags.push('<span class="tag warn">Low protein</span>');
+  if (r[1] >= 60 && r[4] * 9 / r[1] > 0.45) tags.push('<span class="tag warn">High fat</span>');
   if (r[5] >= 4) tags.push('<span class="tag ok">High fibre</span>');
   if (r[8] > 10) tags.push('<span class="tag warn">Sugary</span>');
   if (r[9] > 500) tags.push('<span class="tag warn">Salty</span>');
@@ -187,7 +187,9 @@ ROUTES.dish = function (arg) {
   h += '<section class="c"><div class="l">ADDED ON TOP' + (u[0] === 'grams' ? '' : ' (per ' + esc(u[0]) + ')') + '</div>' + (/with sugar/i.test(name) ? '<div class="hint">This already has about 1 tsp sugar per tea cup. For exact numbers pick the “no sugar” version and add your sugar here.</div>' : '') +
     list.map(function (e) { var n = DISH.ex[e[0]] || 0; return '<div class="exrow"><span>' + e[1] + '<small>' + e[2] + ' kcal per tsp</small></span><button class="exb" data-act="exd" data-k="' + e[0] + '" data-d="-0.5" aria-label="Less ' + e[1] + '">−</button><b>' + (n ? frac(n) + ' tsp' : '0') + '</b><button class="exb" data-act="exd" data-k="' + e[0] + '" data-d="0.5" aria-label="More ' + e[1] + '">+</button></div>'; }).join('') + '</section>';
   h += '<section class="c"><div class="row sb end"><div><div class="l">Calories</div><b class="huge">' + n0(s.kcal) + '</b></div><div class="r"><div class="l">of today\'s budget</div><b class="mid">' + Math.round(s.kcal / b.total * 100) + '%</b></div></div><div class="g4 mt">' +
-    mac('Protein', s.p, tg.p) + mac('Carbs', s.c, tg.c) + mac('Fat', s.f, tg.f) + mac('Fibre', s.fi, tg.fi) + '</div><div class="l mt">Bars show this portion\'s share of your daily target.' + (r[9] ? ' Sodium ' + n0(r[9] * g / 100) + ' mg, sugar ' + n1(r[8] * g / 100) + ' g.' : '') + '</div></section>';
+    mac('Protein', s.p, tg.p) + mac('Carbs', s.c, tg.c) + mac('Fat', s.f, tg.f) + mac('Fibre', s.fi, tg.fi) + '</div><div class="l mt">Bars show this portion\'s share of your daily target.' + '</div></section>';
+  var mic = [['Calcium', r[11], 'mg'], ['Iron', r[10], 'mg'], ['Sodium', r[9], 'mg'], ['Added sugar', null, 'g']].map(function (x) { var v = x[0] === 'Added sugar' ? s.su : (x[1] || 0) * g / 100; return [x[0], v, x[2]]; }).filter(function (x) { return x[1] > 0.05; });
+  if (mic.length) h += '<section class="c"><h2>Micronutrients</h2>' + mic.map(function (x) { return '<div class="rd"><span>' + x[0] + '</span><b>' + (x[1] >= 10 ? n0(x[1]) : n1(x[1])) + ' ' + x[2] + '</b></div>'; }).join('') + '</section>';
   var over = left < 0, tip;
   if (over) tip = 'That is more than your day can take. I\'ll show you options before adding.';
   else if (s.kcal > 150 && s.p * 4 / s.kcal < 0.1) tip = 'Protein is low in this. Add 1 katori curd (+5 g protein, 90 kcal) to balance it.';
