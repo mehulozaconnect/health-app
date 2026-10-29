@@ -115,7 +115,7 @@ var cur = { name: 'home', arg: '' };
 function go(hash) { if (location.hash === '#' + hash) { cur = parseHash(); sheet(null); render(); } else location.hash = hash; }
 function parseHash() { var h = (location.hash || '#home').slice(1).split('/'); return { name: h[0] || 'home', arg: decodeURIComponent(h.slice(1).join('/')) }; }
 var NAV = [['home', 'Home', 'home'], ['food', 'Food', 'food'], ['vitals', 'Vitals', 'pulse'], ['coach', 'Coach', 'spark'], ['more', 'More', 'gear']];
-var TABOF = { home: 'home', food: 'food', add: 'food', vitals: 'vitals', bp: 'vitals', sugar: 'vitals', coach: 'coach', more: 'more', reports: 'more', report: 'more', weight: 'more', yoga: 'more', water: 'home', settings: 'more', profile: 'more', flow: 'more' };
+var TABOF = { home: 'home', food: 'food', add: 'food', vitals: 'vitals', bp: 'vitals', sugar: 'vitals', coach: 'coach', more: 'more', reports: 'more', report: 'more', weight: 'more', yoga: 'more', routine: 'more', poses: 'more', water: 'home', settings: 'more', profile: 'more', flow: 'more' };
 function render() {
   if (!DB.profile.onboarded && cur.name !== 'onboard') { cur = { name: 'onboard', arg: '' }; }
   var f = ROUTES[cur.name] || ROUTES.home;

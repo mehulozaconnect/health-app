@@ -32,7 +32,7 @@ ROUTES.home = function () {
   var w = merged('weight'), wk = w[0], wprev = w.filter(function (x) { return wk && x.t < wk.t - 6 * 86400000; })[0];
   var ym = yogaMin(k);
   h += '<section class="c row sb"><div data-act="go" data-to="weight"><div class="l">Weight</div><b class="m22">' + (wk ? n1(wk.kg) + ' kg' : '—') + '</b><div class="sm gtxt">' + (wk && wprev ? (wk.kg <= wprev.kg ? '−' : '+') + n1(Math.abs(wk.kg - wprev.kg)) + ' kg this week · ' : '') + 'goal ' + n1(DB.profile.goal) + '</div></div>' +
-    '<div class="r" data-act="go" data-to="yoga"><div class="l">Yoga today</div><b class="m22">' + ym + ' / 20 min</b><div class="sm gtxt">' + (ym >= 20 ? 'Done today' : 'Start a flow') + '</div></div></section>';
+    '<div class="r" data-act="go" data-to="yoga"><div class="l">Yoga today</div><b class="m22">' + ym + ' / ' + yogaGoal() + ' min</b><div class="sm gtxt">' + (ym >= yogaGoal() ? 'Done today' : 'Start your routine') + '</div></div></section>';
   return h;
 };
 function tile(label, val, extra, to) { return '<section class="c tile"' + (to ? ' data-act="go" data-to="' + to + '"' : '') + '><div class="l">' + label + '</div><b class="m24">' + val + '</b>' + (extra || '') + '</section>'; }

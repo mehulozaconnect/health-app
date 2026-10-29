@@ -146,3 +146,12 @@ details summary{list-style:none;cursor:pointer}details summary::-webkit-details-
 .opt.best{border-color:var(--g);background:#F2F8F5}.opt i{font-style:normal;font-size:11px;font-weight:800;color:#fff;background:var(--g);padding:4px 8px;border-radius:6px}
 .aicard{box-shadow:inset 0 0 0 2px var(--g2)}
 .exrow{display:grid;grid-template-columns:minmax(0,1fr) 44px 64px 44px;align-items:center;gap:6px;padding:8px 0;border-top:1px solid var(--line);font-weight:700;font-size:14.5px}.exrow:first-of-type{border-top:0}.exrow small{display:block;font-size:12px;color:var(--mute);font-weight:600}.exrow b{text-align:center}.exb{width:44px;height:40px;border-radius:12px;border:0;background:var(--g2);color:var(--g);font-size:22px;font-weight:800}
+.rrow{display:flex;align-items:center;gap:4px;background:#fff;border-radius:16px;padding:4px 8px 4px 0;margin-top:-4px}.rmain{flex:1;min-width:0;text-align:left;border:0;background:none;padding:10px 14px;font-size:14.5px;font-weight:600}.rmain small{display:block;font-size:12.5px;color:var(--mute);font-weight:600;margin-top:2px}
+.stp{padding:12px 0;border-top:1px solid var(--line)}.stp:first-of-type{border-top:0}.stp b{font-size:15px}
+.ib.sm{width:36px;height:36px;border-radius:10px;background:var(--bg);font-weight:800;font-size:16px}.ib.sm:disabled{opacity:.3}
+.seg{display:inline-flex;background:var(--bg);border-radius:12px;padding:3px}.seg button{border:0;background:none;padding:8px 12px;border-radius:9px;font-weight:700;font-size:13px;color:var(--mute)}.seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.1)}.seg.wide{display:flex}.seg.wide button{flex:1}
+.stv{min-width:74px;text-align:center;font-size:14px}
+.chips.nm{margin-top:0;gap:6px}.chips.nm .chip{min-height:34px;padding:6px 10px;font-size:12.5px}
+.tog.sm{font-size:13.5px;padding:8px 0;margin-top:6px}
+.btn.sec.onDark{background:transparent;color:#fff;box-shadow:inset 0 0 0 2px rgba(255,255,255,.5)}
+.fld textarea{border-radius:12px;border:2px solid var(--line);padding:10px 12px;font:600 15px Roboto,system-ui,sans-serif;color:var(--ink);resize:vertical;outline:0}.fld textarea:focus{border-color:var(--g)}
