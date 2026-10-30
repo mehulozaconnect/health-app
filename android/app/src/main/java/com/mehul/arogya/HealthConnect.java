@@ -81,14 +81,14 @@ public class HealthConnect {
             if (!g.contains(BP) && !g.contains(GL) && !g.contains(WT)) { o.put("status", "no_permission"); return o.toString(); }
             JSONArray bp = new JSONArray(), gl = new JSONArray(), wt = new JSONArray();
             if (g.contains(BP)) for (BloodPressureRecord r : read(c, BloodPressureRecord.class, days))
-                bp.put(new JSONObject().put("t", r.getTime().toEpochMilli()).put("sys", Math.round(r.getSystolic().inMillimetersOfMercury())).put("dia", Math.round(r.getDiastolic().inMillimetersOfMercury())).put("src", app(r.getMetadata())));
+                bp.put(new JSONObject().put("t", r.getTime().toEpochMilli()).put("sys", Math.round(r.getSystolic().getMillimetersOfMercury())).put("dia", Math.round(r.getDiastolic().getMillimetersOfMercury())).put("src", app(r.getMetadata())));
             if (g.contains(GL)) for (BloodGlucoseRecord r : read(c, BloodGlucoseRecord.class, days)) {
                 int rel = r.getRelationToMeal();
-                gl.put(new JSONObject().put("t", r.getTime().toEpochMilli()).put("mgdl", Math.round(r.getLevel().inMilligramsPerDeciliter()))
+                gl.put(new JSONObject().put("t", r.getTime().toEpochMilli()).put("mgdl", Math.round(r.getLevel().getMilligramsPerDeciliter()))
                         .put("type", rel == BloodGlucoseRecord.RELATION_TO_MEAL_FASTING || rel == BloodGlucoseRecord.RELATION_TO_MEAL_BEFORE_MEAL ? "fasting" : rel == BloodGlucoseRecord.RELATION_TO_MEAL_AFTER_MEAL ? "pp" : "random").put("src", app(r.getMetadata())));
             }
             if (g.contains(WT)) for (WeightRecord r : read(c, WeightRecord.class, days))
-                wt.put(new JSONObject().put("t", r.getTime().toEpochMilli()).put("kg", Math.round(r.getWeight().inKilograms() * 10) / 10.0).put("src", app(r.getMetadata())));
+                wt.put(new JSONObject().put("t", r.getTime().toEpochMilli()).put("kg", Math.round(r.getWeight().getKilograms() * 10) / 10.0).put("src", app(r.getMetadata())));
             o.put("bp", bp).put("sugar", gl).put("weight", wt).put("readAt", System.currentTimeMillis());
         } catch (Throwable e) {
             try { o.put("status", "error").put("msg", e.getClass().getSimpleName() + ": " + e.getMessage()); } catch (Exception ignored) { }
