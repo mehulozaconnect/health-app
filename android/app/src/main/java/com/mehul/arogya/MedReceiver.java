@@ -109,6 +109,22 @@ public class MedReceiver extends BroadcastReceiver {
         } catch (SecurityException e) { am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, when, pi); }
     }
 
+    static final String QCH = "remind_quiet";
+    /** silent, no banner at the top: used when the bottom card pops up and does the ringing itself */
+    static void quietChannel(Context c) {
+        NotificationManager nm = c.getSystemService(NotificationManager.class);
+        if (nm.getNotificationChannel(QCH) == null) {
+            NotificationChannel ch = new NotificationChannel(QCH, "Reminders (shown as bottom card)", NotificationManager.IMPORTANCE_LOW);
+            ch.setDescription("Stays in the notification list; the bottom card rings instead");
+            ch.setSound(null, null); ch.enableVibration(false);
+            ch.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+            nm.createNotificationChannel(ch);
+        }
+    }
+
+    /** the bottom card can pop up by itself (over apps and the lock screen) */
+    static boolean cardOk(Context c) { return cfg(c).optBoolean("popup", true) && android.provider.Settings.canDrawOverlays(c); }
+
     static void channel(Context c) {
         NotificationManager nm = c.getSystemService(NotificationManager.class);
         if (nm.getNotificationChannel(CH) == null) {
@@ -166,28 +182,36 @@ public class MedReceiver extends BroadcastReceiver {
             }
         }
         if (open.isEmpty()) return;
-        channel(c);
+        boolean card = cardOk(c);
+        if (card) quietChannel(c); else channel(c);
         String ks = String.join(",", open);
         PendingIntent show = PendingIntent.getActivity(c, 22, new Intent(c, MainActivity.class).putExtra("route", route), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         PendingIntent take = PendingIntent.getBroadcast(c, 23, new Intent(c, MedReceiver.class).setAction(TAKE).putExtra("keys", ks).putExtra("date", date), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         PendingIntent snooze = PendingIntent.getBroadcast(c, 24, new Intent(c, MedReceiver.class).setAction(SNOOZE).putExtra("keys", ks).putExtra("date", date), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        Notification n = new Notification.Builder(c, CH)
-                .setSmallIcon(android.R.drawable.ic_popup_reminder)
+        Notification.Builder nb = new Notification.Builder(c, card ? QCH : CH)
                 .setContentTitle(("prana".equals(kind) ? "🧘 Time for " : "💊 Time for ") + String.join(", ", names))
                 .setContentText(lines.get(0))
                 .setStyle(new Notification.BigTextStyle().bigText(String.join("\n", lines)))
                 .setContentIntent(show).setAutoCancel(true)
-                .setFullScreenIntent(PendingIntent.getActivity(c, 25, card(c, ks, date, names, lines, route, kind), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE), true)
                 .setCategory(Notification.CATEGORY_REMINDER)
                 .addAction("prana".equals(kind) ? new Notification.Action.Builder(null, "Start now", show).build() : new Notification.Action.Builder(null, open.size() > 1 ? "Taken all" : "Taken", take).build())
                 .addAction(new Notification.Action.Builder(null, "In 15 min", snooze).build())
                 .addAction(new Notification.Action.Builder(null, "Skip", PendingIntent.getBroadcast(c, 26, new Intent(c, MedReceiver.class).setAction(SKIP).putExtra("keys", ks).putExtra("date", date), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE)).build())
-                .build();
-        c.getSystemService(NotificationManager.class).notify(NID, n);
-        // the Dayline-style card: pops up from the bottom over whatever is on screen (needs "Display over other apps"); on a locked phone the full-screen intent shows it
-        if (cfg(c).optBoolean("popup", true) && (android.provider.Settings.canDrawOverlays(c) || isLocked(c))) {
-            try { c.startActivity(card(c, ks, date, names, lines, route, kind).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_HISTORY)); } catch (Exception ignored) { }
+                ;
+        nb.setSmallIcon(android.R.drawable.ic_popup_reminder);
+        // no overlay permission: the normal ringing notification, with a full-screen card on the lock screen
+        if (!card && cfg(c).optBoolean("popup", true)) nb.setFullScreenIntent(PendingIntent.getActivity(c, 25, card(c, ks, date, names, lines, route, kind), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE), true);
+        c.getSystemService(NotificationManager.class).notify(NID, nb.build());
+        // the Dayline-style card: only the bottom card pops up and rings (no banner at the top)
+        if (card) {
+            try { c.startActivity(card(c, ks, date, names, lines, route, kind).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_HISTORY)); }
+            catch (Exception e) { quietToLoud(c, nb); }
         }
+    }
+
+    /** if the card could not open, fall back to the ringing notification */
+    static void quietToLoud(Context c, Notification.Builder nb) {
+        try { channel(c); c.getSystemService(NotificationManager.class).notify(NID, nb.setChannelId(CH).build()); } catch (Exception ignored) { }
     }
 
     static boolean isLocked(Context c) { android.app.KeyguardManager km = c.getSystemService(android.app.KeyguardManager.class); return km != null && km.isKeyguardLocked(); }

@@ -33,6 +33,7 @@ public class ReminderActivity extends Activity {
     private Vibrator vib;
     private final Handler h = new Handler(Looper.getMainLooper());
     private String keys, date;
+    private boolean water;
 
     private int dp(float v) { return Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v, getResources().getDisplayMetrics())); }
 
@@ -43,7 +44,8 @@ public class ReminderActivity extends Activity {
         else getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         Intent i = getIntent();
-        final boolean prana = "prana".equals(i.getStringExtra("kind"));
+        final boolean prana = "prana".equals(i.getStringExtra("kind")), water = "water".equals(i.getStringExtra("kind"));
+        this.water = water; final int glass = i.getIntExtra("glass", 250);
         final String route = i.getStringExtra("route");
         keys = i.getStringExtra("keys"); date = i.getStringExtra("date");
         String title = i.getStringExtra("title"), body = i.getStringExtra("body");
@@ -71,12 +73,12 @@ public class ReminderActivity extends Activity {
         LinearLayout top = new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL); top.setGravity(Gravity.CENTER_VERTICAL);
         TextView pill = new TextView(this);
-        pill.setText(prana ? "🧘" : "💊"); pill.setTextSize(26); pill.setGravity(Gravity.CENTER);
-        GradientDrawable pb = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{accent, Color.parseColor("#00D1C1")});
+        pill.setText(water ? "💧" : prana ? "🧘" : "💊"); pill.setTextSize(26); pill.setGravity(Gravity.CENTER);
+        GradientDrawable pb = new GradientDrawable(GradientDrawable.Orientation.TL_BR, water ? new int[]{Color.parseColor("#4E8FD0"), Color.parseColor("#7CC6E8")} : new int[]{accent, Color.parseColor("#00D1C1")});
         pb.setCornerRadius(dp(18)); pill.setBackground(pb);
         top.addView(pill, new LinearLayout.LayoutParams(dp(56), dp(56)));
         LinearLayout tx = new LinearLayout(this); tx.setOrientation(LinearLayout.VERTICAL); tx.setPadding(dp(14), 0, 0, 0);
-        TextView kick = new TextView(this); kick.setText((prana ? "PRANAYAMA · " : "MEDICINE · ") + new java.text.SimpleDateFormat("h:mm a").format(new java.util.Date()).toLowerCase());
+        TextView kick = new TextView(this); kick.setText((water ? "WATER · " : prana ? "PRANAYAMA · " : "MEDICINE · ") + new java.text.SimpleDateFormat("h:mm a").format(new java.util.Date()).toLowerCase());
         kick.setTextColor(Color.parseColor("#9F95FF")); kick.setTextSize(12); kick.setTypeface(Typeface.DEFAULT_BOLD); kick.setLetterSpacing(0.08f);
         TextView t = new TextView(this); t.setText(title); t.setTextColor(Color.WHITE); t.setTextSize(21); t.setTypeface(Typeface.DEFAULT_BOLD);
         tx.addView(kick); tx.addView(t);
@@ -87,12 +89,12 @@ public class ReminderActivity extends Activity {
         LinearLayout.LayoutParams bl = new LinearLayout.LayoutParams(-1, -2); bl.topMargin = dp(14); bl.bottomMargin = dp(20);
         card.addView(bd, bl);
 
-        Button taken = btn(prana ? "▶  Start now" : "✓  Taken", accent, Color.WHITE);
+        Button taken = btn(water ? "💧  +" + glass + " ml" : prana ? "▶  Start now" : "✓  Taken", water ? Color.parseColor("#4E8FD0") : accent, Color.WHITE);
         card.addView(taken, new LinearLayout.LayoutParams(-1, dp(56)));
         LinearLayout row = new LinearLayout(this); row.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(-1, dp(52)); rl.topMargin = dp(10);
-        Button snooze = btn("In 15 min", Color.parseColor("#262338"), Color.WHITE);
-        Button skip = btn("Skip", Color.parseColor("#262338"), Color.parseColor("#C9C5DE"));
+        Button snooze = btn(water ? "+500 ml" : "In 15 min", Color.parseColor("#262338"), Color.WHITE);
+        Button skip = btn(water ? "Later" : "Skip", Color.parseColor("#262338"), Color.parseColor("#C9C5DE"));
         LinearLayout.LayoutParams half = new LinearLayout.LayoutParams(0, -1, 1);
         LinearLayout.LayoutParams half2 = new LinearLayout.LayoutParams(0, -1, 1); half2.leftMargin = dp(10);
         row.addView(snooze, half); row.addView(skip, half2);
@@ -105,6 +107,13 @@ public class ReminderActivity extends Activity {
         card.setTranslationY(dp(420));
         card.animate().translationY(0).setDuration(380).setInterpolator(new DecelerateInterpolator(2f)).start();
 
+        if (water) {
+            taken.setOnClickListener(v -> addWater(glass));
+            snooze.setOnClickListener(v -> addWater(500));
+            skip.setOnClickListener(v -> { quiet(); getSystemService(NotificationManager.class).cancel(WaterReceiver.NID); finish(); });
+            ring();
+            return;
+        }
         taken.setOnClickListener(v -> {
             if (prana) { quiet(); startActivity(new Intent(this, MainActivity.class).putExtra("route", route).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); getSystemService(NotificationManager.class).cancel(MedReceiver.NID); finish(); }
             else act(MedReceiver.TAKE);
@@ -127,21 +136,30 @@ public class ReminderActivity extends Activity {
             Uri u = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
             tone = RingtoneManager.getRingtone(this, u);
             if (tone != null) {
-                if (Build.VERSION.SDK_INT >= 28) tone.setLooping(true);
+                if (Build.VERSION.SDK_INT >= 28) tone.setLooping(!water);
                 tone.setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
                 tone.play();
             }
         } catch (Exception ignored) { }
         try {
             vib = (Vibrator) getSystemService(VIBRATOR_SERVICE);
-            if (vib != null) vib.vibrate(VibrationEffect.createWaveform(new long[]{0, 500, 400, 500, 400, 500}, -1));
+            if (vib != null) vib.vibrate(VibrationEffect.createWaveform(water ? new long[]{0, 300, 200, 300} : new long[]{0, 500, 400, 500, 400, 500}, -1));
         } catch (Exception ignored) { }
-        h.postDelayed(this::quiet, 30000); // ring for half a minute, then stay quietly on screen
+        h.postDelayed(this::quiet, water ? 8000 : 30000);
+        if (water) h.postDelayed(() -> { if (!isFinishing()) finish(); }, 120000); // ring for half a minute, then stay quietly on screen
     }
 
     private void quiet() {
         try { if (tone != null) tone.stop(); } catch (Exception ignored) { }
         try { if (vib != null) vib.cancel(); } catch (Exception ignored) { }
+    }
+
+    private void addWater(int ml) {
+        quiet();
+        sendBroadcast(new Intent(this, WaterReceiver.class).setAction(WaterReceiver.ADD).putExtra("ml", ml));
+        android.widget.Toast.makeText(this, "+" + ml + " ml logged 💧", android.widget.Toast.LENGTH_SHORT).show();
+        finish();
+        overridePendingTransition(0, android.R.anim.fade_out);
     }
 
     private void act(String action) {
@@ -153,7 +171,7 @@ public class ReminderActivity extends Activity {
     }
 
     @Override
-    public void onBackPressed() { act(MedReceiver.SNOOZE); }
+    public void onBackPressed() { if (water) { quiet(); finish(); } else act(MedReceiver.SNOOZE); }
 
     @Override
     protected void onDestroy() { quiet(); super.onDestroy(); }

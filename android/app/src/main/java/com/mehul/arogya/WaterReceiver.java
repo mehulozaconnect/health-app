@@ -104,14 +104,15 @@ public class WaterReceiver extends BroadcastReceiver {
         long last = Math.max(prefs(c).getLong("last", 0), o.optLong("lastLog", 0));
         if (!test && System.currentTimeMillis() - last < 40 * 60000L) return;
         if (android.os.Build.VERSION.SDK_INT >= 33 && c.checkSelfPermission("android.permission.POST_NOTIFICATIONS") != android.content.pm.PackageManager.PERMISSION_GRANTED) return;
-        channel(c);
+        boolean card = MedReceiver.cardOk(c);
+        if (card) MedReceiver.quietChannel(c); else channel(c);
         int glasses = Math.max(1, Math.round(behind / (float) glass));
         String title = behind >= glass ? "💧 " + glasses + (glasses == 1 ? " glass" : " glasses") + " behind" : "💧 Time for a glass of water";
         String body = String.format("%.2f L of %.1f L so far. Tap a button to log it.", ml / 1000f, goal / 1000f);
         PendingIntent open = PendingIntent.getActivity(c, 2, new Intent(c, MainActivity.class).putExtra("route", "water"), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         PendingIntent add1 = PendingIntent.getBroadcast(c, 3, new Intent(c, WaterReceiver.class).setAction(ADD).putExtra("ml", glass), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         PendingIntent add2 = PendingIntent.getBroadcast(c, 4, new Intent(c, WaterReceiver.class).setAction(ADD).putExtra("ml", 500), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        Notification n = new Notification.Builder(c, CH)
+        Notification n = new Notification.Builder(c, card ? MedReceiver.QCH : CH)
                 .setSmallIcon(android.R.drawable.ic_menu_info_details)
                 .setContentTitle(title).setContentText(body)
                 .setContentIntent(open).setAutoCancel(true)
@@ -120,5 +121,12 @@ public class WaterReceiver extends BroadcastReceiver {
                 .addAction(new Notification.Action.Builder(null, "+500 ml", add2).build())
                 .build();
         c.getSystemService(NotificationManager.class).notify(NID, n);
+        if (card) {
+            Intent it = new Intent(c, ReminderActivity.class).putExtra("kind", "water").putExtra("route", "water").putExtra("glass", glass)
+                    .putExtra("title", title.replace("💧 ", "")).putExtra("body", body.replace(" Tap a button to log it.", ""))
+                    .putExtra("accent", MedReceiver.cfg(c).optString("accent", "#4E8FD0"))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_HISTORY);
+            try { c.startActivity(it); } catch (Exception e) { channel(c); c.getSystemService(NotificationManager.class).notify(NID, Notification.Builder.recoverBuilder(c, n).setChannelId(CH).build()); }
+        }
     }
 }
