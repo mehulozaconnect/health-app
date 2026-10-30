@@ -40,7 +40,7 @@ import java.util.Locale;
 
 /** Arogya: the app is one offline web page in a WebView, plus a bridge for Samsung Health, files, reminders, voice and HTTP. */
 public class MainActivity extends Activity {
-    private static final int REQ_SAVE = 11, REQ_OPEN = 12, REQ_CHOOSER = 13, REQ_NOTIFY = 14;
+    private static final int REQ_SAVE = 11, REQ_OPEN = 12, REQ_CHOOSER = 13, REQ_NOTIFY = 14, REQ_HC = 15;
     private static final int BG = 0xFFEEF2EF;
     private WebView web;
     private String pendingSave = null;
@@ -156,6 +156,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
+        if (req == REQ_HC) { js("window.onHCPerm && window.onHCPerm()"); return; }
         if (req == REQ_CHOOSER) {
             Uri[] out = null;
             if (res == RESULT_OK) {
@@ -327,6 +328,33 @@ public class MainActivity extends Activity {
                     web.setBackgroundColor(c);
                 } catch (Exception ignored) { }
             });
+        }
+
+        /* ---------- Health Connect (Omron and others) ---------- */
+        @JavascriptInterface
+        public String hcStatus() { try { return HealthConnect.sdk(MainActivity.this); } catch (Throwable e) { return "error"; } }
+
+        @JavascriptInterface
+        public void hcConnect() {
+            ui.post(() -> {
+                try {
+                    String st = HealthConnect.sdk(MainActivity.this);
+                    if ("ok".equals(st)) startActivityForResult(HealthConnect.permissionIntent(MainActivity.this), REQ_HC);
+                    else startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.google.android.apps.healthdata")));
+                } catch (Throwable e) {
+                    try { startActivity(new Intent("android.health.connect.action.HEALTH_HOME_SETTINGS")); } catch (Throwable ignored) { }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void hcRead(final int days) {
+            new Thread(() -> { String j = HealthConnect.readAll(MainActivity.this, days); js("window.onHC && window.onHC(" + JSONObject.quote(j) + ")"); }).start();
+        }
+
+        @JavascriptInterface
+        public void hcOpen() {
+            ui.post(() -> { try { startActivity(new Intent("android.health.connect.action.HEALTH_HOME_SETTINGS")); } catch (Throwable e) { try { startActivity(getPackageManager().getLaunchIntentForPackage("com.google.android.apps.healthdata")); } catch (Throwable ignored) { } } });
         }
 
         @JavascriptInterface

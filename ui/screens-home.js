@@ -166,7 +166,7 @@ function sugarCard(full) {
   return h + '</section>';
 }
 ROUTES.bp = function () {
-  var all = merged('bp'), h = head('Blood pressure') + '<button class="btn" data-act="logBp">' + icon('plus', 18) + 'Log BP</button>';
+  var all = merged('bp'), h = head('Blood pressure') + '<button class="btn" data-act="logBp">' + icon('plus', 18) + 'Log BP</button>' + hcCard('BP');
   var span = function (d, f) { var r = all.filter(function (x) { return x.t > Date.now() - d * 86400000 && (!f || f(x)); }); return r.length ? Math.round(dayAvg(r.map(function (x) { return x.sys; }))) + '/' + Math.round(dayAvg(r.map(function (x) { return x.dia; }))) + '<small> · ' + r.length + '</small>' : '—'; };
   var am = function (x) { return new Date(x.t).getHours() < 12; };
   h += '<section class="c"><h2>Your averages</h2><div class="g3 mt"><div><div class="l">7 days</div><b class="m18">' + span(7) + '</b></div><div><div class="l">30 days</div><b class="m18">' + span(30) + '</b></div><div><div class="l">90 days</div><b class="m18">' + span(90) + '</b></div></div>' +
@@ -174,7 +174,7 @@ ROUTES.bp = function () {
   return h + trendBlock('bp', { title: 'Trend' }) + bpCard(true);
 };
 ROUTES.sugar = function () {
-  var all = merged('sugar'), h = head('Blood sugar') + '<button class="btn" data-act="logSugar">' + icon('plus', 18) + 'Log sugar</button>';
+  var all = merged('sugar'), h = head('Blood sugar') + '<button class="btn" data-act="logSugar">' + icon('plus', 18) + 'Log sugar</button>' + hcCard('sugar');
   var span = function (d, f) { var r = all.filter(function (x) { return x.t > Date.now() - d * 86400000 && f(x); }); return r.length ? Math.round(dayAvg(r.map(function (x) { return x.val; }))) + '<small> · ' + r.length + '</small>' : '—'; };
   var fa = function (x) { return x.type === 'fasting'; }, pp = function (x) { return x.type !== 'fasting'; };
   h += '<section class="c"><h2>Your averages</h2><div class="tbl mt"><span class="l"></span><span class="l r">Fasting</span><span class="l r">After meals</span>' + [[7, '7 days'], [30, '30 days'], [90, '90 days']].map(function (p) { return '<span>' + p[1] + '</span><b class="r">' + span(p[0], fa) + '</b><b class="r">' + span(p[0], pp) + '</b>'; }).join('') + '</div><div class="l mt6">Targets: fasting under 100, 2 hours after a meal under 140 mg/dL.</div></section>';
@@ -227,9 +227,33 @@ ACT.syncWatch = function () {
 };
 ACT.refreshHealth = function () { toast('Reading Samsung Health…'); refreshHealth(true); };
 function refreshHealth(force) {
+  hcRefresh(force);
   if (!AND || !AND.healthRead) return;
   if (!force && Date.now() - DB.healthAt < 120000) return;
   native('healthRead', 8);
+}
+/* ---------- Health Connect: BP / sugar / weight from Omron and other apps ---------- */
+function hcRefresh(force) {
+  if (!AND || !AND.hcRead || !DB.hc || !DB.hc.on) return;
+  if (!force && Date.now() - (DB.hc.at || 0) < 120000) return;
+  native('hcRead', 180);
+}
+window.onHC = function (json) {
+  try { var r = JSON.parse(json); } catch (e) { return; }
+  DB.hc = DB.hc || {}; DB.hc.status = r.status; DB.hc.msg = r.msg || '';
+  if (r.status === 'ok') { var before = (DB.hc.bp || []).length; DB.hc.bp = r.bp || []; DB.hc.sugar = r.sugar || []; DB.hc.weight = r.weight || []; DB.hc.at = Date.now(); DB.hc.on = true; if (HCWAIT) { toast('Health Connect: ' + DB.hc.bp.length + ' BP, ' + DB.hc.sugar.length + ' sugar, ' + DB.hc.weight.length + ' weight readings', 3500); HCWAIT = false; } }
+  else if (HCWAIT) { HCWAIT = false; toast(r.status === 'no_permission' ? 'Health Connect: allow Arogya to read BP, sugar and weight' : r.status === 'not_installed' ? 'Health Connect is not installed' : 'Health Connect: ' + (r.msg || r.status), 3500); }
+  save(); if (['home', 'vitals', 'bp', 'sugar', 'weight', 'settings', 'trend'].indexOf(cur.name) >= 0) rerender();
+};
+var HCWAIT = false;
+window.onHCPerm = function () { DB.hc = DB.hc || {}; DB.hc.on = true; HCWAIT = true; save(); native('hcRead', 180); };
+ACT.hcConnect = function () { if (!AND) return toast('Works in the phone app'); DB.hc = DB.hc || {}; DB.hc.on = true; save(); native('hcConnect'); };
+ACT.hcReadNow = function () { HCWAIT = true; toast('Reading Health Connect…'); native('hcRead', 180); };
+function hcCard(kind) {
+  if (!AND || !AND.hcStatus) return '';
+  var hc = DB.hc || {};
+  if (hc.on && hc.status === 'ok') return '<div class="l ctrtxt">' + icon('check', 12) + ' Health Connect (Omron) linked · read ' + ago(hc.at) + ' · <button class="lnk" data-act="hcReadNow">Read now</button></div>';
+  return '<section class="c row g14"><span class="mic">' + icon('bp', 20) + '</span><div class="f1"><b>Get ' + (kind || 'BP') + ' from Omron automatically</b><div class="l">Omron Connect saves readings to Health Connect. Link it once and every reading shows here.</div>' + (hc.status && hc.status !== 'ok' ? '<div class="l warnt">' + esc(hc.status === 'no_permission' ? 'Permission not given yet' : hc.status === 'not_installed' ? 'Health Connect app not found' : hc.msg || hc.status) + '</div>' : '') + '<button class="btn sm mt6" data-act="hcConnect">Link Health Connect</button></div></section>';
 }
 window.onHealth = function (json) {
   try { var h = JSON.parse(json); } catch (e) { return; }

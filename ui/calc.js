@@ -99,16 +99,25 @@ function waterPace() {
 }
 
 /* ---------- weight / vitals lists (manual + Samsung Health merged) ---------- */
+/* your own entries + Samsung Health + Health Connect (Omron etc.); the same reading from two places within 10 minutes counts once */
+var MCACHE = {};
 function merged(kind) {
-  var mine = (DB[kind] || []).slice(), h = DB.health, src = h ? (kind === 'sugar' ? h.glucose : h[kind]) : null;
-  (src || []).forEach(function (x) {
-    var t = x.t, dupe = mine.some(function (m) { return Math.abs(m.t - t) < 10 * 60000; });
-    if (dupe) return;
-    if (kind === 'bp') mine.push({ t: t, sys: x.sys, dia: x.dia, pulse: x.pulse || 0, src: 'Samsung' });
-    if (kind === 'sugar') mine.push({ t: t, val: Math.round(x.mgdl), type: x.relation || 'random', src: 'Samsung' });
-    if (kind === 'weight') mine.push({ t: t, kg: x.kg, src: 'Samsung' });
-  });
-  return mine.sort(function (a, b) { return b.t - a.t; });
+  var c = MCACHE[kind]; if (c && c.v === MV) return c.list;
+  var mine = (DB[kind] || []).slice(), h = DB.health, hc = DB.hc || {};
+  var add = function (src, name) {
+    (src || []).forEach(function (x) {
+      var t = x.t, dupe = mine.some(function (m) { return Math.abs(m.t - t) < 10 * 60000; });
+      if (dupe) return;
+      if (kind === 'bp') mine.push({ t: t, sys: x.sys, dia: x.dia, pulse: x.pulse || 0, src: x.src || name });
+      if (kind === 'sugar') mine.push({ t: t, val: Math.round(x.mgdl), type: x.relation || x.type || 'random', src: x.src || name });
+      if (kind === 'weight') mine.push({ t: t, kg: x.kg, src: x.src || name });
+    });
+  };
+  add(hc[kind], 'Health Connect');
+  add(h ? (kind === 'sugar' ? h.glucose : h[kind]) : null, 'Samsung');
+  var list = mine.sort(function (a, b) { return b.t - a.t; });
+  MCACHE[kind] = { v: MV, list: list };
+  return list;
 }
 function lastWeight() { var w = merged('weight'); return w.length ? w[0].kg : 0; }
 function bpLabel(s, d) { if (s >= 140 || d >= 90) return ['High', 'bad']; if (s >= 130 || d >= 85) return ['Slightly high', 'warn']; if (s >= 120 || d >= 80) return ['Upper normal', 'warn']; if (s < 90 || d < 60) return ['Low', 'warn']; return ['Normal', 'ok']; }

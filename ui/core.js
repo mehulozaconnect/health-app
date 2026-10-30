@@ -47,8 +47,9 @@ function load() {
   if (!raw) try { raw = localStorage.getItem('arogya'); } catch (e) { }
   if (raw) try { var d = JSON.parse(raw), b = blank(); DB = Object.assign(b, d); DB.profile = Object.assign(b.profile, d.profile || {}); DB.settings = Object.assign(b.settings, d.settings || {}); DB.settings.water = Object.assign(blank().settings.water, (d.settings || {}).water || {}); } catch (e) { }
 }
-var saveT = 0;
+var saveT = 0, MV = 0;
 function save() {
+  MV++;
   clearTimeout(saveT);
   saveT = setTimeout(function () {
     var s = JSON.stringify(DB);
