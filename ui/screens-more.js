@@ -97,12 +97,30 @@ function readReport(files) {
 ACT.delReport = function (el) { var id = el.getAttribute('data-id'); DB.reports = DB.reports.filter(function (r) { return r.id !== id; }); save(); go('reports'); toast('Report deleted'); };
 
 /* ---------- weight ---------- */
+/* body composition from the Galaxy Watch (Samsung Health) */
+var BODYF = [['fat', 'Body fat', '%', function (v) { return DB.profile.sex === 'f' ? (v < 21 ? 'ok' : v < 33 ? 'warn' : 'bad') : (v < 20 ? 'ok' : v < 25 ? 'warn' : 'bad'); }, true], ['skmMass', 'Skeletal muscle', 'kg', null, false], ['fatMass', 'Fat mass', 'kg', null, true], ['water', 'Body water', 'kg', null, false], ['bmr', 'BMR', 'kcal', null, false], ['ffm', 'Fat-free mass', 'kg', null, false], ['bmi', 'BMI', '', function (v) { return v < 23 ? 'ok' : v < 25 ? 'warn' : 'bad'; }, true]];
+function bodyList() { return ((DB.health && DB.health.body) || []).filter(function (b) { return b.fat || b.skmMass || b.bmr; }).sort(function (a, b) { return b.t - a.t; }); }
+function bodyCard() {
+  var L = bodyList(), last = L[0], prev = L[1], hs = DB.health;
+  var foot = '<div class="l mt6">' + (hs && hs.status === 'ok' ? 'Samsung Health read ' + ago(DB.healthAt) + ((hs.errors || []).filter(function (e) { return /weight/.test(e); }).length ? ' · ' + esc(hs.errors.filter(function (e) { return /weight/.test(e); })[0]) : '') : 'Connect Samsung Health to get your watch measurements') + ' · <button class="lnk" data-act="refreshHealth">Read now</button></div>';
+  if (!last) return '<section class="c"><h2>Body composition</h2><div class="l">No watch measurement found yet. After measuring on the watch, open Samsung Health once so it syncs, then tap Read now.</div>' + foot + '</section>';
+  var h = '<section class="c"><div class="row sb"><h2>Body composition</h2><span class="l">' + niceDate(dkey(new Date(last.t))) + ', ' + hm(last.t) + '</span></div><div class="g2 mt">';
+  BODYF.forEach(function (f) {
+    var v = last[f[0]]; if (!v) return; var st = f[3] ? f[3](v) : '', d = prev && prev[f[0]] ? v - prev[f[0]] : null;
+    h += '<div class="bc"><div class="l">' + f[1] + '</div><b class="' + (st ? st + 't' : '') + '">' + (f[0] === 'bmr' ? n0(v) : n1(v)) + ' <small>' + f[2] + '</small></b>' + (d != null && Math.abs(d) >= 0.1 ? '<small class="' + ((f[4] ? d < 0 : d > 0) ? 'gtxt' : 'warnt') + '">' + (d > 0 ? '+' : '') + (f[0] === 'bmr' ? n0(d) : n1(d)) + ' since last</small>' : '') + '</div>';
+  });
+  h += '</div>';
+  if (last.fat) h += '<div class="l mt6">Healthy body fat for ' + (DB.profile.sex === 'f' ? 'women: 21–32%' : 'men: about 10–20%') + '. Watch readings vary with water and time of day, so measure at the same time, before food.</div>';
+  if (L.length > 1) h += '<details><summary class="lnk">All measurements (' + L.length + ')</summary>' + L.slice(0, 20).map(function (b) { return '<div class="rd"><span>' + niceDate(dkey(new Date(b.t))) + ', ' + hm(b.t) + '</span><b>' + (b.fat ? n1(b.fat) + '% fat' : '') + (b.skmMass ? ' · ' + n1(b.skmMass) + ' kg muscle' : '') + '</b></div>'; }).join('') + '</details>';
+  return h + foot + '</section>';
+}
 ROUTES.weight = function () {
   var p = DB.profile, w = merged('weight'), now = w[0] ? w[0].kg : p.weight, start = w.length ? w[w.length - 1].kg : p.weight;
   var h = head('Weight', '', '<button class="btn sm" data-act="logWeight">+ Log</button>');
   var lost = start - now, togo = now - p.goal, pct = start > p.goal ? clamp((start - now) / (start - p.goal) * 100, 0, 100) : 100;
   h += '<section class="c"><div class="g3"><div><div class="l">Now</div><b class="m24">' + n1(now) + '</b><div class="l">kg</div></div><div><div class="l">Goal</div><b class="m24">' + n1(p.goal) + '</b><div class="l">kg</div></div><div><div class="l">' + (lost >= 0 ? 'Lost' : 'Gained') + '</div><b class="m24 ' + (lost >= 0 ? 'gtxt' : 'warnt') + '">' + n1(Math.abs(lost)) + '</b><div class="l">kg' + (w.length > 1 ? ' since ' + niceDate(dkey(new Date(w[w.length - 1].t))).slice(5) : '') + '</div></div></div>' + '<div class="mt">' + bar(pct) + '</div><div class="l mt6">' + Math.round(pct) + '% of the way' + (togo > 0 ? ' · ' + n1(togo) + ' kg to go' : ' · goal reached') + '</div>';
   var h2 = 'BMI ' + n1(now / Math.pow(p.height / 100, 2)); h += '<div class="l mt6">' + h2 + ' (Asian healthy range 18.5–22.9)</div></section>';
+  h += bodyCard();
   var pts = w.slice(0, 40).reverse();
   if (pts.length > 1) h += '<section class="c"><div class="l">Trend</div>' + spark(pts.map(function (x) { return x.kg; }), 330, 130, 'var(--ink)', p.goal) + '<div class="row sb l"><span>' + n1(pts[0].kg) + '</span><span>Goal line ' + n1(p.goal) + '</span><span>' + n1(pts[pts.length - 1].kg) + '</span></div></section>';
   var rate = weeklyRate(w);
@@ -260,3 +278,4 @@ function boot() {
   setInterval(function () { if (document.visibilityState === 'visible') { refreshHealth(false); if (cur.name === 'home') rerender(); } }, 300000);
 }
 document.addEventListener('DOMContentLoaded', boot);
+ROUTES.weight.after = function () { if (Date.now() - (DB.healthAt || 0) > 60000) refreshHealth(true); };

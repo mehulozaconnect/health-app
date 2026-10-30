@@ -112,6 +112,9 @@ public class SamsungHealth {
     private static String dk(LocalDate d) { return d.toString(); }
     private static String dkOf(Instant i) { return dk(i.atZone(ZoneId.systemDefault()).toLocalDate()); }
 
+    private static Float fv(HealthDataPoint p, com.samsung.android.sdk.health.data.data.Field<Float> f) { try { return p.getValue(f); } catch (Exception e) { return null; } }
+    private static void put(JSONObject o, String k, Float v) { try { if (v != null && v > 0) o.put(k, Math.round(v * 10) / 10.0); } catch (Exception ignored) { } }
+
     private List<HealthDataPoint> readAll(ReadDataRequest.DualTimeBuilder<HealthDataPoint> b) throws Exception {
         List<HealthDataPoint> out = new ArrayList<>();
         String tok = null;
@@ -267,11 +270,20 @@ public class SamsungHealth {
 
             try {
                 JSONArray w = new JSONArray();
-                for (HealthDataPoint p : readAll(DataTypes.BODY_COMPOSITION.getReadDataRequestBuilder().setLocalTimeFilter(LocalTimeFilter.of(longAgo, to)))) {
-                    Float v = p.getValue(DataType.BodyCompositionType.WEIGHT);
-                    if (v != null && v > 0) w.put(new JSONObject().put("t", ms(p.getStartTime())).put("kg", Math.round(v * 10) / 10.0));
+                JSONArray body = new JSONArray();
+                for (HealthDataPoint p : readAll(DataTypes.BODY_COMPOSITION.getReadDataRequestBuilder().setLocalTimeFilter(LocalTimeFilter.of(longAgo, to.plusDays(1))))) {
+                    Float v = fv(p, DataType.BodyCompositionType.WEIGHT);
+                    long t = ms(p.getStartTime());
+                    if (v != null && v > 0) w.put(new JSONObject().put("t", t).put("kg", Math.round(v * 10) / 10.0));
+                    JSONObject b = new JSONObject().put("t", t);
+                    put(b, "kg", v); put(b, "fat", fv(p, DataType.BodyCompositionType.BODY_FAT)); put(b, "fatMass", fv(p, DataType.BodyCompositionType.BODY_FAT_MASS));
+                    put(b, "skm", fv(p, DataType.BodyCompositionType.SKELETAL_MUSCLE)); put(b, "skmMass", fv(p, DataType.BodyCompositionType.SKELETAL_MUSCLE_MASS));
+                    put(b, "muscle", fv(p, DataType.BodyCompositionType.MUSCLE_MASS)); put(b, "water", fv(p, DataType.BodyCompositionType.TOTAL_BODY_WATER));
+                    put(b, "ffm", fv(p, DataType.BodyCompositionType.FAT_FREE_MASS)); put(b, "bmi", fv(p, DataType.BodyCompositionType.BODY_MASS_INDEX)); put(b, "height", fv(p, DataType.BodyCompositionType.HEIGHT));
+                    try { Integer bmr = p.getValue(DataType.BodyCompositionType.BASAL_METABOLIC_RATE); if (bmr != null && bmr > 0) b.put("bmr", bmr); } catch (Exception ignored) { }
+                    body.put(b);
                 }
-                o.put("weight", w);
+                o.put("weight", w); o.put("body", body);
             } catch (Exception e) { errs.put("weight: " + msgOf(e)); }
 
             try {
