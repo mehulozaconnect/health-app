@@ -2,6 +2,7 @@ package com.mehul.arogya;
 
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
@@ -40,7 +41,7 @@ import java.util.Locale;
 
 /** Arogya: the app is one offline web page in a WebView, plus a bridge for Samsung Health, files, reminders, voice and HTTP. */
 public class MainActivity extends Activity {
-    private static final int REQ_SAVE = 11, REQ_OPEN = 12, REQ_CHOOSER = 13, REQ_NOTIFY = 14, REQ_HC = 15;
+    private static final int REQ_SAVE = 11, REQ_OPEN = 12, REQ_CHOOSER = 13, REQ_NOTIFY = 14, REQ_HC = 15, REQ_BKP = 16;
     private static final int BG = 0xFFEEF2EF;
     private WebView web;
     private String pendingSave = null;
@@ -60,6 +61,7 @@ public class MainActivity extends Activity {
         w.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
         sh = new SamsungHealth(this);
 
+        Backup.schedule(this);
         web = new WebView(this);
         web.setBackgroundColor(BG);
         WebSettings s = web.getSettings();
@@ -137,6 +139,13 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    protected void onStop() {
+        super.onStop();
+        final Context ctx = getApplicationContext();
+        new Thread(() -> Backup.run(ctx, false)).start();
+    }
+
+    @Override
     protected void onDestroy() {
         if (tts != null) tts.shutdown();
         super.onDestroy();
@@ -157,6 +166,18 @@ public class MainActivity extends Activity {
     protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
         if (req == REQ_HC) { js("window.onHCPerm && window.onHCPerm()"); return; }
+        if (req == REQ_BKP) {
+            if (res == RESULT_OK && data != null && data.getData() != null) {
+                Uri u = data.getData();
+                try { getContentResolver().takePersistableUriPermission(u, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION); } catch (Exception ignored) { }
+                String nm = "arogya-backup.json";
+                try (android.database.Cursor cu = getContentResolver().query(u, null, null, null, null)) { if (cu != null && cu.moveToFirst()) { int ix = cu.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME); if (ix >= 0) nm = cu.getString(ix); } } catch (Exception ignored) { }
+                Backup.prefs(this).edit().putString("uri", u.toString()).putString("name", nm).apply();
+                final String fnm = nm;
+                new Thread(() -> { String r = Backup.run(this, true); js("window.onBackup && window.onBackup(" + JSONObject.quote(r) + ")"); }).start();
+            }
+            return;
+        }
         if (req == REQ_CHOOSER) {
             Uri[] out = null;
             if (res == RESULT_OK) {
@@ -355,6 +376,70 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void hcOpen() {
             ui.post(() -> { try { startActivity(new Intent("android.health.connect.action.HEALTH_HOME_SETTINGS")); } catch (Throwable e) { try { startActivity(getPackageManager().getLaunchIntentForPackage("com.google.android.apps.healthdata")); } catch (Throwable ignored) { } } });
+        }
+
+        /* ---------- automatic backup ---------- */
+        @JavascriptInterface
+        public void backupPick() {
+            ui.post(() -> {
+                Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/json").putExtra(Intent.EXTRA_TITLE, "arogya-backup.json");
+                i.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                try { startActivityForResult(i, REQ_BKP); } catch (Exception ignored) { }
+            });
+        }
+
+        @JavascriptInterface
+        public String backupStatus() { return Backup.status(MainActivity.this); }
+
+        @JavascriptInterface
+        public void backupNow() { new Thread(() -> { String r = Backup.run(MainActivity.this, true); js("window.onBackup && window.onBackup(" + JSONObject.quote(r) + ")"); }).start(); }
+
+        @JavascriptInterface
+        public String backupLocal(String name) { return Backup.readLocal(MainActivity.this, name); }
+
+        /* ---------- reminders: what the phone allows ---------- */
+        @JavascriptInterface
+        public String remindStatus() {
+            try {
+                android.os.PowerManager pm = getSystemService(android.os.PowerManager.class);
+                android.app.AlarmManager am = getSystemService(android.app.AlarmManager.class);
+                android.app.NotificationManager nm = getSystemService(android.app.NotificationManager.class);
+                return new JSONObject().put("battery", pm.isIgnoringBatteryOptimizations(getPackageName()))
+                        .put("exact", Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms())
+                        .put("notify", nm.areNotificationsEnabled()).toString();
+            } catch (Exception e) { return "{}"; }
+        }
+
+        @JavascriptInterface
+        public void askBattery() {
+            ui.post(() -> {
+                try { startActivity(new Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + getPackageName()))); }
+                catch (Exception e) { try { startActivity(new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getPackageName()))); } catch (Exception ignored) { } }
+            });
+        }
+
+        @JavascriptInterface
+        public void openNotifySettings() {
+            ui.post(() -> { try { startActivity(new Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, getPackageName())); } catch (Exception ignored) { } });
+        }
+
+        @JavascriptInterface
+        public void openExactSettings() {
+            ui.post(() -> { try { startActivity(new Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:" + getPackageName()))); } catch (Exception ignored) { } });
+        }
+
+        @JavascriptInterface
+        public void testWater() { WaterReceiver.check(MainActivity.this, true); }
+
+        /* ---------- feel: vibration and a short sound ---------- */
+        @JavascriptInterface
+        public void vibrate(String pattern) {
+            try {
+                String[] p = pattern.split(","); long[] w = new long[p.length + 1]; w[0] = 0;
+                for (int i = 0; i < p.length; i++) w[i + 1] = Long.parseLong(p[i].trim());
+                android.os.Vibrator v = (android.os.Vibrator) getSystemService(VIBRATOR_SERVICE);
+                if (v != null) v.vibrate(android.os.VibrationEffect.createWaveform(w, -1));
+            } catch (Exception ignored) { }
         }
 
         @JavascriptInterface

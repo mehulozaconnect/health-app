@@ -217,7 +217,7 @@ ROUTES.meds = function () {
   var wk = '';
   for (var i = 6; i >= 0; i--) { var dk = addDays(k, -i), dd = dosesFor(dk).filter(function (d) { return !d.m.added || dk >= d.m.added; }), tk = dd.filter(function (d) { return d.st === 'taken'; }).length, pc = dd.length ? tk / dd.length : null; wk += '<div class="wd"><i style="background:' + (pc == null ? 'var(--track)' : pc === 1 ? 'var(--g)' : pc > 0 ? 'var(--warn)' : i === 0 ? 'var(--track)' : 'var(--bad)') + '"></i><small>' + MDOW[fromKey(dk).getDay()] + '</small></div>'; }
   h += '<section class="c"><div class="l">Doses this week</div><div class="wk mt6">' + wk + '</div></section>';
-  h += popupCard();
+  h += popupCard() + remindCheck();
   var ins = medInsights();
   if (ins.length) h += '<section class="c"><h2>What Arogya noticed</h2>' + insightList(ins) + '<div class="l mt">Patterns from your own logs, not medical advice. Never change a dose without your doctor.</div></section>';
   h += '<h3 class="sech">My medicines</h3>' + meds().map(function (m) { var dl = daysLeft(m); return '<button class="res" data-act="go" data-to="med/' + m.id + '"><span>' + esc(medLabel(m)) + '<small>' + mcls(m.cls)[1] + ' · ' + (m.times || []).map(t12).join(', ') + (dl != null ? ' · ' + dl + ' d left' : '') + '</small></span>' + icon('chev', 18) + '</button>'; }).join('');
@@ -346,9 +346,34 @@ function checkDue() {
     due.map(function (d) { return '<div class="l mt6">' + esc(medLabel(d.m)) + ' — ' + medQty(d.m) + fw(d.m) + '</div>'; }).join('') +
     '<button class="btn big mt" data-act="dueTake" data-keys="' + due.map(function (d) { return d.key; }).join(',') + '">' + icon('check', 20) + 'Taken</button>' +
     '<div class="g2 mt"><button class="btn sec" data-act="closeSheet">Later</button><button class="btn sec" data-act="dueSkip" data-keys="' + due.map(function (d) { return d.key; }).join(',') + '">Skip</button></div></div>');
-  try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) { }
+  feel('bell');
 }
-ACT.dueTake = function (el) { el.getAttribute('data-keys').split(',').forEach(function (key) { var l = medLog(today()), m = medById(key.split('|')[0]); if (l[key] && l[key].s === 'taken') return; l[key] = { s: 'taken', t: Date.now() }; if (m && m.stock != null && m.stock !== '') m.stock = Math.max(0, +m.stock - (+m.qty || 1)); }); save(); sheet(null); rerender(); toast('Marked taken'); };
+ACT.dueTake = function (el) { el.getAttribute('data-keys').split(',').forEach(function (key) { var l = medLog(today()), m = medById(key.split('|')[0]); if (l[key] && l[key].s === 'taken') return; l[key] = { s: 'taken', t: Date.now() }; if (m && m.stock != null && m.stock !== '') m.stock = Math.max(0, +m.stock - (+m.qty || 1)); }); save(); sheet(null); rerender(); feel('done'); toast('Marked taken'); };
 ACT.dueSkip = function (el) { el.getAttribute('data-keys').split(',').forEach(function (key) { medLog(today())[key] = { s: 'skip', t: Date.now() }; }); save(); sheet(null); rerender(); };
 setInterval(function () { if (document.visibilityState === 'visible') checkDue(); }, 30000);
 setTimeout(checkDue, 2500);
+
+/* ---------- reminder check-up: why reminders might not ring ---------- */
+function remindCheck(full) {
+  if (!AND) return '';
+  var r = {}, p = {}; try { r = JSON.parse(native('remindStatus') || '{}'); p = JSON.parse(native('medPerms') || '{}'); } catch (e) { }
+  var items = [
+    ['Notifications allowed', r.notify !== false && p.notify !== false, 'medAskNotify2', 'Allow'],
+    ['Battery: Unrestricted', r.battery !== false, 'askBattery', 'Fix'],
+    ['Exact-time alarms', r.exact !== false, 'openExact', 'Fix'],
+    ['Pop-up over other apps', p.overlay !== false, 'medOverlay', 'Allow'],
+    ['Show on lock screen', p.fullscreen !== false, 'medFull', 'Allow']
+  ];
+  var bad = items.filter(function (x) { return !x[1]; }).length;
+  if (!full && !bad) return '';
+  var h = '<section class="c"><div class="row g12"><span class="mic">' + icon('shield', 20) + '</span><div class="f1"><h2>Reminder check-up</h2><div class="l">' + (bad ? bad + ' setting' + (bad > 1 ? 's' : '') + ' can stop reminders ringing on time.' : 'All good. Reminders ring with sound and vibration.') + '</div></div></div>';
+  h += items.map(function (x) { return '<div class="rd chk"><span>' + (x[1] ? '<i class="ok">' + icon('check', 14) + '</i>' : '<i class="no">!</i>') + x[0] + '</span>' + (x[1] ? '<b class="gtxt sm">On</b>' : '<button class="chip dk" data-act="' + x[2] + '">' + x[3] + '</button>') + '</div>'; }).join('');
+  if (r.battery === false) h += '<div class="note warn mt">Samsung phones put apps to sleep. Also open <b>Settings → Battery → Background usage limits → Never sleeping apps</b> and add Arogya.</div>';
+  h += '<div class="l mt">If the sound is silent, tap <b>Sound settings</b> and set the Medicine reminders sound and Vibrate.</div><div class="g3 mt"><button class="btn sec" data-act="medTest">Test medicine</button><button class="btn sec" data-act="waterTest">Test water</button><button class="btn sec" data-act="openNotify">Sound settings</button></div>';
+  return h + '</section>';
+}
+ACT.askBattery = function () { native('askBattery'); setTimeout(rerender, 2500); };
+ACT.openExact = function () { native('openExactSettings'); setTimeout(rerender, 2500); };
+ACT.openNotify = function () { native('openNotifySettings'); };
+ACT.waterTest = function () { native('testWater'); toast('Sending a test water reminder…'); };
+ACT.medAskNotify2 = function () { native('askNotify'); setTimeout(function () { native('openNotifySettings'); }, 800); };

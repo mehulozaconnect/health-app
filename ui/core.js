@@ -120,7 +120,10 @@ var IC = {
   heart: '<path d="M12 20s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 9c0 6-8 11-8 11z"/>', moon: '<path d="M20 14A8 8 0 1 1 10 4a6.5 6.5 0 0 0 10 10z"/>',
   bolt: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>', steps: '<path d="M8 3c2 0 3 2 3 5s-1 5-3 5-3-2-3-5 1-5 3-5zM16 9c2 0 3 2 3 5s-1 5-3 5-3-2-3-5 1-5 3-5zM6 15h4M14 21h4"/>',
   play: '<path d="M7 4l13 8-13 8z"/>', pause: '<path d="M8 4v16M16 4v16"/>', x: '<path d="M6 6l12 12M18 6L6 18"/>', refresh: '<path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>',
-  chev: '<path d="M9 5l7 7-7 7"/>', bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0"/>', pill: '<rect x="3" y="9" width="18" height="7" rx="3.5" transform="rotate(-35 12 12.5)"/><path d="M9.5 8.5l5 8"/>', edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>', bp: '<path d="M4 12h3l2-4 3 8 2-4h6"/><rect x="2" y="4" width="20" height="16" rx="4"/>'
+  chev: '<path d="M9 5l7 7-7 7"/>', bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0"/>', pill: '<rect x="3" y="9" width="18" height="7" rx="3.5" transform="rotate(-35 12 12.5)"/><path d="M9.5 8.5l5 8"/>', edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>', bp: '<path d="M4 12h3l2-4 3 8 2-4h6"/><rect x="2" y="4" width="20" height="16" rx="4"/>',
+  trophy: '<path d="M7 4h10v5a5 5 0 0 1-10 0zM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v4M8 21h8M9 18h6"/>', crown: '<path d="M3 8l4 4 5-7 5 7 4-4-2 11H5z"/>',
+  star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>', flame: '<path d="M12 21a7 7 0 0 0 7-7c0-4-3-6-4-10-2 2-3 4-3 6-1-1-2-2-2-4-3 3-5 5-5 8a7 7 0 0 0 7 7z"/>',
+  cloud: '<path d="M7 18a5 5 0 0 1-.6-10A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9z"/>', shield: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>', grid: '<rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/>'
 };
 function icon(n, s) { s = s || 22; return '<svg width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (IC[n] || '') + '</svg>'; }
 
@@ -168,7 +171,12 @@ ACT.back = function () { if (history.length > 1) history.back(); else go('home')
 ACT.go = function (el) { go(el.getAttribute('data-to')); };
 
 /* ---------- small UI parts ---------- */
+var HERO = { 'Water': ['drop', '#4E8FD0'], 'Medicines': ['pill', '#8B6CC9'], 'Medicine': ['pill', '#8B6CC9'], 'Sleep': ['moon', '#5A5FC2'], 'Blood pressure': ['bp', '#D0566B'], 'Blood sugar': ['pulse', '#C9773A'], 'Weight': ['scale', '#3E9C86'],
+  'Yoga & pranayama': ['yoga', '#4E9B6B'], 'Pranayama': ['yoga', '#4E9B6B'], 'Routine': ['yoga', '#4E9B6B'], 'Pose library': ['yoga', '#4E9B6B'], 'My schedule': ['bell', '#4E9B6B'], 'Schedule': ['bell', '#4E9B6B'], 'Your plan': ['spark', '#4E9B6B'],
+  'Settings': ['gear', '#6A7972'], 'Rewards': ['trophy', '#D9A21B'], 'Your food guide': ['food', '#E58A3A'], 'Trends': ['pulse', '#4E8FD0'], 'Me and my budget': ['heart', '#C2629A'], 'Medical reports': ['doc', '#5B8CC0'], 'Report': ['doc', '#5B8CC0'], 'Look and colours': ['spark', '#C2629A'], 'Samsung Health data': ['heart', '#5B8CC0'], 'Pranayama report': ['yoga', '#4E9B6B'] };
 function head(title, sub, right) {
+  var hr = HERO[title];
+  if (hr) return '<header class="hd hero" style="--sc:' + hr[1] + '"><button class="ib" data-act="back" aria-label="Back">' + icon('back') + '</button><span class="heroi">' + icon(hr[0], 22) + '</span><div class="hdt"><h1>' + esc(title) + '</h1>' + (sub ? '<div class="l">' + esc(sub) + '</div>' : '') + '</div>' + (right || '') + '<span class="herow">' + icon(hr[0], 92) + '</span></header>';
   return '<header class="hd"><button class="ib" data-act="back" aria-label="Back">' + icon('back') + '</button><div class="hdt"><h1>' + esc(title) + '</h1>' + (sub ? '<div class="l">' + esc(sub) + '</div>' : '') + '</div>' + (right || '') + '</header>';
 }
 function bar(pct, color) { return '<div class="bar"><div style="width:' + clamp(pct, 0, 100) + '%;background:' + (!color || color === 'var(--g)' ? 'var(--grad)' : color) + '"></div></div>'; }

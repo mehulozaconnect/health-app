@@ -18,7 +18,7 @@ import java.time.LocalTime;
 
 /** Water nudges: checks pace every N minutes; the notification's buttons log water without opening the app. */
 public class WaterReceiver extends BroadcastReceiver {
-    static final String CH = "water", CHECK = "com.mehul.arogya.WATER_CHECK", ADD = "com.mehul.arogya.WATER_ADD";
+    static final String CH = "water_v2", CHECK = "com.mehul.arogya.WATER_CHECK", ADD = "com.mehul.arogya.WATER_ADD";
     static final int NID = 4100;
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("water", Context.MODE_PRIVATE); }
@@ -46,7 +46,9 @@ public class WaterReceiver extends BroadcastReceiver {
         am.cancel(pi);
         if (!o.optBoolean("remind", false)) return;
         long every = Math.max(30, o.optInt("every", 60)) * 60000L;
-        am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + every, pi);
+        long when = System.currentTimeMillis() + every;
+        try { if (android.os.Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms()) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, when, pi); else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, when, pi); }
+        catch (SecurityException e) { am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, when, pi); }
     }
 
     static void channel(Context c) {
@@ -54,6 +56,12 @@ public class WaterReceiver extends BroadcastReceiver {
         if (nm.getNotificationChannel(CH) == null) {
             NotificationChannel ch = new NotificationChannel(CH, "Water reminders", NotificationManager.IMPORTANCE_HIGH);
             ch.setDescription("Nudges when you are behind on water");
+            ch.enableVibration(true);
+            ch.setVibrationPattern(new long[]{0, 400, 250, 400, 250, 600});
+            ch.enableLights(true);
+            ch.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+            ch.setSound(android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION),
+                    new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION_EVENT).setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
             nm.createNotificationChannel(ch);
         }
     }
@@ -79,20 +87,22 @@ public class WaterReceiver extends BroadcastReceiver {
         if (CHECK.equals(a)) { check(c); schedule(c); }
     }
 
-    static void check(Context c) {
+    static void check(Context c) { check(c, false); }
+
+    static void check(Context c, boolean test) {
         JSONObject o = cfg(c);
         int goal = o.optInt("goal", 2500), glass = o.optInt("glass", 250);
         int from = mins(o.optString("from", "08:00"), 480), to = mins(o.optString("to", "22:00"), 1320);
         LocalTime now = LocalTime.now();
         int m = now.getHour() * 60 + now.getMinute();
-        if (m < from || m > to) return;
+        if (!test && (m < from || m > to)) return;
         int ml = todayMl(c);
-        if (ml >= goal) return;
+        if (!test && ml >= goal) return;
         int expected = Math.round(goal * Math.min(1f, (m - from) / (float) Math.max(1, to - from)));
         int behind = expected - ml;
-        if (o.optBoolean("onlyBehind", true) && behind < glass) return;
+        if (!test && o.optBoolean("onlyBehind", true) && behind < glass) return;
         long last = Math.max(prefs(c).getLong("last", 0), o.optLong("lastLog", 0));
-        if (System.currentTimeMillis() - last < 40 * 60000L) return;
+        if (!test && System.currentTimeMillis() - last < 40 * 60000L) return;
         if (android.os.Build.VERSION.SDK_INT >= 33 && c.checkSelfPermission("android.permission.POST_NOTIFICATIONS") != android.content.pm.PackageManager.PERMISSION_GRANTED) return;
         channel(c);
         int glasses = Math.max(1, Math.round(behind / (float) glass));

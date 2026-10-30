@@ -8,6 +8,7 @@
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.health.READ_BLOOD_PRESSURE" />
     <uses-permission android:name="android.permission.health.READ_BLOOD_GLUCOSE" />
     <uses-permission android:name="android.permission.health.READ_WEIGHT" />
@@ -77,6 +78,11 @@
             android:showWhenLocked="true"
             android:turnScreenOn="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+        <receiver android:name=".Backup" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
         <receiver android:name=".MedReceiver" android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

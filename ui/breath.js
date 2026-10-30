@@ -122,7 +122,7 @@ function bTick() {
   if (!BP || !BP.run) return;
   var now = Date.now(); BP.el += (now - BP.last) / 1000; BP.last = now;
   var c = pcfg(BP.k), tot = pTotal(BP.k, c);
-  if (BP.el >= tot) { BP.el = tot; clearInterval(BP.t); BP.run = false; native('keepAwake', false); plSay('Well done'); bLog(); return; }
+  if (BP.el >= tot) { BP.el = tot; clearInterval(BP.t); BP.run = false; native('keepAwake', false); plSay('Well done'); feel('done'); bLog(); return; }
   if (cur.name === 'breath') bPaint();
 }
 function bPaint() {
@@ -139,7 +139,7 @@ function bPaint() {
   document.getElementById('bnos').textContent = g.nos ? g.nos + ' nostril' : '';
   document.getElementById('bround').textContent = 'Round ' + g.round + ' of ' + c.rounds;
   document.getElementById('bel').textContent = mmss(t); document.getElementById('blf').textContent = mmss(pTotal(BP.k, c) - t);
-  if (BP.spoke !== i) { BP.spoke = i; plSay(g.ph === 'fast' ? 'Round ' + g.round + '. Go' : g.ph === 'rest' ? 'Rest. Breathe normally' : PHL[g.ph] + (g.nos ? ' ' + g.nos : '')); }
+  if (BP.spoke !== i) { if (BP.spoke != null) feel(g.ph === 'in' ? 'tick' : g.ph === 'rest' ? 'bell' : 'tickl'); BP.spoke = i; plSay(g.ph === 'fast' ? 'Round ' + g.round + '. Go' : g.ph === 'rest' ? 'Rest. Breathe normally' : PHL[g.ph] + (g.nos ? ' ' + g.nos : '')); }
 }
 function bLog() {
   var doneK = BP.k;

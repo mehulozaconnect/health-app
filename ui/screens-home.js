@@ -16,18 +16,21 @@ ROUTES.home = function () {
   var qa = [['food', 'Food', 'qFood'], ['drop', 'Water', 'qWater'], ['yoga', 'Exercise', 'logYoga'], ['bp', 'BP', 'logBp'], ['pulse', 'Sugar', 'logSugar'], ['moon', 'Sleep', 'logSleep']];
   if ((DB.meds || []).length) qa.push(['pill', 'Medicine', 'qMeds']);
   qa.push(['scale', 'Weight', 'qWeight']);
-  h += '<div class="qa">' + qa.map(function (q) { return '<button class="qab" data-act="' + q[2] + '"><span>' + icon(q[0], 22) + '</span>' + q[1] + '</button>'; }).join('') + '</div>';
+  var QC = { food: '#E58A3A', drop: '#4E8FD0', yoga: '#4E9B6B', bp: '#D0566B', pulse: '#C9773A', moon: '#5A5FC2', pill: '#8B6CC9', scale: '#3E9C86' };
+  h += '<div class="qs" role="toolbar" aria-label="Quick log"><span class="qsl">' + icon('plus', 16) + 'Log</span>' + qa.map(function (q) { return '<button class="qsb" style="--qc:' + QC[q[0]] + '" data-act="' + q[2] + '">' + icon(q[0], 17) + q[1] + '</button>'; }).join('') + '</div>';
   /* calories */
   h += '<section class="c" data-act="go" data-to="food"><div class="row g16"><div class="ringbox">' + ring(pct, 116, 11, left < 0 ? 'var(--bad)' : 'var(--g)', '<text x="58" y="58" text-anchor="middle" class="rt1">' + n0(Math.abs(left)) + '</text><text x="58" y="77" text-anchor="middle" class="rt2">kcal ' + (left < 0 ? 'over' : 'left') + '</text>') + '</div>' +
     '<div class="f1 kc"><div class="rd"><span>Budget</span><b>' + n0(b.base) + '</b></div>' + (b.earned ? '<div class="rd"><span>+ Exercise</span><b class="gtxt">+' + n0(b.earned) + '</b></div>' : '') + (b.carry ? '<div class="rd"><span>− Yesterday</span><b class="warnt">−' + n0(b.carry) + '</b></div>' : '') + '<div class="rd"><span>− Eaten</span><b>' + n0(t.kcal) + '</b></div></div></div>' +
     '<div class="g4 mt">' + [['Protein', t.p, tg.p], ['Carbs', t.c, tg.c], ['Fat', t.f, tg.f], ['Fibre', t.fi, tg.fi]].map(function (x) { return '<div class="mm"><div class="l">' + x[0] + '</div><b>' + n0(x[1]) + '<small>/' + n0(x[2]) + 'g</small></b>' + bar(x[1] / x[2] * 100) + '</div>'; }).join('') + '</div></section>';
+  h += winsCard();
   h += guideCard();
   var cr = coachRules(k), tip = nowTip(cr, t, tg, b);
   h += '<section class="c dark" data-act="go" data-to="coach"><div class="kick">' + icon('spark', 16) + 'COACH</div><p class="p15">' + esc(tip) + '</p></section>';
   /* body today, with averages */
   var avg7 = function (m) { var v = []; for (var i = 0; i < 7; i++) { var x = TM[m].day(addDays(k, -i)); if (x != null) v.push(x); } return v.length >= 2 ? (TM[m].two ? [dayAvg(v.map(function (y) { return y[0]; })), dayAvg(v.map(function (y) { return y[1]; }))] : dayAvg(v)) : null; };
   var st = stepsFor(k), sl = sleepFor(k), en = energyFor(k), hr = latestHr(), hd = hrDay(k), bp = merged('bp')[0], su = merged('sugar').filter(function (x) { return x.type === 'fasting'; })[0], w = merged('weight')[0];
-  var T2 = function (to, label, val, sub) { return '<button class="vt" data-act="go" data-to="' + to + '"><span class="l">' + label + '</span><b>' + val + '</b><small>' + sub + '</small></button>'; };
+  var VI = { Steps: ['steps', '#3E9C86'], Sleep: ['moon', '#5A5FC2'], Energy: ['bolt', '#D9A21B'], 'Heart rate': ['heart', '#D0566B'], 'Blood pressure': ['bp', '#C2629A'], 'Fasting sugar': ['pulse', '#C9773A'] };
+  var T2 = function (to, label, val, sub) { var vi = VI[label] || ['spark', '#4E8B76']; return '<button class="vt" style="--vc:' + vi[1] + '" data-act="go" data-to="' + to + '"><span class="vti">' + icon(vi[0], 16) + '</span><span class="l">' + label + '</span><b>' + val + '</b><small>' + sub + '</small></button>'; };
   var a;
   h += '<h3 class="sech">Your body today</h3><div class="vgrid">';
   a = avg7('steps'); h += T2('trend/steps', 'Steps', st ? n0(st) : '—', a ? '7-day avg ' + n0(a) : st ? 'of 10,000' : 'Wear the watch');
@@ -73,7 +76,7 @@ function waterCard(compact) {
     '<div class="col g6"><button class="chip wbtn" data-act="water" data-ml="' + w.glass + '">+' + w.glass + ' ml</button><button class="chip wbtn2" data-act="water" data-ml="500">+500 ml</button></div></section>';
   return h;
 }
-ACT.water = function (el, e) { if (e) e.stopPropagation(); var ml = +el.getAttribute('data-ml'); day(today()).water.push({ t: Date.now(), ml: ml }); save(); rerender(); var w = DB.settings.water, now = waterMl(today()); toast(now >= w.goal && now - ml < w.goal ? 'Water goal reached!' : '+' + ml + ' ml'); };
+ACT.water = function (el, e) { if (e) e.stopPropagation(); var ml = +el.getAttribute('data-ml'); day(today()).water.push({ t: Date.now(), ml: ml }); save(); rerender(); feel('drop'); var w = DB.settings.water, now = waterMl(today()); toast(now >= w.goal && now - ml < w.goal ? 'Water goal reached!' : '+' + ml + ' ml'); };
 ROUTES.water = function () {
   var w = DB.settings.water, k = today(), d = day(k), h = head('Water', 'Goal ' + (w.goal / 1000) + ' L a day');
   h += waterCard(false);

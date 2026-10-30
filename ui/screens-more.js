@@ -167,6 +167,7 @@ TABOF.theme = 'more';
 ROUTES.more = function () {
   var h = '<h1 class="big">More</h1>';
   var row = function (to, ic, t, s) { return '<button class="res" data-act="go" data-to="' + to + '"><span class="row g12"><span class="mic">' + icon(ic, 20) + '</span><span>' + t + '<small>' + s + '</small></span></span>' + icon('chev', 18) + '</button>'; };
+  h += row('rewards', 'trophy', 'Rewards and badges', (function () { var r = rwStats(); return 'Level ' + (r.lv + 1) + ' · ' + n0(r.pts) + ' points · ' + r.goodCur + '-day streak'; })());
   h += row('reports', 'doc', 'Medical reports', DB.reports.length ? DB.reports.length + ' saved · AI reads them' : 'Scan or upload, AI reads them');
   h += row('weight', 'scale', 'Weight', lastWeight() ? n1(lastWeight()) + ' kg · goal ' + n1(DB.profile.goal) : 'Track towards your goal');
   h += row('yoga', 'yoga', 'Yoga', yogaMin(today()) + ' min today');
@@ -238,7 +239,13 @@ ROUTES.settings = function () {
   h += '<section class="c"><h2>Samsung Health</h2><div class="rd"><span>Status</span><b>' + (hs === 'ok' ? 'Connected · ' + ago(DB.healthAt) : esc(hs.replace(/_/g, ' '))) + '</b></div><div class="g2 mt"><button class="btn sec" data-act="connectHealth">' + (hs === 'ok' ? 'Permissions' : 'Connect') + '</button><button class="btn sec" data-act="refreshHealth">Read now</button></div></section>';
   var hc = DB.hc || {};
   h += '<section class="c"><h2>Health Connect</h2><div class="l">For readings other apps save there, like Omron BP.</div><div class="rd"><span>Status</span><b>' + (hc.on && hc.status === 'ok' ? 'Linked · ' + ago(hc.at) : esc((hc.status || 'not linked').replace(/_/g, ' '))) + '</b></div>' + (hc.status === 'ok' ? '<div class="rd"><span>Readings found</span><b>' + (hc.bp || []).length + ' BP · ' + (hc.sugar || []).length + ' sugar · ' + (hc.weight || []).length + ' weight</b></div>' : '') + '<div class="g2 mt"><button class="btn sec" data-act="hcConnect">' + (hc.status === 'ok' ? 'Permissions' : 'Link') + '</button><button class="btn sec" data-act="hcReadNow">Read now</button></div></section>';
-  h += '<section class="c"><h2>Your data</h2><p class="p">Everything is stored only on this phone. Make a backup file before changing phones or reinstalling.</p><div class="g2"><button class="btn sec" data-act="backup">Backup</button><button class="btn sec" data-act="restore">Restore</button></div></section>';
+  h += backupCard();
+  h += remindCheck(true);
+  h += '<section class="c"><h2>Sounds and vibration</h2><div class="l">Chimes and a buzz when you finish a goal, log water, take a medicine, or change breath in pranayama.</div>' +
+    '<button class="tog" data-act="tgSound" role="switch" aria-checked="' + (s.sound !== false) + '"><span>Sounds in the app</span><i class="' + (s.sound !== false ? 'on' : '') + '"></i></button>' +
+    '<button class="tog" data-act="tgBuzz" role="switch" aria-checked="' + (s.buzz !== false) + '"><span>Vibration</span><i class="' + (s.buzz !== false ? 'on' : '') + '"></i></button>' +
+    '<button class="btn sec mt" data-act="tryFeel">' + icon('bell', 18) + 'Play a test chime</button></section>';
+  h += '<section class="c"><h2>Backup file by hand</h2><p class="p">Save a copy anywhere, or restore from a file.</p><div class="g2"><button class="btn sec" data-act="backup">Save a copy</button><button class="btn sec" data-act="restore">Restore</button></div></section>';
   h += '<section class="c"><h2>About</h2><p class="p">Arogya ' + APP_VERSION + (native('version') ? ' (build ' + native('version') + ')' : '') + '. Food values from the Indian Nutrient Databank (1,014 recipes) plus standard values for common items. Not a medical device: talk to your doctor about anything worrying.</p></section>';
   return h;
 };
@@ -251,6 +258,35 @@ ACT.testKey = function () {
 };
 ACT.backup = function () { native('saveFile', 'arogya-backup-' + today() + '.json', 'application/json', JSON.stringify(DB)) === null && !AND && toast('Backup works in the phone app'); };
 ACT.restore = function () { native('openFile'); };
+ACT.tgSound = function () { DB.settings.sound = DB.settings.sound === false; save(); rerender(); if (DB.settings.sound) feel('done'); };
+ACT.tgBuzz = function () { DB.settings.buzz = DB.settings.buzz === false; save(); rerender(); if (DB.settings.buzz) native('vibrate', '80'); };
+ACT.tryFeel = function () { feel('win'); };
+
+/* ---------- automatic backup to Google Drive ---------- */
+function backupCard() {
+  var st = {}; try { st = JSON.parse(native('backupStatus') || '{}'); } catch (e) { }
+  var h = '<section class="c"><div class="row g12"><span class="mic" style="--sc:#4E8FD0">' + icon('cloud', 20) + '</span><div class="f1"><h2>Automatic backup</h2><div class="l">Once a day — every time you close Arogya and again at night — your data is copied to one file you choose. Pick it in Google Drive and it stays safe even if you lose the phone.</div></div></div>';
+  if (!AND) return h + '<div class="note mt">Works in the phone app.</div></section>';
+  if (!st.set) h += '<div class="note warn mt">Not set up yet. Tap below, choose <b>Drive</b> in the side menu, pick a folder and tap Save.</div><button class="btn mt" data-act="bkPick">' + icon('cloud', 18) + 'Choose Google Drive file</button>';
+  else {
+    h += '<div class="rd"><span>Backup file</span><b>' + esc(st.name || 'arogya-backup.json') + '</b></div><div class="rd"><span>Last backup</span><b class="' + (st.last && Date.now() - st.last < 36 * 3600000 ? 'gtxt' : 'warnt') + '">' + (st.last ? ago(st.last) : 'not yet') + '</b></div>';
+    if (st.err && st.errAt > st.last) h += '<div class="note warn mt">Last try failed: ' + esc(st.err) + '. If you deleted or moved the file, choose it again.</div>';
+    h += '<div class="g2 mt"><button class="btn" data-act="bkNow">Back up now</button><button class="btn sec" data-act="bkPick">Change file</button></div>';
+  }
+  if (st.local && st.local.length) h += '<div class="l mt">Copies kept on this phone (last 7 days)</div><div class="chips">' + st.local.slice().reverse().map(function (n) { return '<button class="chip" data-act="bkLocal" data-n="' + esc(n) + '">' + esc(n.replace('arogya-', '').replace('.json', '')) + '</button>'; }).join('') + '</div><div class="l">Tap a date to restore that day\'s copy.</div>';
+  return h + '</section>';
+}
+ACT.bkPick = function () { native('backupPick'); };
+ACT.bkNow = function () { toast('Backing up…'); save(); setTimeout(function () { native('backupNow'); }, 400); };
+ACT.bkLocal = function (el) {
+  var n = el.getAttribute('data-n');
+  sheet('<h2>Restore ' + esc(n.replace('arogya-', '').replace('.json', '')) + '?</h2><p class="p">Everything after that day\'s backup will be replaced. Today\'s data is saved as a copy first.</p><div class="g2 mt"><button class="btn sec" data-act="closeSheet">Cancel</button><button class="btn" data-act="bkLocalGo" data-n="' + esc(n) + '">Restore</button></div>');
+};
+ACT.bkLocalGo = function (el) { var t = native('backupLocal', el.getAttribute('data-n')); sheet(null); if (!t) return toast('Could not read that copy'); window.onFileOpened(t); };
+window.onBackup = function (r) {
+  var m = { ok: 'Backed up to your file', local: 'Saved on the phone — choose a Drive file for a safe copy', error: 'Backup failed — see Settings', 'no data': 'Nothing to back up yet', skip: 'Already backed up today' };
+  toast(m[r] || r, 3000); if (r === 'ok') feel('done'); if (cur.name === 'settings') rerender();
+};
 window.onFileOpened = function (text) {
   try { var d = JSON.parse(text); if (!d.profile || !d.days) throw 0; DB = Object.assign(blank(), d); save(); toast('Restored'); go('home'); render(); } catch (e) { toast('That is not an Arogya backup file'); }
 };

@@ -23,7 +23,7 @@ import java.util.List;
 
 /** Medicine reminders: one alarm at the next due time; the notification's Taken button logs the dose without opening the app. */
 public class MedReceiver extends BroadcastReceiver {
-    static final String CH = "meds", FIRE = "com.mehul.arogya.MED_FIRE", TAKE = "com.mehul.arogya.MED_TAKE", SNOOZE = "com.mehul.arogya.MED_SNOOZE", SKIP = "com.mehul.arogya.MED_SKIP";
+    static final String CH = "meds_v2", FIRE = "com.mehul.arogya.MED_FIRE", TAKE = "com.mehul.arogya.MED_TAKE", SNOOZE = "com.mehul.arogya.MED_SNOOZE", SKIP = "com.mehul.arogya.MED_SKIP";
     static final int NID = 4200;
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("meds", Context.MODE_PRIVATE); }
@@ -64,6 +64,7 @@ public class MedReceiver extends BroadcastReceiver {
 
     /** next time something is due (not yet taken), and the dose keys due then */
     static void schedule(Context c) {
+        cx = c.getApplicationContext();
         AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
         PendingIntent old = PendingIntent.getBroadcast(c, 20, new Intent(c, MedReceiver.class).setAction(FIRE), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         am.cancel(old);
@@ -97,9 +98,13 @@ public class MedReceiver extends BroadcastReceiver {
         set(am, best.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(), pi);
     }
 
+    static Context cx;
     static void set(AlarmManager am, long when, PendingIntent pi) {
         try {
-            if (Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms()) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, when, pi);
+            if (Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms()) {
+                PendingIntent show = PendingIntent.getActivity(cx, 27, new Intent(cx, MainActivity.class).putExtra("route", "meds"), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+                am.setAlarmClock(new AlarmManager.AlarmClockInfo(when, show), pi);
+            }
             else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, when, pi);
         } catch (SecurityException e) { am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, when, pi); }
     }
@@ -109,12 +114,19 @@ public class MedReceiver extends BroadcastReceiver {
         if (nm.getNotificationChannel(CH) == null) {
             NotificationChannel ch = new NotificationChannel(CH, "Medicine reminders", NotificationManager.IMPORTANCE_HIGH);
             ch.setDescription("Time to take a medicine");
+            ch.enableVibration(true);
+            ch.setVibrationPattern(new long[]{0, 400, 250, 400, 250, 600});
+            ch.enableLights(true);
+            ch.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+            ch.setSound(android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION),
+                    new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION_EVENT).setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
             nm.createNotificationChannel(ch);
         }
     }
 
     @Override
     public void onReceive(Context c, Intent i) {
+        cx = c.getApplicationContext();
         String a = i.getAction(), keys = i.getStringExtra("keys"), date = i.getStringExtra("date");
         if ((TAKE.equals(a) || SKIP.equals(a)) && keys != null) {
             if (keys.startsWith("test")) { c.getSystemService(NotificationManager.class).cancel(NID); return; }
