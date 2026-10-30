@@ -30,7 +30,12 @@ jobs:
         with:
           gradle-version: '8.9'
       - name: Build signed app
-        run: gradle -p android assembleRelease --no-daemon --stacktrace
+        run: |
+          set -o pipefail
+          gradle -p android assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log || {
+            grep -E "error:|e: |What went wrong|Could not|> |symbol|location:|required|found:" build.log | grep -v "^> Task" | head -40 | while IFS= read -r l; do echo "::error::$l"; done
+            exit 1
+          }
       - name: Rename
         run: cp android/app/build/outputs/apk/release/app-release.apk arogya.apk
       - name: Publish release
