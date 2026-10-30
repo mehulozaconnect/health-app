@@ -21,6 +21,7 @@ ROUTES.home = function () {
   h += '<section class="c" data-act="go" data-to="food"><div class="row g16"><div class="ringbox">' + ring(pct, 116, 11, left < 0 ? 'var(--bad)' : 'var(--g)', '<text x="58" y="58" text-anchor="middle" class="rt1">' + n0(Math.abs(left)) + '</text><text x="58" y="77" text-anchor="middle" class="rt2">kcal ' + (left < 0 ? 'over' : 'left') + '</text>') + '</div>' +
     '<div class="f1 kc"><div class="rd"><span>Budget</span><b>' + n0(b.base) + '</b></div>' + (b.earned ? '<div class="rd"><span>+ Exercise</span><b class="gtxt">+' + n0(b.earned) + '</b></div>' : '') + (b.carry ? '<div class="rd"><span>− Yesterday</span><b class="warnt">−' + n0(b.carry) + '</b></div>' : '') + '<div class="rd"><span>− Eaten</span><b>' + n0(t.kcal) + '</b></div></div></div>' +
     '<div class="g4 mt">' + [['Protein', t.p, tg.p], ['Carbs', t.c, tg.c], ['Fat', t.f, tg.f], ['Fibre', t.fi, tg.fi]].map(function (x) { return '<div class="mm"><div class="l">' + x[0] + '</div><b>' + n0(x[1]) + '<small>/' + n0(x[2]) + 'g</small></b>' + bar(x[1] / x[2] * 100) + '</div>'; }).join('') + '</div></section>';
+  h += guideCard();
   var cr = coachRules(k), tip = nowTip(cr, t, tg, b);
   h += '<section class="c dark" data-act="go" data-to="coach"><div class="kick">' + icon('spark', 16) + 'COACH</div><p class="p15">' + esc(tip) + '</p></section>';
   /* body today, with averages */
@@ -92,7 +93,7 @@ ROUTES.water = function () {
   return h;
 };
 function tog(label, key, on) { return '<button class="tog" data-act="tog" data-k="' + key + '" role="switch" aria-checked="' + !!on + '"><span>' + label + '</span><i class="' + (on ? 'on' : '') + '"></i></button>'; }
-var TOGS = { wRemind: function () { DB.settings.water.remind = !DB.settings.water.remind; if (DB.settings.water.remind) native('askNotify'); }, wBehind: function () { DB.settings.water.onlyBehind = !DB.settings.water.onlyBehind; }, vegOnly: function () { DB.profile.vegOnly = !DB.profile.vegOnly; }, carry: function () { DB.settings.carry = !DB.settings.carry; } };
+var TOGS = { smart: function () { DB.settings.smart = DB.settings.smart === false; }, wRemind: function () { DB.settings.water.remind = !DB.settings.water.remind; if (DB.settings.water.remind) native('askNotify'); }, wBehind: function () { DB.settings.water.onlyBehind = !DB.settings.water.onlyBehind; }, vegOnly: function () { DB.profile.vegOnly = !DB.profile.vegOnly; }, carry: function () { DB.settings.carry = !DB.settings.carry; } };
 ACT.tog = function (el) { var f = TOGS[el.getAttribute('data-k')]; if (f) { f(); save(); rerender(); } };
 CHG.wGoal = function (el) { DB.settings.water.goal = clamp(+el.value || 2500, 500, 6000); save(); };
 CHG.wGlass = function (el) { DB.settings.water.glass = clamp(+el.value || 250, 50, 1000); save(); };

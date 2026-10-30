@@ -125,3 +125,8 @@ html:not([data-dark]) .bar>div{box-shadow:none}
 .psm{flex:1;min-width:0;text-align:left;border:0;background:none;padding:2px 0;color:var(--ink)}.psm b{display:block;font-size:15px}.psm small{display:block;font-size:12px;color:var(--mute);font-weight:600}
 button.empty-s{border:1px dashed var(--line);width:100%;line-height:1.45;color:var(--mute)}
 .bc b{display:block;font-size:20px;font-weight:800}.bc b small{font-size:12px;color:var(--mute)}.bc small{font-size:11.5px;font-weight:700}
+
+.verdict{border-left:4px solid var(--g)}.verdict.warn{border-left-color:var(--warn)}.verdict.bad{border-left-color:var(--bad)}.verdict .sm{margin-top:4px}
+.mealopt{display:flex;align-items:center;gap:10px;border-top:1px solid var(--line);padding:10px 0}.mealopt:first-of-type{margin-top:8px}.mealopt b{display:block;font-size:14px;line-height:1.35}.mealopt small{display:block;color:var(--mute);font-size:12px;font-weight:600;margin-top:2px}
+.rule.avoid{border-left:4px solid var(--bad)}.rule.less{border-left:4px solid var(--warn)}.rule.more{border-left:4px solid var(--g)}
+.tipbtn{border:0;width:100%;text-align:left;color:var(--ink)}

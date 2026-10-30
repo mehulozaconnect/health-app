@@ -70,6 +70,7 @@ function aiErr(e) {
 function healthContext() {
   var p = DB.profile, k = today(), L = [];
   L.push('Person: ' + (p.name || 'user') + ', ' + (p.sex === 'f' ? 'female' : 'male') + ', ' + p.age + ' y, ' + p.height + ' cm, ' + n1(lastWeight() || p.weight) + ' kg, goal ' + p.goal + ' kg. Indian, ' + (p.vegOnly ? 'vegetarian (no egg, no meat)' : 'eats all foods') + '. Lives in Mumbai, office job.');
+  if (typeof brain === 'function') { var BT = brain(); L.push('App targets (smart, from body composition/BP/sugar): ' + BT.why.join(' ')); var FR = foodRules(); if (FR.length) L.push('Food rules the app gives this person: ' + FR.map(function (x) { return x.r.kind + ' ' + x.r.title + (x.hits && x.r.kind !== 'more' ? ' (eaten ' + x.hits + 'x this week: ' + x.names.join(', ') + ')' : ''); }).join('; ') + '. Keep your advice consistent with these.'); }
   var tg = macroTargets(); L.push('Daily calorie budget ' + baseBudget() + ' kcal (+ active calories from watch). Targets: protein ' + tg.p + ' g, carbs ' + tg.c + ' g, fat ' + tg.f + ' g, fibre ' + tg.fi + ' g. Water goal ' + DB.settings.water.goal + ' ml.');
   for (var i = 6; i >= 0; i--) {
     var dk = addDays(k, -i), t = dayTotals(dk), it = dayItems(dk), b = budgetFor(dk), sl = sleepFor(dk), st = stepsFor(dk), en = energyFor(dk), parts = [dk + (i === 0 ? ' (today, so far)' : '')];

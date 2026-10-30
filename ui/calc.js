@@ -65,7 +65,7 @@ function suggestedBudget() {
   var b = Math.round((base - deficit) / 50) * 50;
   return Math.max(p.sex === 'f' ? 1200 : 1500, b);
 }
-function baseBudget() { return DB.profile.budget > 0 ? +DB.profile.budget : suggestedBudget(); }
+function baseBudget() { if (typeof brain === 'function' && DB.settings.smart !== false) return brain().kcal; return DB.profile.budget > 0 ? +DB.profile.budget : suggestedBudget(); }
 /* calories burned: watch active calories + sessions logged in Arogya that the watch did not record as a workout */
 var MET = { yoga: 2.5, prana: 1.5, walk: 3.5, gym: 5, cycle: 6, swim: 7, sport: 6, other: 4 };
 function sessionKcal(s) {
@@ -85,8 +85,9 @@ function budgetFor(k) {
   return { base: base, earned: earned, carry: carry, total: base + earned - carry };
 }
 function macroTargets() {
+  if (typeof brain === 'function' && DB.settings.smart !== false) { var T = brain(); return { p: T.p, c: T.c, f: T.f, fi: T.fi, su: T.su, na: T.na }; }
   var p = DB.profile, b = baseBudget();
-  return { p: Math.round(b * p.protein / 100 / 4), c: Math.round(b * p.carb / 100 / 4), f: Math.round(b * p.fat / 100 / 9), fi: +p.fibre || 30 };
+  return { p: Math.round(b * p.protein / 100 / 4), c: Math.round(b * p.carb / 100 / 4), f: Math.round(b * p.fat / 100 / 9), fi: +p.fibre || 30, su: 25, na: 2000 };
 }
 
 /* ---------- water ---------- */
@@ -208,6 +209,11 @@ function coachRules(k) {
   out.plan.push('Dinner by 8:45 pm' + (left > 0 && left < 900 ? ', about ' + n0(Math.min(left, 600)) + ' kcal' : '') + ', then a 15-minute walk.');
   if (sl && (sl.asleep < 420 || (!sl.manual && sl.m.deep / sl.staged < 0.13))) out.plan.push('Phone down by 10:45, in bed by 11:15. 5 minutes of Bhramari before sleep.');
   var w = DB.settings.water; out.plan.push('Water: ' + (w.goal / 1000).toFixed(1) + ' L — a glass every hour till 8 pm.');
+  if (typeof foodRules === 'function') {
+    var FR = foodRules(), bad = FR.filter(function (x) { return x.r.kind === 'avoid' && x.hits; });
+    bad.slice(0, 2).forEach(function (x) { out.wrong.push(x.r.title + ' ' + x.hits + '× this week (' + x.names.join(', ') + '). ' + x.why); });
+    var nm = typeof nextMeal === 'function' ? nextMeal() : null; if (nm && k === today()) { var S = suggestMeals(nm, 1); if (S.list[0]) out.plan.push(mealName(nm) + ': ' + S.list[0].items.map(function (x) { return frac(x.q) + ' ' + x.u + ' ' + x.r[0].replace(/\s*\(.*\)$/, ''); }).join(' + ') + ' (' + n0(S.list[0].s.k) + ' kcal).'); }
+  }
   if (typeof makePlan === 'function') { var PL0 = makePlan(), top = PL0.rec.filter(function (r) { return r.p.t === 'p'; })[0]; if (top) out.plan.push('Pranayama: ' + practName(top.p) + ' — ' + top.dose.txt + ' ' + slotTime(top.p.slot, PL0.X) + '.'); }
   if (typeof meds === 'function' && meds().length) {
     var yd = dosesFor(y), ym = yd.filter(function (d) { return d.st !== 'taken'; });

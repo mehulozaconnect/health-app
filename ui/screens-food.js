@@ -18,6 +18,7 @@ ROUTES.food = function () {
   var left = b.total - t.kcal;
   h += '<section class="c dark trio"><div><div class="l">Eaten</div><b>' + n0(t.kcal) + '</b></div><div><div class="l">' + (b.earned ? 'Burned' : 'Budget') + '</div><b>' + (b.earned ? '+' + n0(b.earned) : n0(b.base)) + '</b></div><div><div class="l">' + (left >= 0 ? 'Left' : 'Over') + '</div><b class="' + (left >= 0 ? 'mint' : 'peach') + '">' + n0(Math.abs(left)) + '</b></div></section>';
   if (b.carry) h += '<div class="note warn">Today\'s budget is ' + b.carry + ' kcal lower to balance yesterday.</div>';
+  if (k === today()) { var nm = nextMeal(); h += '<button class="tip tipbtn" data-act="go" data-to="guide">' + icon('spark', 16) + '<span><b>Your food guide:</b> what to eat, what to avoid and how much, from your BP, sugar and body.</span></button>' ; }
   MEALS.forEach(function (m) {
     var items = d.meals[m[0]] || [], mt = sumItems(items), tgt = Math.round(b.base * m[2]);
     var cp = mt.kcal ? mt.c * 4 / mt.kcal : 0, sub = n0(mt.kcal) + ' of ' + n0(tgt) + ' kcal';
@@ -36,7 +37,7 @@ ROUTES.food = function () {
   });
   var tg = macroTargets();
   h += '<section class="c"><h2>Nutrients today</h2><div class="g2 mt">' +
-    macroRow('Protein', t.p, tg.p, 'g') + macroRow('Carbs', t.c, tg.c, 'g') + macroRow('Fat', t.f, tg.f, 'g') + macroRow('Fibre', t.fi, tg.fi, 'g') + macroRow('Added sugar', t.su, 25, 'g', true) + macroRow('Sodium', t.na, 2000, 'mg', true) + '</div>' +
+    macroRow('Protein', t.p, tg.p, 'g') + macroRow('Carbs', t.c, tg.c, 'g') + macroRow('Fat', t.f, tg.f, 'g') + macroRow('Fibre', t.fi, tg.fi, 'g') + macroRow('Added sugar', t.su, tg.su || 25, 'g', true) + macroRow('Sodium', t.na, tg.na || 2000, 'mg', true) + '</div>' +
     '<details class="mt"><summary class="lnk">Vitamins &amp; minerals today</summary><div class="mlist mt">' + MIC.map(function (x, i) { return i === 6 ? '' : macroRow(x[0], t.mi[i], micTarget(i), x[1], !!x[4], true); }).join('') + '</div><div class="l mt">Targets: ICMR-NIN 2020 daily needs for ' + (DB.profile.sex === 'f' ? 'women' : 'men') + '. Foods you added yourself or from AI may not have this data.</div></details></section>';
   return h;
 };
@@ -49,6 +50,11 @@ ACT.selDay = function (el) { SEL = el.getAttribute('data-k'); rerender(); };
 /* one-tap suggestion: a usual item for that meal that fits, else a sensible default */
 var DEFAULTS = { breakfast: [['Poha', 1, 'katori'], ['Tea with milk (chai)', 1, 'tea cup']], morning: [['Apple', 1, 'medium'], ['Buttermilk (Chaas)', 1, 'glass']], lunch: [['Roti / Phulka (no ghee)', 2, 'piece'], ['Dal tadka (toor)', 1, 'katori'], ['Green salad', 1, 'katori']], evening: [['Roasted chana', 1, 'fistful'], ['Tea with milk (chai)', 1, 'tea cup']], dinner: [['Moong dal chilla', 2, 'piece'], ['Curd (Dahi)', 1, 'katori']] };
 function suggestFor(m, left) {
+  if (typeof suggestMeals === 'function') {
+    var S = suggestMeals(m, 1), M = S.list[0]; if (!M || S.slot.kcal < 80) return null;
+    var its = M.items.map(function (x) { var it = itemOf(x.r, x.q, x.u, unitG(x.r, x.u) * x.q); return /^(Tea with milk|Masala chai|Coffee with milk)/.test(x.r[0]) ? withExtras(it, { sugar: brain().sugarHi ? 0.5 : 1 }) : it; });
+    return { items: its, text: its.map(function (i) { return i.n.replace(/\s*\(.*\)$/, '').replace(/ \/ Phulka/, '') + ' ' + frac(i.q) + ' ' + i.u; }).join(' + ') + '. ' + n0(M.s.k) + ' kcal, ' + n0(M.s.p) + ' g protein.' };
+  }
   var picks = Object.keys(DB.usual).map(function (n) { return [n, DB.usual[n]]; }).filter(function (x) { return x[1].m === m && x[1].n >= 3 && food(x[0]); }).sort(function (a, b) { return b[1].n - a[1].n; }).slice(0, 2)
     .map(function (x) { return [x[0], x[1].q, x[1].u]; });
   if (!picks.length) picks = DEFAULTS[m];
@@ -238,6 +244,7 @@ ROUTES.dish = function (arg) {
   if (r[9] > 500) tags.push('<span class="tag warn">Salty</span>');
   var h = head('', 'Adding to ' + mealName(m));
   h += '<section class="c"><h1 class="big">' + esc(r[0]) + '</h1><div class="l">Per 100 g: ' + n0(r[1]) + ' kcal · ' + (r[12] === 'INDB' ? 'Indian Nutrient Databank' : r[12] === 'INDB-adj' ? 'Indian Nutrient Databank, corrected for oil actually absorbed' : r[12] === 'Mine' ? 'Your home version' + (r[13] ? ': ' + esc(r[13]) : '') : r[12] === 'AI' ? 'AI estimate for a home recipe' + (r[13] ? ': ' + r[13] : '') + '. Adjust if yours is made differently.' : 'Standard home-style values') + '</div><div class="chips mt">' + tags.join('') + '</div></section>';
+  h += verdictHtml(r, g, u[0], u[1], m);
   h += '<section class="c"><div class="l">HOW MUCH?</div><div class="stepper"><button class="step" data-act="dq" data-d="-1" aria-label="Less">−</button><div class="ctr"><b class="huge">' + (u[0] === 'grams' ? Math.round(DISH.q) : frac(DISH.q)) + '</b><div class="l">' + esc(u[0]) + (u[0] === 'grams' ? '' : ' · ' + Math.round(g) + ' g') + '</div></div><button class="step" data-act="dq" data-d="1" aria-label="More">+</button></div>';
   if (u[0] !== 'grams') h += '<div class="chips c4">' + [0.5, 1, 1.5, 2].map(function (q) { return '<button class="chip' + (DISH.q === q ? ' on' : '') + '" data-act="dqSet" data-q="' + q + '">' + frac(q) + '</button>'; }).join('') + '</div>';
   h += '<div class="chips">' + units.map(function (x) { return '<button class="chip' + (x[0] === u[0] ? ' dk' : '') + '" data-act="du" data-u="' + esc(x[0]) + '">' + esc(x[0]) + '</button>'; }).join('') + '</div>';
