@@ -82,7 +82,7 @@ ROUTES.breath = function (k) {
       '</section>';
   }
   h += psBanner(k) || planNote(k);
-  h += '<section class="c ctrtxt bcard"><div class="bfig' + (BP.run ? '' : ' idle') + '" id="bfig">' + breathFig(k, 0.6) + '</div>' +
+  h += '<section class="c ctrtxt bcard"><div class="bfig' + (BP.run ? '' : ' idle') + pranaStartCls(k) + '" id="bfig" data-k="' + k + '">' + breathFig(k, 0.6) + '</div><div class="pnote">' + esc(pranaNote(k)) + '</div>' +
     '<div class="bph"><b id="bph">' + (BP.run ? '' : 'Ready') + '</b> <span id="bsec"></span></div><div id="bnos" class="l"></div>' +
     '<div class="l mt6"><span id="bround">' + c.rounds + ' rounds</span> · <span id="blf">' + mmss(tot - BP.el) + '</span> left<span id="bel" hidden></span></div>' +
     '<button class="btn big mt" data-act="bToggle" id="bgo">' + icon(BP.run ? 'pause' : 'play', 20) + (BP.run ? 'Pause' : 'Start') + '</button>' +
@@ -132,7 +132,8 @@ function bPaint() {
   if (!document.getElementById('bph')) return; var orb = document.getElementById('orb') || { style: {} };
   var scale = g.ph === 'in' ? 0.45 + 0.55 * (into / g.sec) : g.ph === 'out' ? 1 - 0.55 * (into / g.sec) : g.ph === 'hold' ? 1 : g.ph === 'hold2' ? 0.45 : g.ph === 'fast' ? (Math.floor(into * g.bpm / 60 * 2) % 2 ? 0.7 : 0.85) : 0.6;
   orb.style.transform = 'scale(' + scale.toFixed(3) + ')';
-  var fb = document.getElementById('fbreath'); if (fb) { fb.setAttribute('r', (+fb.getAttribute('data-r') * (0.35 + scale)).toFixed(1)); document.getElementById('bfig').className = 'bfig'; }
+  var fb = document.getElementById('fbreath'); if (fb) fb.setAttribute('r', (+fb.getAttribute('data-r') * (0.35 + scale)).toFixed(1));
+  var bf = document.getElementById('bfig'); if (bf) { bf.className = 'bfig ph-' + g.ph + (g.nos ? ' open-' + g.nos : pranaStartCls(BP.k)); var pc = document.getElementById('pchest'); if (pc) pc.style.transform = 'scale(' + (0.97 + 0.06 * (scale - 0.45) / 0.55).toFixed(3) + ',' + (0.98 + 0.05 * (scale - 0.45) / 0.55).toFixed(3) + ')'; }
   orb.className = 'orb ' + g.ph;
   document.getElementById('bph').textContent = PHL[g.ph] + (g.ph === 'fast' ? ' · ' + Math.min(g.n, Math.floor(into * g.bpm / 60) + 1) + '/' + g.n : '');
   document.getElementById('bsec').textContent = g.ph === 'fast' ? '' : left;

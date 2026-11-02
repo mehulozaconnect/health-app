@@ -135,4 +135,4 @@ function demoStart(key, H) {
   requestAnimationFrame(step);
 }
 /* breathing figure for the pacer: torso glow grows with the breath */
-function breathFig(k, scale) { var f = PRANAFIG[PRANA_HANDS[k] || 'gyan']; return figSvg(f, 200, 150, scale == null ? 0.6 : scale); }
+function breathFig(k, scale) { return typeof pranaArt === 'function' ? pranaArt(k) : figSvg(PRANAFIG[PRANA_HANDS[k] || 'gyan'], 200, 150, scale == null ? 0.6 : scale); }
