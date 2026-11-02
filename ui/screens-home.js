@@ -23,9 +23,6 @@ ROUTES.home = function () {
     '<div class="f1 kc"><div class="rd"><span>Budget</span><b>' + n0(b.base) + '</b></div>' + (b.earned ? '<div class="rd"><span>+ Exercise</span><b class="gtxt">+' + n0(b.earned) + '</b></div>' : '') + (b.carry ? '<div class="rd"><span>− Yesterday</span><b class="warnt">−' + n0(b.carry) + '</b></div>' : '') + '<div class="rd"><span>− Eaten</span><b>' + n0(t.kcal) + '</b></div></div></div>' +
     '<div class="g4 mt">' + [['Protein', t.p, tg.p], ['Carbs', t.c, tg.c], ['Fat', t.f, tg.f], ['Fibre', t.fi, tg.fi]].map(function (x) { return '<div class="mm"><div class="l">' + x[0] + '</div><b>' + n0(x[1]) + '<small>/' + n0(x[2]) + 'g</small></b>' + bar(x[1] / x[2] * 100) + '</div>'; }).join('') + '</div></section>';
   h += winsCard();
-  h += guideCard();
-  var cr = coachRules(k), tip = nowTip(cr, t, tg, b);
-  h += '<section class="c dark" data-act="go" data-to="coach"><div class="kick">' + icon('spark', 16) + 'COACH</div><p class="p15">' + esc(tip) + '</p></section>';
   /* body today, with averages */
   var avg7 = function (m) { var v = []; for (var i = 0; i < 7; i++) { var x = TM[m].day(addDays(k, -i)); if (x != null) v.push(x); } return v.length >= 2 ? (TM[m].two ? [dayAvg(v.map(function (y) { return y[0]; })), dayAvg(v.map(function (y) { return y[1]; }))] : dayAvg(v)) : null; };
   var st = stepsFor(k), sl = sleepFor(k), en = energyFor(k), hr = latestHr(), hd = hrDay(k), bp = merged('bp')[0], su = merged('sugar').filter(function (x) { return x.type === 'fasting'; })[0], w = merged('weight')[0];
