@@ -38,6 +38,15 @@ function searchFoods(q, limit, partial) {
 }
 
 /* ---------- items / totals ---------- */
+/* drinks are measured in ml, everything else in g */
+var LIQU = /^(glass|tea cup|cup|mug|cutting|tetra pack|bottle|can|small glass|large glass)$/;
+function isLiquid(name, units) {
+  if (/milk cake|peda|barfi|burfi|halwa|kheer|rabdi|powder|chocolate|biscuit/i.test(name)) return false;
+  if (/juice|\bchai\b|\btea\b|coffee|\bmilk\b|lassi|chaas|buttermilk|shake|smoothie|sharbat|sherbet|\bwater\b|soda|cola|kadha|nimbu pani|lemonade|coconut water|\bsoup\b|rasam|jaljeera|aam panna|thandai|kombucha|beer|wine/i.test(name)) return true;
+  return (units || []).some(function (u) { return LIQU.test(u[0]); });
+}
+function gu(name) { var r = food(name); return isLiquid(name, r ? unitsOf(r) : []) ? 'ml' : 'g'; }
+function unitLabel(u, name) { return u === 'grams' ? (gu(name) === 'ml' ? 'ml' : 'grams') : u; }
 function itemOf(r, q, unit, grams) { return { id: uid(), n: r[0], q: q, u: unit, g: grams, k: r[1], p: r[2], c: r[3], f: r[4], fi: r[5], su: r[8] || 0, na: r[9] || 0, mi: r[14] && r[14].length ? r[14] : undefined, t: Date.now() }; }
 function iv(it, key) { return (it[key] || 0) * it.g / 100; }
 function sumItems(list) {

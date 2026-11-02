@@ -78,9 +78,9 @@ function http(method, url, headers, body) {
 }
 function native(fn) { try { if (AND && AND[fn]) return AND[fn].apply(AND, [].slice.call(arguments, 1)); } catch (e) { console.log('native ' + fn + ' failed', e); } return null; }
 /* ---------- themes ---------- */
-var THEMES = [['mist', 'Soft sage', 'Light and calm', 0, '#F3F6F4', '#4E8B76', '#BFE2D3', 'soft'], ['lavender', 'Soft lavender', 'Light lilac', 0, '#F5F4FA', '#7768AE', '#D6CFF0', 'soft'], ['peach', 'Soft peach', 'Warm and light', 0, '#FAF6F2', '#C07A57', '#F2D3C2', 'soft'], ['sky', 'Soft sky', 'Light blue', 0, '#F2F6FA', '#4C7DB0', '#C9DCF0', 'soft'], ['aurora', 'Aurora', 'Deep violet and teal glow', 1, '#0B0A14', '#8B6CFF', '#00C2D1'], ['neon', 'Neon mint', 'Dark with electric mint', 1, '#05110E', '#2BF5B4', '#3DA9FC'],
+var THEMES = [['glass', 'Glass', 'Frosted glass on bright colours', 0, '#FCE3D8', '#7A4DFF', '#FF3D8B', 'soft'], ['mist', 'Soft sage', 'Light and calm', 0, '#F3F6F4', '#4E8B76', '#BFE2D3', 'soft'], ['lavender', 'Soft lavender', 'Light lilac', 0, '#F5F4FA', '#7768AE', '#D6CFF0', 'soft'], ['peach', 'Soft peach', 'Warm and light', 0, '#FAF6F2', '#C07A57', '#F2D3C2', 'soft'], ['sky', 'Soft sky', 'Light blue', 0, '#F2F6FA', '#4C7DB0', '#C9DCF0', 'soft'], ['aurora', 'Aurora', 'Deep violet and teal glow', 1, '#0B0A14', '#8B6CFF', '#00C2D1'], ['neon', 'Neon mint', 'Dark with electric mint', 1, '#05110E', '#2BF5B4', '#3DA9FC'],
   ['sunrise', 'Sunrise', 'Warm coral and pink', 0, '#FFF3EB', '#FF8A3D', '#FF2E7E'], ['ocean', 'Ocean', 'Fresh blue and aqua', 0, '#EDF3FF', '#2563EB', '#06B6D4'], ['classic', 'Classic', 'Calm green, the original', 0, '#EEF2EF', '#0F6E56', '#9FE0C6']];
-function themeOf() { if (!DB.settings.themeV2) { DB.settings.themeV2 = 1; DB.settings.theme = 'mist'; } var k = DB.settings.theme || 'mist'; return THEMES.filter(function (t) { return t[0] === k; })[0] || THEMES[0]; }
+function themeOf() { if (!DB.settings.themeV3) { DB.settings.themeV2 = 1; DB.settings.themeV3 = 1; DB.settings.theme = 'glass'; } var k = DB.settings.theme || 'glass'; return THEMES.filter(function (t) { return t[0] === k; })[0] || THEMES[0]; }
 function themeAccent() { return themeOf()[5]; }
 function applyTheme() {
   var t = themeOf(), d = document.documentElement;
@@ -195,3 +195,6 @@ function spark(vals, w, h, color, ref) {
   var last = pts.split(' ').pop().split(',');
   return '<svg width="100%" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" aria-hidden="true">' + (ref != null ? '<line x1="0" x2="' + w + '" y1="' + y(ref) + '" y2="' + y(ref) + '" stroke="var(--warn)" stroke-dasharray="4 4" stroke-width="1"/>' : '') + '<polyline points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><circle cx="' + last[0] + '" cy="' + last[1] + '" r="4" fill="' + color + '"/></svg>';
 }
+
+/* keep the field you are typing in visible above the keyboard */
+document.addEventListener('focusin', function (e) { var t = e.target; if (!/INPUT|TEXTAREA|SELECT/.test(t.tagName)) return; setTimeout(function () { try { t.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (x) { } }, 350); });

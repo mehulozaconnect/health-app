@@ -8,51 +8,66 @@ function liveChip() {
   var hr = latestHr(), old = hr && Date.now() - hr.t > 25 * 60000;
   return '<button class="live' + (old ? ' stale' : '') + '" data-act="' + (old ? 'syncWatch' : 'refreshHealth') + '"><i></i>' + (hr ? 'Watch data · ' + hm(hr.t) : 'Watch · ' + ago(DB.healthAt)) + '</button>';
 }
+var ORB = { food: ['#FFC08A', '#FF6A3D'], drop: ['#9BE3FF', '#2E8BFF'], pill: ['#D9B8FF', '#8B4DFF'], bp: ['#FFA3C8', '#FF3D8B'], pulse: ['#FFD27A', '#F08A0B'], moon: ['#C7B5FF', '#6B4DFF'], yoga: ['#A6FFE0', '#16C79A'], scale: ['#9AE6D3', '#0EA58A'], heart: ['#FFB59A', '#FF4D4D'], bolt: ['#FFE38A', '#F5A60B'], steps: ['#A6FFE0', '#16C79A'], spark: ['#FFC6E0', '#FF3D8B'] };
+function orb(ic, size, off) { var c = ORB[ic] || ORB.spark; return '<span class="gorb' + (off ? ' off' : '') + '"' + (off ? '' : ' style="--o1:' + c[0] + ';--o2:' + c[1] + ';--o3:' + c[1] + '55"') + '>' + icon(ic, size || 18) + '</span>'; }
 ROUTES.home = function () {
   var k = today(), b = budgetFor(k), t = dayTotals(k), tg = macroTargets(), left = b.total - t.kcal, pct = t.kcal / b.total * 100;
-  var name = DB.profile.name ? ', ' + esc(DB.profile.name.split(' ')[0]) : '';
-  var h = '<header class="row sb"><div><div class="l">' + DOWL[new Date().getDay()] + ', ' + new Date().getDate() + ' ' + MON[new Date().getMonth()] + '</div><h1 class="big">' + greet() + name + '</h1></div>' + liveChip() + '</header>';
-  /* quick add */
-  var qa = [['food', 'Food', 'qFood'], ['drop', 'Water', 'qWater'], ['yoga', 'Exercise', 'logYoga'], ['bp', 'BP', 'logBp'], ['pulse', 'Sugar', 'logSugar'], ['moon', 'Sleep', 'logSleep']];
-  if ((DB.meds || []).length) qa.push(['pill', 'Medicine', 'qMeds']);
-  qa.push(['scale', 'Weight', 'qWeight']);
-  var QC = { food: '#E58A3A', drop: '#4E8FD0', yoga: '#4E9B6B', bp: '#D0566B', pulse: '#C9773A', moon: '#5A5FC2', pill: '#8B6CC9', scale: '#3E9C86' };
-  h += '<div class="qs" role="toolbar" aria-label="Quick log"><span class="qsl">' + icon('plus', 16) + 'Log</span>' + qa.map(function (q) { return '<button class="qsb" style="--qc:' + QC[q[0]] + '" data-act="' + q[2] + '">' + icon(q[0], 17) + q[1] + '</button>'; }).join('') + '</div>';
+  var hr0 = new Date().getHours(), part = hr0 < 12 ? 'morning' : hr0 < 17 ? 'afternoon' : 'evening';
+  var first = DB.profile.name ? esc(DB.profile.name.split(' ')[0]) : 'there', rs = rwStats();
+  var h = '<header class="gtop"><div><small>' + DOWL[new Date().getDay()] + ' ' + part + '</small><h1>Hi ' + first + '</h1></div><button class="gstreak" data-act="go" data-to="rewards" aria-label="Streak and rewards">' + (rs.goodCur ? '🔥' + rs.goodCur : '🏆') + '</button></header>';
+  h += '<div class="row sb" style="margin-top:-4px">' + liveChip() + '</div>';
   /* calories */
-  h += '<section class="c" data-act="go" data-to="food"><div class="row g16"><div class="ringbox">' + ring(pct, 116, 11, left < 0 ? 'var(--bad)' : 'var(--g)', '<text x="58" y="58" text-anchor="middle" class="rt1">' + n0(Math.abs(left)) + '</text><text x="58" y="77" text-anchor="middle" class="rt2">kcal ' + (left < 0 ? 'over' : 'left') + '</text>') + '</div>' +
-    '<div class="f1 kc"><div class="rd"><span>Budget</span><b>' + n0(b.base) + '</b></div>' + (b.earned ? '<div class="rd"><span>+ Exercise</span><b class="gtxt">+' + n0(b.earned) + '</b></div>' : '') + (b.carry ? '<div class="rd"><span>− Yesterday</span><b class="warnt">−' + n0(b.carry) + '</b></div>' : '') + '<div class="rd"><span>− Eaten</span><b>' + n0(t.kcal) + '</b></div></div></div>' +
-    '<div class="g4 mt">' + [['Protein', t.p, tg.p], ['Carbs', t.c, tg.c], ['Fat', t.f, tg.f], ['Fibre', t.fi, tg.fi]].map(function (x) { return '<div class="mm"><div class="l">' + x[0] + '</div><b>' + n0(x[1]) + '<small>/' + n0(x[2]) + 'g</small></b>' + bar(x[1] / x[2] * 100) + '</div>'; }).join('') + '</div></section>';
-  h += winsCard();
-  /* body today, with averages */
-  var avg7 = function (m) { var v = []; for (var i = 0; i < 7; i++) { var x = TM[m].day(addDays(k, -i)); if (x != null) v.push(x); } return v.length >= 2 ? (TM[m].two ? [dayAvg(v.map(function (y) { return y[0]; })), dayAvg(v.map(function (y) { return y[1]; }))] : dayAvg(v)) : null; };
-  var st = stepsFor(k), sl = sleepFor(k), en = energyFor(k), hr = latestHr(), hd = hrDay(k), bp = merged('bp')[0], su = merged('sugar').filter(function (x) { return x.type === 'fasting'; })[0], w = merged('weight')[0];
-  var VI = { Steps: ['steps', '#3E9C86'], Sleep: ['moon', '#5A5FC2'], Energy: ['bolt', '#D9A21B'], 'Heart rate': ['heart', '#D0566B'], 'Blood pressure': ['bp', '#C2629A'], 'Fasting sugar': ['pulse', '#C9773A'] };
-  var T2 = function (to, label, val, sub) { var vi = VI[label] || ['spark', '#4E8B76']; return '<button class="vt" style="--vc:' + vi[1] + '" data-act="go" data-to="' + to + '"><span class="vti">' + icon(vi[0], 16) + '</span><span class="l">' + label + '</span><b>' + val + '</b><small>' + sub + '</small></button>'; };
-  var a;
-  h += '<h3 class="sech">Your body today</h3><div class="vgrid">';
-  a = avg7('steps'); h += T2('trend/steps', 'Steps', st ? n0(st) : '—', a ? '7-day avg ' + n0(a) : st ? 'of 10,000' : 'Wear the watch');
-  a = avg7('sleep'); h += T2('sleep', 'Sleep', sl ? dur(sl.asleep) : '—', a ? '7-day avg ' + dur(a) : sl ? 'score ' + sl.score : '<span class="lnk" data-act="logSleep">+ Log sleep</span>');
-  a = avg7('energy'); h += T2('trend/energy', 'Energy', en != null ? en : '—', a ? '7-day avg ' + Math.round(a) : 'from the watch');
-  a = avg7('rhr'); h += T2('vitals', 'Heart rate', hr ? hr.bpm + ' <small>bpm</small>' : hd ? hd.avg + ' <small>avg</small>' : '—', a ? 'resting avg ' + Math.round(a) : hr ? 'at ' + hm(hr.t) : 'no reading');
-  var bp30 = merged('bp').filter(function (x) { return x.t > Date.now() - 30 * 86400000; });
-  h += T2('bp', 'Blood pressure', bp ? bp.sys + '/' + bp.dia : '—', bp30.length >= 2 ? '30-day avg ' + Math.round(dayAvg(bp30.map(function (x) { return x.sys; }))) + '/' + Math.round(dayAvg(bp30.map(function (x) { return x.dia; }))) : bp ? '<span class="' + bpLabel(bp.sys, bp.dia)[1] + 't">' + bpLabel(bp.sys, bp.dia)[0] + ' · ' + ago(bp.t) + '</span>' : 'tap to log');
+  var gid = 'hr' + Date.now() % 1e6;
+  h += '<section class="c ghero" data-act="go" data-to="food"><svg width="124" height="124" viewBox="0 0 124 124" aria-hidden="true"><defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF7A59"/><stop offset=".5" stop-color="#FF3D8B"/><stop offset="1" stop-color="#8B5CFF"/></linearGradient></defs>' +
+    '<circle cx="62" cy="62" r="50" fill="none" stroke="var(--track)" stroke-width="14"/><circle cx="62" cy="62" r="50" fill="none" stroke="' + (left < 0 ? 'var(--bad)' : 'url(#' + gid + ')') + '" stroke-width="14" stroke-linecap="round" stroke-dasharray="' + (clamp(pct, 0, 100) / 100 * 314.2).toFixed(1) + ' 314.2" transform="rotate(-90 62 62)"/>' +
+    '<text x="62" y="62" text-anchor="middle" font-weight="700" font-size="23" fill="var(--ink)">' + Math.round(pct) + '%</text><text x="62" y="80" text-anchor="middle" font-size="11.5" fill="var(--mute)">of budget</text></svg>' +
+    '<div class="t f1"><small>Calories ' + (left < 0 ? 'over' : 'left') + '</small><b' + (left < 0 ? ' style="color:var(--bad)"' : '') + '>' + n0(Math.abs(left)) + '</b><span>' + n0(t.kcal) + ' eaten of ' + n0(b.total) + (b.earned ? ' (+' + n0(b.earned) + ' exercise)' : '') + '</span>' +
+    '<div class="mac4"><i>P ' + n0(t.p) + '/' + n0(tg.p) + 'g</i><i>C ' + n0(t.c) + '/' + n0(tg.c) + 'g</i><i>F ' + n0(t.f) + '/' + n0(tg.f) + 'g</i></div></div></section>';
+  /* quick log */
+  var qa = [['food', 'Food', 'qFood'], ['drop', 'Water', 'qWater'], ['pill', 'Meds', 'qMeds'], ['bp', 'BP', 'logBp'], ['yoga', 'Breathe', 'qBreathe'], ['pulse', 'Sugar', 'logSugar'], ['moon', 'Sleep', 'logSleep'], ['steps', 'Exercise', 'logYoga'], ['scale', 'Weight', 'qWeight']];
+  h += '<section class="c gqa" style="padding:12px 8px">' + qa.map(function (q) { return '<button data-act="' + q[2] + '">' + orb(q[0], 22) + q[1] + '</button>'; }).join('') + '</section>';
+  /* vitals */
+  var st = stepsFor(k), sl = sleepFor(k), en = energyFor(k), hr = latestHr(), hd = hrDay(k), bps = merged('bp'), bp = bps[0], su = merged('sugar').filter(function (x) { return x.type === 'fasting'; })[0], w = merged('weight')[0];
+  var avg7 = function (m) { var v = []; for (var i = 0; i < 7; i++) { var x = TM[m].day(addDays(k, -i)); if (x != null) v.push(x); } return v.length >= 2 ? dayAvg(v) : null; };
+  var tile = function (to, ic, label, val, sub, extra) { return '<button class="gt" data-act="go" data-to="' + to + '"><div class="h"><span>' + label + '</span>' + orb(ic, 16) + '</div><b>' + val + '</b><div class="s">' + sub + '</div>' + (extra || '') + '</button>'; };
+  var bp30 = bps.filter(function (x) { return x.t > Date.now() - 30 * 86400000; });
+  if (bp) {
+    var bl = bpLabel(bp.sys, bp.dia), tagc = bl[1] === 'bad' ? 'background:var(--badbg);color:var(--bad)' : bl[1] === 'warn' ? 'background:var(--warnbg);color:var(--warntx)' : 'background:var(--g2);color:var(--onmint)';
+    h += '<div class="ggrid"><button class="gt w2" data-act="go" data-to="bp"><div class="h"><span>Blood pressure, ' + (bp.t > Date.now() - 86400000 ? hm(bp.t) : ago(bp.t)) + '</span><span class="gtag" style="' + tagc + '">' + bl[0] + '</span></div>' +
+      '<div class="row sb" style="align-items:flex-end;width:100%"><div><b style="font-size:40px">' + bp.sys + '/' + bp.dia + '</b><div class="s">' + (bp30.length >= 2 ? 'Your 30-day average is ' + Math.round(dayAvg(bp30.map(function (x) { return x.sys; }))) + '/' + Math.round(dayAvg(bp30.map(function (x) { return x.dia; }))) : 'Tap to see all readings') + '</div></div>' +
+      '<div class="gspark" style="width:120px">' + spark(bps.slice(0, 10).reverse().map(function (x) { return x.sys; }), 120, 46, '#FF3D8B') + '</div></div></button>';
+  } else h += '<div class="ggrid"><button class="gt w2" data-act="logBp"><div class="h"><span>Blood pressure</span>' + orb('bp', 16) + '</div><b>—</b><div class="s">Tap to log a reading</div></button>';
+  var a = avg7('sleep');
+  h += tile('sleep', 'moon', 'Sleep', sl ? dur(sl.asleep).replace(/ min$/, 'm') : '—', sl ? (a ? 'Usual is ' + dur(a) : 'Score ' + sl.score) : 'Tap to log sleep');
+  a = avg7('rhr');
+  h += tile('vitals', 'heart', 'Heart', hr ? hr.bpm + ' <small>bpm</small>' : hd ? hd.avg + ' <small>avg</small>' : '—', a ? 'Resting is ' + Math.round(a) : hr ? 'At ' + hm(hr.t) : 'No reading yet');
+  h += tile('trend/steps', 'steps', 'Steps', st ? n0(st) : '—', st >= stepGoal() ? 'Goal reached' : st ? n0(stepGoal() - st) + ' to your goal' : 'Wear the watch');
+  var wm = waterMl(k), wg = DB.settings.water.goal;
+  h += tile('water', 'drop', 'Water', (wm / 1000).toFixed(2).replace(/\.?0+$/, '') + ' <small>L</small>', wm >= wg ? 'Goal reached' : 'of ' + (wg / 1000) + ' L', '<div class="gprog" style="width:100%"><i style="width:' + clamp(wm / wg * 100, 0, 100) + '%;background:linear-gradient(90deg,#9BE3FF,#2E8BFF)"></i></div>');
+  /* wins */
+  var W = winsFor(k), lvp = rs.lvTo ? (rs.pts - rs.lvFrom) / (rs.lvTo - rs.lvFrom) * 100 : 100;
+  h += '<button class="gt w2" data-act="go" data-to="rewards"><div class="h"><span>Today\'s wins, level ' + (rs.lv + 1) + ' ' + esc(rs.lvName) + '</span><span style="font-weight:700;color:var(--ink)">' + W.done + ' of ' + W.total + '</span></div>' +
+    '<div class="gwins" style="width:100%">' + W.goals.map(function (g) { return orb(g.ok ? g.icon : g.icon, 16, !g.ok); }).join('') + '</div>' +
+    '<div class="gprog" style="width:100%"><i style="width:' + lvp + '%"></i></div><div class="s">' + n0(rs.pts) + (rs.lvTo ? ' of ' + n0(rs.lvTo) + ' points to the next level' : ' points') + '</div></button>';
+  /* more */
+  a = avg7('energy');
+  h += tile('trend/energy', 'bolt', 'Energy', en != null ? en : '—', a ? 'Usual is ' + Math.round(a) : 'From the watch');
   var su30 = merged('sugar').filter(function (x) { return x.type === 'fasting' && x.t > Date.now() - 30 * 86400000; });
-  h += T2('sugar', 'Fasting sugar', su ? su.val + ' <small>mg/dL</small>' : '—', su30.length >= 2 ? '30-day avg ' + Math.round(dayAvg(su30.map(function (x) { return x.val; }))) : su ? ago(su.t) : 'tap to log');
+  h += tile('sugar', 'pulse', 'Fasting sugar', su ? su.val + ' <small>mg/dL</small>' : '—', su30.length >= 2 ? '30-day average ' + Math.round(dayAvg(su30.map(function (x) { return x.val; }))) : su ? ago(su.t) : 'Tap to log');
+  var wp = merged('weight').filter(function (x) { return w && x.t < w.t - 6 * 86400000; })[0];
+  h += tile('weight', 'scale', 'Weight', w ? n1(w.kg) + ' <small>kg</small>' : '—', w && wp ? (w.kg <= wp.kg ? '▼ ' : '▲ ') + n1(Math.abs(w.kg - wp.kg)) + ' kg this week' : 'Goal ' + n1(DB.profile.goal) + ' kg');
+  var ym = yogaMin(k);
+  h += tile('yoga', 'yoga', 'Yoga', ym + ' <small>min</small>', ym >= yogaGoal() ? 'Done today' : 'of ' + yogaGoal() + ' min');
   h += '</div>';
   h += staleNote() ? '<div class="ctrtxt">' + staleNote() + '</div>' : '';
-  h += waterCard(true);
   h += medsCard();
-  /* yoga today */
-  var ym = yogaMin(k);
-  h += '<section class="c row sb" data-act="go" data-to="yoga"><div><div class="l">Yoga & pranayama</div><b class="m20">' + ym + ' / ' + yogaGoal() + ' min</b><div class="sm gtxt">' + (ym >= yogaGoal() ? 'Done today' : 'Today\'s practice is ready') + '</div></div><span class="mic">' + icon('play', 20) + '</span></section>';
-  var wp = merged('weight').filter(function (x) { return w && x.t < w.t - 6 * 86400000; })[0];
-  h += '<section class="c row sb" data-act="go" data-to="weight"><div><div class="l">Weight</div><b class="m20">' + (w ? n1(w.kg) + ' kg' : '—') + '</b><div class="sm gtxt">' + (w && wp ? (w.kg <= wp.kg ? '−' : '+') + n1(Math.abs(w.kg - wp.kg)) + ' kg this week · ' : '') + 'goal ' + n1(DB.profile.goal) + ' kg</div></div>' + icon('chev', 18) + '</section>';
   return h;
 };
 ACT.qFood = function () { go('add/' + mealFor()); };
 ACT.qWater = function () { var g = DB.settings.water.glass; ACT.water({ getAttribute: function () { return g; } }); };
 ACT.qMeds = function () { go('meds'); };
 ACT.qWeight = function () { go('weight'); };
+ACT.qBreathe = function () { go('breaths'); };
 function tileT(label, val, extra) { return tile(label, val, extra, 'vitals'); }
 function tile(label, val, extra, to) { return '<section class="c tile"' + (to ? ' data-act="go" data-to="' + to + '"' : '') + '><div class="l">' + label + '</div><b class="m24">' + val + '</b>' + (extra || '') + '</section>'; }
 function nowTip(cr, t, tg, b) {

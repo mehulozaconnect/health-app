@@ -27,7 +27,7 @@ ROUTES.food = function () {
     if (items.length) { var lt = Math.max.apply(null, items.map(function (x) { return x.t; })); sub += ' · ' + hm(lt); }
     h += '<section class="c meal' + (items.length ? '' : ' empty') + '"><div class="row sb"><div><h2>' + m[1] + '</h2><div class="l ' + cls + '">' + sub + '</div></div><button class="add" data-act="go" data-to="add/' + m[0] + '" aria-label="Add to ' + m[1] + '">' + icon('plus', 20) + '</button></div>';
     items.forEach(function (it) {
-      h += '<button class="it" data-act="editItem" data-m="' + m[0] + '" data-id="' + it.id + '"><span>' + esc(it.n) + '<small>' + frac(it.q) + ' ' + esc(it.u) + (it.u === 'grams' ? '' : ' · ' + Math.round(it.g) + ' g') + (it.exTxt ? ' · ' + esc(it.exTxt) : '') + '</small></span><b>' + n0(iv(it, 'k')) + '</b></button>';
+      h += '<button class="it" data-act="editItem" data-m="' + m[0] + '" data-id="' + it.id + '"><span>' + esc(it.n) + '<small>' + frac(it.q) + ' ' + esc(unitLabel(it.u, it.n)) + (it.u === 'grams' ? '' : ' · ' + Math.round(it.g) + ' ' + gu(it.n)) + (it.exTxt ? ' · ' + esc(it.exTxt) : '') + '</small></span><b>' + n0(iv(it, 'k')) + '</b></button>';
     });
     if (!items.length && k === today()) {
       var sug = suggestFor(m[0], left);
@@ -76,7 +76,7 @@ function pushItem(k, m, it) {
 ACT.editItem = function (el) {
   var m = el.getAttribute('data-m'), id = el.getAttribute('data-id'), it = day(SEL).meals[m].filter(function (x) { return x.id === id; })[0]; if (!it) return;
   EDIT = { m: m, id: id };
-  sheet('<h2>' + esc(it.n) + '</h2><div class="l">' + frac(it.q) + ' ' + esc(it.u) + ' · ' + Math.round(it.g) + ' g · ' + n0(iv(it, 'k')) + ' kcal</div>' +
+  sheet('<h2>' + esc(it.n) + '</h2><div class="l">' + frac(it.q) + ' ' + esc(unitLabel(it.u, it.n)) + (it.u === 'grams' ? '' : ' · ' + Math.round(it.g) + ' ' + gu(it.n)) + ' · ' + n0(iv(it, 'k')) + ' kcal</div>' +
     '<div class="stepper mt"><button class="step" data-act="editQty" data-d="-0.5" aria-label="Less">−</button><b id="eq">' + frac(it.q) + '</b><button class="step" data-act="editQty" data-d="0.5" aria-label="More">+</button></div>' +
     '<div class="l mt">Move to</div><div class="chips">' + MEALS.map(function (x) { return '<button class="chip' + (x[0] === m ? ' on' : '') + '" data-act="moveItem" data-to="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>' +
     '<div class="g2 mt"><button class="btn sec" data-act="delItem">' + icon('trash', 18) + 'Remove</button><button class="btn" data-act="closeSheet">Done</button></div>');
@@ -228,6 +228,12 @@ function withExtras(it, ex) {
   it.ex = ex; it.exTxt = t.txt.join(', ');
   return it;
 }
+function unitHelp(u, name) {
+  var liq = gu(name) === 'ml';
+  if (u[0] === 'grams') return liq ? 'Measured it? Use ml' : 'Weighing it? Use grams';
+  if (liq) return '1 ' + u[0] + ' = ' + Math.round(u[1]) + ' ml';
+  return (UHELP[u[0]] ? UHELP[u[0]].replace(/\.$/, '') + ' — ' : '1 ' + u[0] + ' ≈ ') + Math.round(u[1]) + ' g';
+}
 var UHELP = { 'tea cup': '1 tea cup = 180 ml', cutting: 'Cutting = half glass, about 75 ml', mug: '1 mug = 250 ml', katori: '1 katori = a 150 ml steel bowl, filled level', plate: '1 plate = a full quarter plate', bowl: 'A bowl as served (bigger than a katori)', glass: '1 glass = 200 ml', cup: '1 cup = 150 ml tea cup', tablespoon: '1 tablespoon = a serving spoon', grams: 'Weighing it? Use grams', piece: '1 piece as usually made at home' };
 ROUTES.dish = function (arg) {
   var p = arg.split('/'), m = p[0], name = p.slice(1).join('/'), r = food(name);
@@ -243,12 +249,12 @@ ROUTES.dish = function (arg) {
   if (r[8] > 10) tags.push('<span class="tag warn">Sugary</span>');
   if (r[9] > 500) tags.push('<span class="tag warn">Salty</span>');
   var h = head('', 'Adding to ' + mealName(m));
-  h += '<section class="c"><h1 class="big">' + esc(r[0]) + '</h1><div class="l">Per 100 g: ' + n0(r[1]) + ' kcal · ' + (r[12] === 'INDB' ? 'Indian Nutrient Databank' : r[12] === 'INDB-adj' ? 'Indian Nutrient Databank, corrected for oil actually absorbed' : r[12] === 'Mine' ? 'Your home version' + (r[13] ? ': ' + esc(r[13]) : '') : r[12] === 'AI' ? 'AI estimate for a home recipe' + (r[13] ? ': ' + r[13] : '') + '. Adjust if yours is made differently.' : 'Standard home-style values') + '</div><div class="chips mt">' + tags.join('') + '</div></section>';
+  h += '<section class="c"><h1 class="big">' + esc(r[0]) + '</h1><div class="l">Per 100 ' + gu(r[0]) + ': ' + n0(r[1]) + ' kcal · ' + (r[12] === 'INDB' ? 'Indian Nutrient Databank' : r[12] === 'INDB-adj' ? 'Indian Nutrient Databank, corrected for oil actually absorbed' : r[12] === 'Mine' ? 'Your home version' + (r[13] ? ': ' + esc(r[13]) : '') : r[12] === 'AI' ? 'AI estimate for a home recipe' + (r[13] ? ': ' + r[13] : '') + '. Adjust if yours is made differently.' : 'Standard home-style values') + '</div><div class="chips mt">' + tags.join('') + '</div></section>';
   h += verdictHtml(r, g, u[0], u[1], m);
-  h += '<section class="c"><div class="l">HOW MUCH?</div><div class="stepper"><button class="step" data-act="dq" data-d="-1" aria-label="Less">−</button><div class="ctr"><b class="huge">' + (u[0] === 'grams' ? Math.round(DISH.q) : frac(DISH.q)) + '</b><div class="l">' + esc(u[0]) + (u[0] === 'grams' ? '' : ' · ' + Math.round(g) + ' g') + '</div></div><button class="step" data-act="dq" data-d="1" aria-label="More">+</button></div>';
+  h += '<section class="c"><div class="l">HOW MUCH?</div><div class="stepper"><button class="step" data-act="dq" data-d="-1" aria-label="Less">−</button><div class="ctr"><b class="huge">' + (u[0] === 'grams' ? Math.round(DISH.q) : frac(DISH.q)) + '</b><div class="l">' + esc(unitLabel(u[0], name)) + (u[0] === 'grams' ? '' : ' · ' + Math.round(g) + ' ' + gu(name)) + '</div></div><button class="step" data-act="dq" data-d="1" aria-label="More">+</button></div>';
   if (u[0] !== 'grams') h += '<div class="chips c4">' + [0.5, 1, 1.5, 2].map(function (q) { return '<button class="chip' + (DISH.q === q ? ' on' : '') + '" data-act="dqSet" data-q="' + q + '">' + frac(q) + '</button>'; }).join('') + '</div>';
-  h += '<div class="chips">' + units.map(function (x) { return '<button class="chip' + (x[0] === u[0] ? ' dk' : '') + '" data-act="du" data-u="' + esc(x[0]) + '">' + esc(x[0]) + '</button>'; }).join('') + '</div>';
-  h += '<div class="hint">' + esc(UHELP[u[0]] || ('1 ' + u[0] + ' ≈ ' + u[1] + ' g')) + '</div></section>';
+  h += '<div class="chips">' + units.map(function (x) { return '<button class="chip' + (x[0] === u[0] ? ' dk' : '') + '" data-act="du" data-u="' + esc(x[0]) + '">' + esc(unitLabel(x[0], name)) + '</button>'; }).join('') + '</div>';
+  h += '<div class="hint">' + esc(unitHelp(u, name)) + '</div></section>';
   var list = DRINK.test(name) ? EXTRAS.slice(0, 3) : EXTRAS.filter(function (e) { return e[0] !== 'honey'; });
   h += '<section class="c"><div class="l">ADDED ON TOP' + (u[0] === 'grams' ? '' : ' (per ' + esc(u[0]) + ')') + '</div>' + (/^(Tea with milk|Masala chai|Coffee with milk)/.test(name) ? '<div class="hint">Set the sugar you actually add. Your choice is remembered for next time.</div>' : '') +
     list.map(function (e) { var n = DISH.ex[e[0]] || 0; return '<div class="exrow"><span>' + e[1] + '<small>' + e[2] + ' kcal per tsp</small></span><button class="exb" data-act="exd" data-k="' + e[0] + '" data-d="-0.5" aria-label="Less ' + e[1] + '">−</button><b>' + (n ? frac(n) + ' tsp' : '0') + '</b><button class="exb" data-act="exd" data-k="' + e[0] + '" data-d="0.5" aria-label="More ' + e[1] + '">+</button></div>'; }).join('') + '</section>';

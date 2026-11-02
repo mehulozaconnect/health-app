@@ -128,7 +128,9 @@ ROUTES.yoga = function () {
   h += '<section class="c"><div class="row sb"><h2>This week</h2><button class="lnk" data-act="logYoga">+ Log other exercise</button></div><div class="wk mt">' + wk + '</div></section>';
   /* everything else, tucked away */
   var mine = DB.routines || [];
-  h += '<details class="c"><summary class="lnk">My routines and ready-made flows</summary>' + (mine.length ? mine.map(routineRow).join('') : '') + FLOWS.map(routineRow).join('') + '<button class="btn sec mt" data-act="newRoutine">' + icon('plus', 18) + 'Create my own routine</button></details>';
+  h += '<section class="c"><h2>My routines</h2><div class="l">Make your own: pick poses from the library or add your own exercise, set time or rounds, and follow it with the voice guide.</div>' + (mine.length ? mine.map(routineRow).join('') : '') +
+    '<div class="g2 mt"><button class="btn" data-act="newRoutine">' + icon('plus', 18) + 'New routine</button><button class="btn sec" data-act="newPose">' + icon('yoga', 18) + 'My own exercise</button></div></section>';
+  h += '<details class="c"><summary class="lnk">Ready-made flows (' + FLOWS.length + ')</summary>' + FLOWS.map(routineRow).join('') + '</details>';
   var hist = []; for (i = 0; i < 14; i++) { dk = addDays(k, -i); var dy = dayIf(dk); if (dy) dy.yoga.forEach(function (x, j) { hist.push([dk, j, x]); }); }
   if (hist.length) h += '<details class="c"><summary class="lnk">Recent sessions (' + hist.length + ')</summary>' + hist.slice(0, 10).map(function (x) { var s = x[2]; return '<button class="it" data-act="editSession" data-k="' + x[0] + '" data-i="' + x[1] + '"><span>' + esc(s.name || 'Yoga') + '<small>' + niceDate(x[0]) + ', ' + hm(s.t) + ' · ' + (s.min || 0) + ' min</small></span>' + icon('chev', 16) + '</button>'; }).join('') + '</details>';
   return h;
@@ -220,7 +222,7 @@ ACT.pickPose = function (el) { ED.steps.push(step(el.getAttribute('data-k'))); s
 
 /* own pose / exercise */
 var NP = null;
-ACT.newPose = function (el) { NP = { k: 'c_' + uid(), name: PQ, aka: '', mode: 'time', def: 60, sides: false, repSec: 30, cue: '' }; poseForm(); };
+ACT.newPose = function (el) { NP = { k: 'c_' + uid(), name: cur.name === 'yoga' ? '' : PQ, aka: '', mode: 'time', def: 60, sides: false, repSec: 30, cue: '' }; poseForm(); };
 ACT.editMyPose = function (el) { var k = el.getAttribute('data-k'); NP = JSON.parse(JSON.stringify((DB.myPoses || []).filter(function (p) { return p.k === k; })[0])); poseForm(); };
 function poseForm() {
   sheet('<h2>' + (DB.myPoses && DB.myPoses.some(function (p) { return p.k === NP.k; }) ? 'Edit my pose' : 'My own pose or exercise') + '</h2>' +
