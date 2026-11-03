@@ -262,7 +262,11 @@ for x in rows:
     m = x[14]
     if m:
         m[15] = round(min(m[15], 0.45 * x[4] + 0.5), 2)
-        if 'mushroom' not in x[0].lower(): m[16] = round(min(m[16], 1.0), 2)
+        nm = x[0].lower()
+        if 'mushroom' in nm: pass
+        elif x[6] != 1: m[16] = round(min(m[16], 12.0), 2)
+        elif any(w in nm for w in ['milk', 'curd', 'dahi', 'paneer', 'cheese', 'ghee', 'butter', 'lassi', 'chaas', 'buttermilk', 'raita', 'kheer', 'khoa', 'mawa', 'cream', 'ice cream', 'yogurt', 'shrikhand', 'basundi', 'rabdi']): m[16] = round(min(m[16], 0.5), 2)
+        else: m[16] = 0
 rows.sort(key=lambda x: 0 if x[12] == 'Basic' else 1)
 for x in rows:
     if x[12] == 'Basic' and x[1] > 0:  # keep basics consistent: kcal follows macros within 15%

@@ -18,6 +18,7 @@ ROUTES.food = function () {
   var left = b.total - t.kcal;
   h += '<section class="c dark trio"><div><div class="l">Eaten</div><b>' + n0(t.kcal) + '</b></div><div><div class="l">' + (b.earned ? 'Burned' : 'Budget') + '</div><b>' + (b.earned ? '+' + n0(b.earned) : n0(b.base)) + '</b></div><div><div class="l">' + (left >= 0 ? 'Left' : 'Over') + '</div><b class="' + (left >= 0 ? 'mint' : 'peach') + '">' + n0(Math.abs(left)) + '</b></div></section>';
   if (b.carry) h += '<div class="note warn">Today\'s budget is ' + b.carry + ' kcal lower to balance yesterday.</div>';
+  h += katoriCard();
   if (k === today()) { var nm = nextMeal(); h += '<button class="tip tipbtn" data-act="go" data-to="guide">' + icon('spark', 16) + '<span><b>Your food guide:</b> what to eat, what to avoid and how much, from your BP, sugar and body.</span></button>' ; }
   MEALS.forEach(function (m) {
     var items = d.meals[m[0]] || [], mt = sumItems(items), tgt = Math.round(b.base * m[2]);
@@ -232,6 +233,7 @@ function unitHelp(u, name) {
   var liq = gu(name) === 'ml';
   if (u[0] === 'grams') return liq ? 'Measured it? Use ml' : 'Weighing it? Use grams';
   if (liq) return '1 ' + u[0] + ' = ' + Math.round(u[1]) + ' ml';
+  if (u[0] === 'katori') return '1 katori of this = ' + Math.round(u[1]) + ' g (your katori: ' + katoriG() + ' ml). Change it in Food → katori size.';
   return (UHELP[u[0]] ? UHELP[u[0]].replace(/\.$/, '') + ' — ' : '1 ' + u[0] + ' ≈ ') + Math.round(u[1]) + ' g';
 }
 var UHELP = { 'tea cup': '1 tea cup = 180 ml', cutting: 'Cutting = half glass, about 75 ml', mug: '1 mug = 250 ml', katori: '1 katori = a 150 ml steel bowl, filled level', plate: '1 plate = a full quarter plate', bowl: 'A bowl as served (bigger than a katori)', glass: '1 glass = 200 ml', cup: '1 cup = 150 ml tea cup', tablespoon: '1 tablespoon = a serving spoon', grams: 'Weighing it? Use grams', piece: '1 piece as usually made at home' };
@@ -355,3 +357,13 @@ ACT.saveCustom = function () {
   DB.custom.push([n, v('cf_k') * f, v('cf_p') * f, v('cf_c') * f, v('cf_f') * f, 0, 1, u + ':' + g, 0, 0, 0, 0, 'Mine']);
   save(); sheet(null); SQ = n; rerender(); toast('Saved ' + n);
 };
+
+/* katori size: the biggest source of error in home portions, so it is the user's to set */
+function katoriCard(always) {
+  if (DB.settings.katoriSet && !always) return '<button class="lnk" data-act="katoriAsk" style="margin:-4px 0 4px">Katori size: ' + katoriG() + ' ml · change</button>';
+  return '<section class="c"><h2>How big is your katori?</h2><div class="l">A sabzi katori at home can be 100 to 200 ml. This one setting changes the calories of every katori you log, so pick the one closest to yours.</div><div class="chips mt">' +
+    KATS.map(function (x) { return '<button class="chip' + (katoriG() === x[0] && DB.settings.katoriSet ? ' dk' : '') + '" data-act="katoriSet" data-g="' + x[0] + '">' + x[1] + ' · ' + x[0] + ' ml</button>'; }).join('') + '</div>' +
+    '<div class="l mt6">Not sure? Fill your katori with water and pour it into a measuring cup, or weigh one serving of sabzi once.</div></section>';
+}
+ACT.katoriAsk = function () { sheet(katoriCard(true)); };
+ACT.katoriSet = function (el) { DB.settings.katoriG = +el.getAttribute('data-g'); DB.settings.katoriSet = 1; save(); sheet(null); rerender(); toast('Katori set to ' + DB.settings.katoriG + ' ml'); };

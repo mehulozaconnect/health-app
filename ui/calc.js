@@ -6,10 +6,13 @@ var FX = {}; F.forEach(function (r, i) { FX[r[0]] = i; });
 function food(name) { for (var j = 0; j < DB.custom.length; j++) if (DB.custom[j][0] === name) return DB.custom[j]; var i = FX[name]; return i != null ? F[i] : null; }
 /* light, airy foods weigh far less per katori than dal or sabzi */
 var LIGHTF = /sukha|\bdry bhel|murmura|kurmura|mamra|puffed|chivda|chiwda|chevdo|chevda|popcorn|makhana|corn ?flakes|muesli|mixture|farsan|namkeen|wafers|chips|khakhra|rice flakes|poha chivda/i;
+function katoriG() { return +DB.settings.katoriG || 150; }
+var KATS = [[100, 'Small', 'a small steel katori, about 100 ml'], [125, 'Medium', 'a medium katori, about 125 ml'], [150, 'Standard', 'the standard 150 ml katori (ICMR household measure)'], [200, 'Large', 'a large bowl, about 200 ml']];
 var LIGHTCAP = { katori: 50, bowl: 70, plate: 100, cup: 40, mug: 50, 'tea cup': 40, handful: 30, fistful: 30 };
 function unitsOf(r) {
   var light = LIGHTF.test(r[0]) && !/curry|sabzi|gravy|wet|chutney bhel|bhel puri|kheer/i.test(r[0]);
-  var u = String(r[7] || '').split('|').filter(Boolean).map(function (s) { var p = s.split(':'), g = +p[1]; if (light && LIGHTCAP[p[0]] && g > LIGHTCAP[p[0]]) g = LIGHTCAP[p[0]]; return [p[0], g]; });
+  var kf = katoriG() / 150;
+  var u = String(r[7] || '').split('|').filter(Boolean).map(function (s) { var p = s.split(':'), g = +p[1]; if (light && LIGHTCAP[p[0]] && g > LIGHTCAP[p[0]]) g = LIGHTCAP[p[0]]; else if (p[0] === 'katori' && !light) g = Math.round(g * kf); return [p[0], g]; });
   u.push(['grams', 1]); return u;
 }
 
