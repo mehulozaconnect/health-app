@@ -31,7 +31,7 @@ Samosa pav | 6.5 | 42 | 11 | 2.6 | 1 | piece:115 | 1 | 430 | potato samosa | sam
 Thecha vada pav | 6 | 38 | 13 | 2.6 | 1 | piece:155 | 1 | 540 | potato bonda | thecha vadapav
 Bhajji pav (kanda bhaji pav) | 7 | 41 | 13 | 3 | 1 | piece:120 | 1 | 420 | onion pakora | bhaji pav pakoda pav kanda bhajji pav
 Punjabi bhel | 7 | 30 | 9 | 5 | 1 | plate:150 | 3 | 450 | bhel puri | chana bhel
-Diet bhel (no sev) | 5 | 24 | 2 | 3 | 1 | plate:120 | 2 | 300 | bhel puri | sukha bhel healthy bhel
+Diet bhel (no sev) | 5 | 24 | 2 | 3 | 1 | plate:120 | 2 | 300 | bhel puri | healthy bhel
 Mirchi vada | 5 | 28 | 17 | 3 | 1 | piece:80 | 0 | 350 | onion pakora | mirchi bada jodhpuri mirchi vada
 Pyaz kachori | 7 | 42 | 24 | 3.5 | 1 | piece:70 | 1 | 380 | khasta kachori | pyaaz kachori onion kachori
 Dahi kachori (kachori chaat) | 6 | 30 | 12 | 3 | 1 | plate:200 | 6 | 400 | dahi vada | kachori chaat dahi kachori chaat
@@ -247,3 +247,4 @@ Ber (Indian jujube) | 1 | 17 | 0.2 | 1.6 | 1 | 10 ber:80 | 0 | 3 |  | bor jujube
 Fresh coconut (Nariyal) | 3.3 | 15 | 33 | 9 | 1 | piece:30 | 0 | 20 |  | khopra nariyal ka tukda
 Tender coconut malai | 1.5 | 7 | 8 | 3 | 1 | katori:80 | 0 | 20 |  | malai coconut
 Meetha achar (chunda) | 0.6 | 60 | 0.3 | 1.5 | 1 | tablespoon:20 | 50 | 600 |  | meetha achar sweet pickle chunda gor keri methia sweet mango pickle meetha achaar
+Sukha bhel (dry bhel) | 7 | 33 | 10.7 | 2.4 | 1 | katori:45;plate:90 | 0 | 350 | Diet bhel (no sev) | sukha bhel dry bhel suka bhel

@@ -4,7 +4,14 @@ var F = window.FOODS || [];
 var FX = {}; F.forEach(function (r, i) { FX[r[0]] = i; });
 /* row: [name,kcal,p,c,f,fi,veg,units,sugar,na,fe,ca,src] per 100 g */
 function food(name) { for (var j = 0; j < DB.custom.length; j++) if (DB.custom[j][0] === name) return DB.custom[j]; var i = FX[name]; return i != null ? F[i] : null; }
-function unitsOf(r) { var u = String(r[7] || '').split('|').filter(Boolean).map(function (s) { var p = s.split(':'); return [p[0], +p[1]]; }); u.push(['grams', 1]); return u; }
+/* light, airy foods weigh far less per katori than dal or sabzi */
+var LIGHTF = /sukha|\bdry bhel|murmura|kurmura|mamra|puffed|chivda|chiwda|chevdo|chevda|popcorn|makhana|corn ?flakes|muesli|mixture|farsan|namkeen|wafers|chips|khakhra|rice flakes|poha chivda/i;
+var LIGHTCAP = { katori: 50, bowl: 70, plate: 100, cup: 40, mug: 50, 'tea cup': 40, handful: 30, fistful: 30 };
+function unitsOf(r) {
+  var light = LIGHTF.test(r[0]) && !/curry|sabzi|gravy|wet|chutney bhel|bhel puri|kheer/i.test(r[0]);
+  var u = String(r[7] || '').split('|').filter(Boolean).map(function (s) { var p = s.split(':'), g = +p[1]; if (light && LIGHTCAP[p[0]] && g > LIGHTCAP[p[0]]) g = LIGHTCAP[p[0]]; return [p[0], g]; });
+  u.push(['grams', 1]); return u;
+}
 
 /* ---------- search ---------- */
 var SYN = { khichadi: 'khichdi', khichri: 'khichdi', kadai: 'kadhai', karahi: 'kadhai', turiya: 'turai', tori: 'turai', sada: 'plain', panner: 'paneer', shake: 'milkshake', sabji: 'sabzi', bhajji: 'bhaji', bhajiya: 'bhaji', vadapav: 'vada pav', wada: 'vada', pao: 'pav', laddu: 'ladoo', laddoo: 'ladoo', halva: 'halwa', chapati: 'roti', dudhi: 'lauki', ghiya: 'lauki', lauki: 'bottle gourd', tondli: 'tindora', tendli: 'tindora', karela: 'bitter', batata: 'potato', roti: 'chapati', chapati: 'roti', dahi: 'curd', curd: 'dahi', chawal: 'rice', bhat: 'rice', sabji: 'sabzi', subzi: 'sabzi', sabzi: 'vegetable', aloo: 'potato', gobi: 'cauliflower', gobhi: 'cauliflower', bhindi: 'ladies', palak: 'spinach', chai: 'tea', doodh: 'milk', paratha: 'parantha', parantha: 'paratha', idly: 'idli', dosai: 'dosa', chilla: 'cheela', cheela: 'chilla', rava: 'semolina', suji: 'semolina', sooji: 'semolina', besan: 'gram flour', chole: 'chickpeas', chana: 'chickpeas', rajma: 'kidney', lauki: 'bottle gourd', dudhi: 'bottle gourd', makhana: 'fox nut', poha: 'flattened', kanda: 'onion', pyaz: 'onion', matar: 'pea', mattar: 'pea', khichri: 'khichdi', moong: 'mung', anda: 'egg' };
