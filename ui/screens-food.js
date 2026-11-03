@@ -233,7 +233,7 @@ function unitHelp(u, name) {
   var liq = gu(name) === 'ml';
   if (u[0] === 'grams') return liq ? 'Measured it? Use ml' : 'Weighing it? Use grams';
   if (liq) return '1 ' + u[0] + ' = ' + Math.round(u[1]) + ' ml';
-  if (u[0] === 'katori') return '1 katori of this = ' + Math.round(u[1]) + ' g (your katori: ' + katoriG() + ' ml). Change it in Food → katori size.';
+  if (u[0] === 'katori') return '1 katori = ' + katoriG() + ' ml, filled level. Of this food it weighs about ' + Math.round(u[1]) + ' g' + (Math.round(u[1]) < katoriG() - 5 ? ' (pieces leave air gaps)' : '') + '.';
   return (UHELP[u[0]] ? UHELP[u[0]].replace(/\.$/, '') + ' — ' : '1 ' + u[0] + ' ≈ ') + Math.round(u[1]) + ' g';
 }
 var UHELP = { 'tea cup': '1 tea cup = 180 ml', cutting: 'Cutting = half glass, about 75 ml', mug: '1 mug = 250 ml', katori: '1 katori = a 150 ml steel bowl, filled level', plate: '1 plate = a full quarter plate', bowl: 'A bowl as served (bigger than a katori)', glass: '1 glass = 200 ml', cup: '1 cup = 150 ml tea cup', tablespoon: '1 tablespoon = a serving spoon', grams: 'Weighing it? Use grams', piece: '1 piece as usually made at home' };
@@ -360,8 +360,9 @@ ACT.saveCustom = function () {
 
 /* katori size: the biggest source of error in home portions, so it is the user's to set */
 function katoriCard(always) {
+  if (!always) return '<button class="lnk" data-act="katoriAsk" style="margin:-4px 0 4px">Katori size: ' + katoriG() + ' ml · change</button>';
   if (DB.settings.katoriSet && !always) return '<button class="lnk" data-act="katoriAsk" style="margin:-4px 0 4px">Katori size: ' + katoriG() + ' ml · change</button>';
-  return '<section class="c"><h2>How big is your katori?</h2><div class="l">A sabzi katori at home can be 100 to 200 ml. This one setting changes the calories of every katori you log, so pick the one closest to yours.</div><div class="chips mt">' +
+  return '<section class="c"><h2>How big is your katori?</h2><div class="l">The standard katori is 150 ml, the same as most apps use. Change it only if yours is clearly smaller or bigger.</div><div class="chips mt">' +
     KATS.map(function (x) { return '<button class="chip' + (katoriG() === x[0] && DB.settings.katoriSet ? ' dk' : '') + '" data-act="katoriSet" data-g="' + x[0] + '">' + x[1] + ' · ' + x[0] + ' ml</button>'; }).join('') + '</div>' +
     '<div class="l mt6">Not sure? Fill your katori with water and pour it into a measuring cup, or weigh one serving of sabzi once.</div></section>';
 }
