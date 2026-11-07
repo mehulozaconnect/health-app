@@ -267,6 +267,9 @@ for x in rows:
         elif x[6] != 1: m[16] = round(min(m[16], 12.0), 2)
         elif any(w in nm for w in ['milk', 'curd', 'dahi', 'paneer', 'cheese', 'ghee', 'butter', 'lassi', 'chaas', 'buttermilk', 'raita', 'kheer', 'khoa', 'mawa', 'cream', 'ice cream', 'yogurt', 'shrikhand', 'basundi', 'rabdi']): m[16] = round(min(m[16], 0.5), 2)
         else: m[16] = 0
+# INDB recipe rows whose values are clearly off (water-diluted yields); better missing than misleading
+BAD = ['Danedar burfi', 'Spinach burfi (Palak burfi)', 'Spinach peanut burfi (Palak aur mungfali ki burfi)']
+rows = [x for x in rows if x[0] not in BAD]
 rows.sort(key=lambda x: 0 if x[12] == 'Basic' else 1)
 for x in rows:
     if x[12] == 'Basic' and x[1] > 0:  # keep basics consistent: kcal follows macros within 15%

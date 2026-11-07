@@ -256,7 +256,7 @@ ROUTES.dish = function (arg) {
   h += '<section class="c"><div class="l">HOW MUCH?</div><div class="stepper"><button class="step" data-act="dq" data-d="-1" aria-label="Less">−</button><div class="ctr"><b class="huge">' + (u[0] === 'grams' ? Math.round(DISH.q) : frac(DISH.q)) + '</b><div class="l">' + esc(unitLabel(u[0], name)) + (u[0] === 'grams' ? '' : ' · ' + Math.round(g) + ' ' + gu(name)) + '</div></div><button class="step" data-act="dq" data-d="1" aria-label="More">+</button></div>';
   if (u[0] !== 'grams') h += '<div class="chips c4">' + [0.5, 1, 1.5, 2].map(function (q) { return '<button class="chip' + (DISH.q === q ? ' on' : '') + '" data-act="dqSet" data-q="' + q + '">' + frac(q) + '</button>'; }).join('') + '</div>';
   h += '<div class="chips">' + units.map(function (x) { return '<button class="chip' + (x[0] === u[0] ? ' dk' : '') + '" data-act="du" data-u="' + esc(x[0]) + '">' + esc(unitLabel(x[0], name)) + '</button>'; }).join('') + '</div>';
-  h += '<div class="hint">' + esc(unitHelp(u, name)) + '</div></section>';
+  h += '<div class="hint">' + esc(unitHelp(u, name)) + ((DB.myUnits || {})[name] && DB.myUnits[name][u[0]] ? ' Your own size.' : '') + '</div>' + (u[0] !== 'grams' ? '<button class="lnk" data-act="mySize" data-n="' + esc(name) + '" data-u="' + esc(u[0]) + '" data-g="' + Math.round(u[1]) + '">Your ' + esc(u[0]) + ' is bigger or smaller? Set its weight</button>' : '') + '</section>';
   var list = DRINK.test(name) ? EXTRAS.slice(0, 3) : EXTRAS.filter(function (e) { return e[0] !== 'honey'; });
   h += '<section class="c"><div class="l">ADDED ON TOP' + (u[0] === 'grams' ? '' : ' (per ' + esc(u[0]) + ')') + '</div>' + (/^(Tea with milk|Masala chai|Coffee with milk)/.test(name) ? '<div class="hint">Set the sugar you actually add. Your choice is remembered for next time.</div>' : '') +
     list.map(function (e) { var n = DISH.ex[e[0]] || 0; return '<div class="exrow"><span>' + e[1] + '<small>' + e[2] + ' kcal per tsp</small></span><button class="exb" data-act="exd" data-k="' + e[0] + '" data-d="-0.5" aria-label="Less ' + e[1] + '">−</button><b>' + (n ? frac(n) + ' tsp' : '0') + '</b><button class="exb" data-act="exd" data-k="' + e[0] + '" data-d="0.5" aria-label="More ' + e[1] + '">+</button></div>'; }).join('') + '</section>';
@@ -368,3 +368,16 @@ function katoriCard(always) {
 }
 ACT.katoriAsk = function () { sheet(katoriCard(true)); };
 ACT.katoriSet = function (el) { DB.settings.katoriG = +el.getAttribute('data-g'); DB.settings.katoriSet = 1; save(); sheet(null); rerender(); toast('Katori set to ' + DB.settings.katoriG + ' ml'); };
+
+/* the user's own portion size for a food, remembered for next time */
+var MS = null;
+ACT.mySize = function (el) {
+  MS = { n: el.getAttribute('data-n'), u: el.getAttribute('data-u'), g: +el.getAttribute('data-g') };
+  sheet('<h2>1 ' + esc(MS.u) + ' of ' + esc(MS.n) + '</h2><div class="l">How much does yours weigh? Weigh one on a kitchen scale once, or compare with the box or sweet shop label. Arogya will use this every time.</div>' +
+    '<div class="stepper mt"><button class="step" data-act="msq" data-d="-5">−</button><div class="ctr"><b class="huge" id="msv">' + MS.g + '</b><div class="l">' + gu(MS.n) + '</div></div><button class="step" data-act="msq" data-d="5">+</button></div>' +
+    '<div class="chips mt6">' + [-10, -1, 1, 10].map(function (d) { return '<button class="chip" data-act="msq" data-d="' + d + '">' + (d > 0 ? '+' : '') + d + '</button>'; }).join('') + '</div>' +
+    '<div class="g2 mt"><button class="btn sec" data-act="msReset">Use the usual size</button><button class="btn" data-act="msSave">Save</button></div>');
+};
+ACT.msq = function (el) { MS.g = clamp(MS.g + +el.getAttribute('data-d'), 1, 2000); document.getElementById('msv').textContent = MS.g; };
+ACT.msSave = function () { DB.myUnits = DB.myUnits || {}; DB.myUnits[MS.n] = DB.myUnits[MS.n] || {}; DB.myUnits[MS.n][MS.u] = MS.g; save(); sheet(null); rerender(); toast('1 ' + MS.u + ' = ' + MS.g + ' ' + gu(MS.n) + ', saved for next time'); };
+ACT.msReset = function () { if (DB.myUnits && DB.myUnits[MS.n]) { delete DB.myUnits[MS.n][MS.u]; save(); } sheet(null); rerender(); };

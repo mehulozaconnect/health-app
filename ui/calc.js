@@ -22,6 +22,7 @@ function unitsOf(r) {
   var light = LIGHTF.test(r[0]) && !/curry|sabzi|gravy|wet|chutney bhel|bhel puri|kheer/i.test(r[0]);
   var kf = katoriG() / 150, dn = density(r[0]);
   var u = String(r[7] || '').split('|').filter(Boolean).map(function (s) { var p = s.split(':'), g = +p[1]; if (light && LIGHTCAP[p[0]] && g > LIGHTCAP[p[0]]) g = LIGHTCAP[p[0]]; else if (p[0] === 'katori' && !light) g = Math.round((g === 150 ? 150 * dn : g) * kf); return [p[0], g]; });
+  var my = (DB.myUnits || {})[r[0]]; if (my) u = u.map(function (x) { return my[x[0]] ? [x[0], my[x[0]]] : x; });
   u.push(['grams', 1]); return u;
 }
 

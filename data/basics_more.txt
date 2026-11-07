@@ -64,7 +64,7 @@ Lasaniya batata | 2 | 18 | 7 | 2 | 1 | katori:150 | 1 | 350 | dry potato | lasan
 Dal vada (Gujarati) | 12 | 30 | 14 | 5 | 1 | piece:25 | 0 | 300 | dal vada | dalwada moong dal vada
 Sukhdi (gol papdi) | 6 | 55 | 25 | 3 | 1 | piece:40 | 30 | 20 | ladoo | gol papdi sukhadi
 Doodhpak | 5 | 20 | 6 | 0 | 1 | katori:150 | 12 | 50 | rabri | dudhpak
-Mohanthal | 7 | 48 | 28 | 2 | 1 | piece:40 | 28 | 30 | gram flour burfi | mohan thal
+Mohanthal | 7 | 48 | 28 | 2 | 1 | piece:30 | 28 | 30 | gram flour burfi | mohan thal
 Basundi | 7 | 25 | 8 | 0 | 1 | katori:100 | 18 | 60 | rabri | basundi
 Amrakhand | 8 | 35 | 6 | 0.3 | 1 | katori:100 | 28 | 40 | shrikhand | mango shrikhand
 # --- Maharashtrian ---
@@ -177,7 +177,7 @@ Soan papdi | 5 | 60 | 25 | 1 | 1 | piece:25 | 45 | 20 | gram flour burfi | son p
 Peda | 9 | 55 | 14 | 0 | 1 | piece:25 | 40 | 60 | plain burfi | pedha kesar peda doodh peda mathura peda
 Milk barfi | 10 | 50 | 16 | 0 | 1 | piece:25 | 35 | 60 | plain burfi | mawa barfi khoa barfi barfi
 Besan barfi | 8 | 50 | 25 | 2 | 1 | piece:30 | 30 | 20 | gram flour burfi | besan burfi
-Kalakand | 12 | 38 | 15 | 0 | 1 | piece:40 | 25 | 70 | plain burfi | milk cake
+Kalakand | 12 | 38 | 15 | 0 | 1 | piece:30 | 25 | 70 | plain burfi | milk cake
 Sandesh | 10 | 38 | 10 | 0 | 1 | piece:30 | 28 | 50 | plain burfi | sondesh
 Boondi ladoo | 5 | 58 | 20 | 1.5 | 1 | piece:40 | 40 | 20 | gram flour ladoo | bundi laddu
 Imarti | 3 | 60 | 14 | 0.5 | 1 | piece:40 | 45 | 20 |  | amriti
