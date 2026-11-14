@@ -136,11 +136,17 @@ function merged(kind) {
   var mine = (DB[kind] || []).slice(), h = DB.health, hc = DB.hc || {};
   var add = function (src, name) {
     (src || []).forEach(function (x) {
-      var t = x.t, dupe = mine.some(function (m) { return Math.abs(m.t - t) < 10 * 60000; });
+      /* the same reading saved in two places counts once; several readings in one sitting all count */
+      var t = x.t, dupe = mine.some(function (m) {
+        if (m._s === name || Math.abs(m.t - t) > 10 * 60000) return false;
+        if (kind === 'bp') return Math.abs(m.sys - x.sys) <= 2 && Math.abs(m.dia - x.dia) <= 2;
+        if (kind === 'sugar') return Math.abs(m.val - Math.round(x.mgdl)) <= 3;
+        return Math.abs(m.kg - x.kg) <= 0.2;
+      });
       if (dupe) return;
-      if (kind === 'bp') mine.push({ t: t, sys: x.sys, dia: x.dia, pulse: x.pulse || 0, src: x.src || name });
-      if (kind === 'sugar') mine.push({ t: t, val: Math.round(x.mgdl), type: x.relation || x.type || 'random', src: x.src || name });
-      if (kind === 'weight') mine.push({ t: t, kg: x.kg, src: x.src || name });
+      if (kind === 'bp') mine.push({ t: t, sys: x.sys, dia: x.dia, pulse: x.pulse || 0, src: x.src || name, _s: name });
+      if (kind === 'sugar') mine.push({ t: t, val: Math.round(x.mgdl), type: x.relation || x.type || 'random', src: x.src || name, _s: name });
+      if (kind === 'weight') mine.push({ t: t, kg: x.kg, src: x.src || name, _s: name });
     });
   };
   add(hc[kind], 'Health Connect');

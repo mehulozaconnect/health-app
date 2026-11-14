@@ -268,7 +268,9 @@ ACT.hcReadNow = function () { HCWAIT = true; toast('Reading Health Connect…');
 function hcCard(kind) {
   if (!AND || !AND.hcStatus) return '';
   var hc = DB.hc || {};
-  if (hc.on && hc.status === 'ok') return '<div class="l ctrtxt">' + icon('check', 12) + ' Health Connect (Omron) linked · read ' + ago(hc.at) + ' · <button class="lnk" data-act="hcReadNow">Read now</button></div>';
+  if (hc.on && hc.status === 'ok') { var hl = (hc[kind === 'sugar' ? 'sugar' : kind === 'weight' ? 'weight' : 'bp'] || []), nw = hl.reduce(function (a, x) { return Math.max(a, x.t); }, 0);
+    return '<div class="l ctrtxt">' + icon('check', 12) + ' Health Connect linked · read ' + ago(hc.at) + ' · ' + hl.length + ' readings there' + (nw ? ', newest ' + niceDate(dkey(new Date(nw))) + ' ' + hm(nw) : '') + ' · <button class="lnk" data-act="hcReadNow">Read now</button>' +
+      (nw && Date.now() - nw > 2 * 86400000 ? '<br>Nothing newer in Health Connect. Open Omron Connect and let it sync, then tap Read now.' : '') + '</div>'; }
   return '<section class="c row g14"><span class="mic">' + icon('bp', 20) + '</span><div class="f1"><b>Get ' + (kind || 'BP') + ' from Omron automatically</b><div class="l">Omron Connect saves readings to Health Connect. Link it once and every reading shows here.</div>' + (hc.status && hc.status !== 'ok' ? '<div class="l warnt">' + esc(hc.status === 'no_permission' ? 'Permission not given yet' : hc.status === 'not_installed' ? 'Health Connect app not found' : hc.msg || hc.status) + '</div>' : '') + '<button class="btn sm mt6" data-act="hcConnect">Link Health Connect</button></div></section>';
 }
 window.onHealth = function (json) {
