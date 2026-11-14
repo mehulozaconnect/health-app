@@ -41,6 +41,10 @@ public class Backup extends BroadcastReceiver {
             copy(new FileInputStream(src), new FileOutputStream(new File(dir, "arogya-" + LocalDate.now() + ".json")));
             File[] all = dir.listFiles(); if (all != null && all.length > 7) { Arrays.sort(all); for (int i = 0; i < all.length - 7; i++) all[i].delete(); }
         } catch (Exception ignored) { }
+        /* a copy in the phone's Documents/Arogya folder: survives uninstalling the app */
+        try { docsCopy(c, src); p.edit().putLong("docAt", now).apply(); } catch (Exception ignored) { }
+        /* tell Android's own Google backup that there is new data */
+        try { new android.app.backup.BackupManager(c).dataChanged(); } catch (Exception ignored) { }
         String uri = p.getString("uri", null);
         if (uri == null) { p.edit().putLong("last", now).putString("err", "").apply(); return "local"; }
         try {
@@ -50,9 +54,34 @@ public class Backup extends BroadcastReceiver {
             p.edit().putLong("last", now).putLong("lastOk", now).putString("err", "").apply();
             return "ok";
         } catch (Exception e) {
-            p.edit().putString("err", e.getClass().getSimpleName() + ": " + e.getMessage()).putLong("lastErrAt", now).apply();
+            String m = String.valueOf(e.getMessage());
+            String nice = m.contains("No content provider") || m.contains("Permission") || e instanceof SecurityException
+                    ? "Google Drive couldn't open the backup file (Drive was updated or signed out). Tap Change file and pick it again in Drive."
+                    : e.getClass().getSimpleName() + ": " + m;
+            p.edit().putString("err", nice).putLong("lastErrAt", now).apply();
             return "error";
         }
+    }
+
+    static void docsCopy(Context c, File src) throws Exception {
+        if (android.os.Build.VERSION.SDK_INT < 29) return;
+        android.content.ContentResolver cr = c.getContentResolver();
+        Uri coll = android.provider.MediaStore.Files.getContentUri("external");
+        String name = "arogya-" + LocalDate.now() + ".json", rel = android.os.Environment.DIRECTORY_DOCUMENTS + "/Arogya/";
+        Uri target = null;
+        try (android.database.Cursor q = cr.query(coll, new String[]{android.provider.MediaStore.MediaColumns._ID},
+                android.provider.MediaStore.MediaColumns.DISPLAY_NAME + "=? AND " + android.provider.MediaStore.MediaColumns.RELATIVE_PATH + "=?", new String[]{name, rel}, null)) {
+            if (q != null && q.moveToFirst()) target = android.content.ContentUris.withAppendedId(coll, q.getLong(0));
+        }
+        if (target == null) {
+            android.content.ContentValues v = new android.content.ContentValues();
+            v.put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, name);
+            v.put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "application/json");
+            v.put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, rel);
+            target = cr.insert(coll, v);
+        }
+        if (target == null) throw new Exception("no Documents folder");
+        copy(new FileInputStream(src), cr.openOutputStream(target, "wt"));
     }
 
     static void copy(InputStream in, OutputStream out) throws Exception {
@@ -64,7 +93,7 @@ public class Backup extends BroadcastReceiver {
         try {
             File dir = new File(c.getFilesDir(), "backups"); String[] local = dir.list();
             if (local != null) Arrays.sort(local);
-            return new JSONObject().put("set", p.getString("uri", null) != null).put("name", p.getString("name", "")).put("last", p.getLong("lastOk", 0)).put("err", p.getString("err", "")).put("errAt", p.getLong("lastErrAt", 0))
+            return new JSONObject().put("set", p.getString("uri", null) != null).put("name", p.getString("name", "")).put("last", p.getLong("lastOk", 0)).put("err", p.getString("err", "")).put("errAt", p.getLong("lastErrAt", 0)).put("docAt", p.getLong("docAt", 0)).put("lastTry", p.getLong("last", 0))
                     .put("local", local == null ? new org.json.JSONArray() : new org.json.JSONArray(Arrays.asList(local))).toString();
         } catch (Exception e) { return "{}"; }
     }

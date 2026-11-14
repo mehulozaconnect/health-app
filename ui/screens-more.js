@@ -254,7 +254,7 @@ ACT.testKey = function () {
   var i = document.getElementById('gk'); if (i) { DB.settings.gkey = i.value.trim(); DB.settings.gmodel = ''; save(); }
   if (!DB.settings.gkey) return toast('Paste your key first');
   toast('Checking…');
-  withTimeout(gAsk([{ text: 'Reply with the single word OK.' }], { fast: true }), 45000).then(function () { DB.settings.lastAiErr = ''; save(); toast('Key works · ' + DB.settings.gmodel, 3000); rerender(); }).catch(aiErr);
+  gQuick([{ text: 'Reply with the single word OK.' }], { fast: true }, 20000, 4).then(function () { DB.settings.lastAiErr = ''; save(); toast('Key works · ' + DB.settings.gmodel, 3000); rerender(); }).catch(aiErr);
 };
 ACT.backup = function () { native('saveFile', 'arogya-backup-' + today() + '.json', 'application/json', JSON.stringify(DB)) === null && !AND && toast('Backup works in the phone app'); };
 ACT.restore = function () { native('openFile'); };
@@ -273,6 +273,8 @@ function backupCard() {
     if (st.err && st.errAt > st.last) h += '<div class="note warn mt">Last try failed: ' + esc(st.err) + '. If you deleted or moved the file, choose it again.</div>';
     h += '<div class="g2 mt"><button class="btn" data-act="bkNow">Back up now</button><button class="btn sec" data-act="bkPick">Change file</button></div>';
   }
+  h += '<div class="rd"><span>Copy on this phone</span><b class="' + (st.docAt && Date.now() - st.docAt < 36 * 3600000 ? 'gtxt' : 'warnt') + '">' + (st.docAt ? 'Documents/Arogya · ' + ago(st.docAt) : 'not yet') + '</b></div>' +
+    '<div class="l mt6">Also covered by your phone\'s own Google backup (Settings → Google → Backup → Back up by Google One): it saves Arogya\'s data to your Google account and brings it back if you reinstall.</div>';
   if (st.local && st.local.length) h += '<div class="l mt">Copies kept on this phone (last 7 days)</div><div class="chips">' + st.local.slice().reverse().map(function (n) { return '<button class="chip" data-act="bkLocal" data-n="' + esc(n) + '">' + esc(n.replace('arogya-', '').replace('.json', '')) + '</button>'; }).join('') + '</div><div class="l">Tap a date to restore that day\'s copy.</div>';
   return h + '</section>';
 }

@@ -5,7 +5,7 @@ function gVer(n) { var m = n.match(/gemini-(\d+(?:\.\d+)?)/); return m ? +m[1] :
 function gRank(n) {
   var s = gVer(n) * 100;
   if (/-flash(?!-lite)/.test(n)) s += 50; else if (/-pro/.test(n)) s += 20; else if (/lite/.test(n)) s += 5; else s -= 1000;
-  if (/exp|preview/.test(n)) s -= 150; if (/-\d{2}-\d{2}|\d{3,}$/.test(n)) s -= 10; if ((DB.settings.gbad || []).indexOf(n) >= 0) s -= 5000;
+  if (/exp|preview/.test(n)) s -= 150; if (/-\d{2}-\d{2}|\d{3,}$/.test(n)) s -= 10; if ((DB.settings.gbad || []).indexOf(n) >= 0) s -= 5000; if ((DB.settings.gok || []).indexOf(n) >= 0) s += 400;
   return s;
 }
 function gModel() {
@@ -39,6 +39,7 @@ function gAsk(parts, opt) {
       if (r.status >= 500 && !opt.retried5) { DB.settings.gbad = (DB.settings.gbad || []).concat([model]); DB.settings.gmodel = ''; save(); opt.retried5 = true; return gAsk(parts, opt); }
       if (r.status !== 200) throw new Error((d.error && d.error.message) || 'HTTP ' + r.status);
       var c = d.candidates && d.candidates[0], txt = c && c.content && c.content.parts ? c.content.parts.filter(function (p) { return p.text && !p.thought; }).map(function (p) { return p.text; }).join('') : '';
+      if (txt && (DB.settings.gok || []).indexOf(model) < 0) { DB.settings.gok = (DB.settings.gok || []).concat([model]).slice(-4); }
       if (!txt) throw new Error('Empty answer' + (c && c.finishReason ? ' (' + c.finishReason + ')' : ''));
       if (opt.json) { txt = txt.replace(/^```(json)?\s*|\s*```$/g, ''); return JSON.parse(txt); }
       return txt;
