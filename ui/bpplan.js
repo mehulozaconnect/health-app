@@ -35,7 +35,7 @@ var DG = [
   ['leg', 'Dal, beans, nuts', 'bolt', '#8B4DFF', '1 katori dal or chole, or a handful of nuts']
 ];
 var DRX = {
-  fruit: /\b(banana|kela|apple|papaya|papita|guava|amrood|orange|santra|mosambi|sweet lime|mango|grapes|angoor|pomegranate|anar|watermelon|tarbooz|muskmelon|kharbooja|chikoo|chiku|sapota|pear|nashpati|pineapple|ananas|kiwi|strawberr|berries|jamun|plum|peach|fig|anjeer|dates|khajur|raisins?|kishmish|custard apple|sitaphal|lychee|fruit)/i,
+  fruit: /\b(coconut water|nariyal pani|tender coconut|banana|kela|apple|papaya|papita|guava|amrood|orange|santra|mosambi|sweet lime|mango|grapes|angoor|pomegranate|anar|watermelon|tarbooz|muskmelon|kharbooja|chikoo|chiku|sapota|pear|nashpati|pineapple|ananas|kiwi|strawberr|berries|jamun|plum|peach|fig|anjeer|dates|khajur|raisins?|kishmish|custard apple|sitaphal|lychee|fruit)/i,
   dairy: /\b(milk|doodh|curd|dahi|yogh?urt|buttermilk|chaas|chhaas|lassi|paneer|cottage cheese|cheese|raita|shrikhand|kadhi)\b/i,
   leg: /\b(dal|daal|dals|sambar|rajma|chole|chana|chickpeas?|moong|mung|masoor|toor|tuvar|arhar|urad|lobia|chawli|matki|moth|kulith|usal|misal|sprouts|soya|soy|tofu|chilla|cheela|dhokla|almonds?|badam|walnuts?|akhrot|cashews?|kaju|peanuts?|groundnuts?|moongphali|pista|pistachio|seeds|flax|chia|makhana)\b/i,
   grain: /\b(roti|chapati|chapatti|phulka|bhakri|bhakhri|paratha|parantha|thepla|naan|kulcha|puri|poori|rice|chawal|pulao|pulav|biryani|khichdi|poha|upma|daliya|dalia|oats|sabudana|idli|dosa|uttapam|appam|bread|pav|toast|vermicelli|seviyan|noodles|pasta|millet|bajra|jowar|ragi|nachni|quinoa|muesli|cornflakes|corn flakes|khakhra)\b/i,
@@ -61,7 +61,7 @@ function dashParts(it) {
     var size = 100;
     if (k === 'grain') size = /roti|chapat|phulka|bhakri|bhakhri|paratha|parantha|thepla|naan|kulcha|puri|poori|bread|pav|toast|khakhra/i.test(n) ? 35 : /oats|muesli|cornflakes|corn flakes/i.test(n) ? 30 : /idli/i.test(n) ? 45 : 90;
     if (k === 'veg') size = 80;
-    if (k === 'fruit') size = /juice/i.test(n) ? 125 : /dates|khajur|raisin|kishmish|fig|anjeer/i.test(n) ? 30 : 100;
+    if (k === 'fruit') size = /coconut water|nariyal pani|tender coconut/i.test(n) ? 250 : /juice/i.test(n) ? 125 : /dates|khajur|raisin|kishmish|fig|anjeer/i.test(n) ? 30 : 100;
     if (k === 'dairy') size = /paneer|cheese/i.test(n) ? 40 : 200;
     if (k === 'leg') size = /almond|badam|walnut|akhrot|cashew|kaju|peanut|groundnut|moongphali|pista|seeds|flax|chia|makhana|roasted chana/i.test(n) ? 30 : 100;
     out[k] = g * sh[k] / size;
@@ -253,6 +253,7 @@ ROUTES.dash = function (k) {
   var days = []; for (var i = 6; i >= 0; i--) days.push(addDays(today(), -i));
   h += '<div class="days">' + days.map(function (dk) { var x = dashDay(dk); return '<button class="day' + (dk === k ? ' on' : '') + '" data-act="go" data-to="dash/' + dk + '">' + DOW[fromKey(dk).getDay()].slice(0, 3) + '<b>' + fromKey(dk).getDate() + '</b><i style="background:' + (x.score == null ? 'transparent' : x.score >= 70 ? 'var(--g)' : 'var(--warn)') + '"></i></button>'; }).join('') + '</div>';
   h += '<section class="c"><div class="row sb"><div><div class="l">DASH score' + (k === today() ? ' today' : ', ' + niceDate(k)) + '</div><div class="l">Counted from what you logged</div></div><b style="font-size:52px;letter-spacing:-2px;line-height:1">' + (d.score == null ? '—' : d.score) + '</b></div>' +
+    '<div class="note mt"><b>What this does for your BP:</b> eating this way lowered BP by about 11 on top and 5–6 at the bottom in people with high BP, mostly within 2 weeks. Fill the bars, keep salt, sweets and fat under their limits, and aim for 70 or more most days.</div>' +
     (d.score == null ? '<div class="l mt">Nothing logged ' + (k === today() ? 'yet today' : 'that day') + '.</div>' : '') + '</section>';
   h += '<section class="c"><h2>Servings</h2>' + dashRows(d) + '<div class="l mt6">Targets for your ' + n0(budgetFor(k).base) + ' kcal plan, with dal and nuts in place of meat. Tea sugar counts as sweets.</div></section>';
   if (k === today() && d.n) {
