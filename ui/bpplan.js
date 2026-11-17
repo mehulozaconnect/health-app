@@ -69,7 +69,7 @@ function dashParts(it) {
   return out;
 }
 function dashTargets(k) {
-  var b = budgetFor(k || today()).total, hi = b >= 1800;
+  var b = budgetFor(k || today()).base, hi = b >= 1800; /* the plan's own calories, not what exercise added */
   return { grain: hi ? 7 : 6, veg: hi ? 5 : 4, fruit: hi ? 5 : 4, dairy: 3, leg: 2, fatG: Math.round(b * 0.27 / 9), sweetsDay: hi ? 0.7 : 0.4, sweetsWeek: hi ? 5 : 3, na: 1500 };
 }
 var DCACHE = {};
@@ -254,7 +254,7 @@ ROUTES.dash = function (k) {
   h += '<div class="days">' + days.map(function (dk) { var x = dashDay(dk); return '<button class="day' + (dk === k ? ' on' : '') + '" data-act="go" data-to="dash/' + dk + '">' + DOW[fromKey(dk).getDay()].slice(0, 3) + '<b>' + fromKey(dk).getDate() + '</b><i style="background:' + (x.score == null ? 'transparent' : x.score >= 70 ? 'var(--g)' : 'var(--warn)') + '"></i></button>'; }).join('') + '</div>';
   h += '<section class="c"><div class="row sb"><div><div class="l">DASH score' + (k === today() ? ' today' : ', ' + niceDate(k)) + '</div><div class="l">Counted from what you logged</div></div><b style="font-size:52px;letter-spacing:-2px;line-height:1">' + (d.score == null ? '—' : d.score) + '</b></div>' +
     (d.score == null ? '<div class="l mt">Nothing logged ' + (k === today() ? 'yet today' : 'that day') + '.</div>' : '') + '</section>';
-  h += '<section class="c"><h2>Servings</h2>' + dashRows(d) + '<div class="l mt6">Targets for your ' + n0(budgetFor(k).total) + ' kcal day, with dal and nuts in place of meat. Tea sugar counts as sweets.</div></section>';
+  h += '<section class="c"><h2>Servings</h2>' + dashRows(d) + '<div class="l mt6">Targets for your ' + n0(budgetFor(k).base) + ' kcal plan, with dal and nuts in place of meat. Tea sugar counts as sweets.</div></section>';
   if (k === today() && d.n) {
     var fill = dashFill(d);
     if (fill.length) h += '<section class="c"><h2>To fill the gaps</h2>' + fill.map(function (g) {
