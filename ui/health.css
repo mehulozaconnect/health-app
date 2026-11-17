@@ -1,0 +1,31 @@
+/* ---------- My health plan ---------- */
+.hpconds{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 14px}
+.hpcond{display:inline-flex;align-items:center;gap:7px;border:0;border-radius:999px;padding:9px 14px;font:inherit;font-weight:700;font-size:14px;color:#fff;background:var(--cc,#7A4DFF);box-shadow:0 6px 16px color-mix(in srgb,var(--cc,#7A4DFF) 35%,transparent)}
+.hpcond.add{background:var(--card);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)}
+.hpresl{display:flex;flex-direction:column;margin-top:4px}
+.hpres{display:flex;align-items:center;gap:10px;border:0;background:none;font:inherit;color:var(--ink);text-align:left;padding:11px 2px;border-top:1px solid var(--line)}
+.hpres i{width:10px;height:10px;border-radius:50%;flex:none}.hpres span{flex:1;font-weight:600;font-size:14.5px}.hpres em{font-style:normal;font-weight:800;font-size:13px}
+.hpres.ai{color:var(--g);font-weight:700}
+.hprow{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}.hprow:first-of-type{border:0}
+.hprow b{font-size:15.5px}.hprow.dn b{color:var(--mute);text-decoration:line-through}
+.hpbox{width:28px;height:28px;border-radius:50%;border:2.4px solid var(--g);background:transparent;display:grid;place-items:center;color:#fff;flex:none;padding:0}
+.hpbox.on{background:#16A34A;border-color:#16A34A}
+.hpgo{display:inline-flex;align-items:center;gap:5px;border:0;border-radius:999px;padding:8px 13px;font:inherit;font-weight:700;font-size:13px;background:var(--g2);color:var(--onmint);flex:none}
+.hpcount{font-size:22px;letter-spacing:-.5px}
+.hpreward{margin-top:10px;padding:11px 13px;border-radius:14px;background:linear-gradient(120deg,rgba(245,158,11,.16),rgba(224,36,94,.12));font-weight:600;font-size:13.5px;line-height:1.4}
+.hpchk{padding:10px 0;border-top:1px solid var(--line)}.hpchk:first-of-type{border:0;padding-top:4px}.hpchk>b{font-size:15px}
+.hpscale{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.hpscale button{border:0;border-radius:12px;padding:9px 4px;min-height:44px;font:inherit;font-size:12px;font-weight:600;line-height:1.2;background:var(--field);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.hpscale button.on{color:#fff;box-shadow:none}.hpscale .s0{background:#16C79A}.hpscale .s1{background:#F5B700}.hpscale .s2{background:#FF8A3D}.hpscale .s3{background:#E0245E}
+.hpdots{display:grid;grid-template-columns:repeat(14,1fr);gap:4px;margin-bottom:4px}.hpdots span{aspect-ratio:1;border-radius:50%;background:var(--track);box-shadow:inset 0 0 0 1px var(--line)}
+.hpvhead{display:flex;gap:12px;align-items:center}.hpvhead>span{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;color:#fff;background:var(--vc);flex:none}.hpvhead h2{color:var(--vc);margin:0}
+.hpvrow{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--line)}.hpvrow:first-of-type{margin-top:8px}.hpvrow i{width:10px;height:10px;border-radius:50%;margin-top:6px;flex:none}.hpvrow b{font-size:14.5px}
+.hpswap{margin-top:8px;padding:10px 12px;border-radius:12px;background:var(--g2)}.hpswap .lnk{display:block;text-align:left;padding:4px 0 0}
+.hpaddl{display:flex;flex-direction:column;margin-top:8px;max-height:52vh;overflow:auto}
+.hpadd{display:flex;align-items:center;gap:12px;border:0;background:none;font:inherit;color:var(--ink);text-align:left;padding:10px 2px;border-top:1px solid var(--line)}.hpadd span{flex:1;font-weight:600}.hpadd .gorb{width:32px;height:32px}.hpadd.ai span{color:var(--g)}
+.hpli{padding:8px 0 8px 14px;position:relative;font-size:14.5px;line-height:1.35}.hpli b{display:block;font-size:14.5px}.hpli .l{display:block}
+.hpli::before{content:'';position:absolute;left:0;top:14px;width:7px;height:7px;border-radius:50%}
+.hpli.good::before{background:#16C79A}.hpli.small::before{background:#F59E0B}.hpli.avoid::before{background:#E0245E}
+.hpweek{margin-top:12px;padding:10px 12px;border-radius:12px;background:var(--warnbg)}
+.hpclock{font-size:68px;font-weight:700;letter-spacing:-2px;margin:10px 0}
+.hpsum{cursor:pointer}.hpsum h2{margin:0}.g10{gap:10px}

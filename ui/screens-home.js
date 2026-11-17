@@ -26,6 +26,7 @@ ROUTES.home = function () {
   /* quick log */
   var qa = [['food', 'Food', 'qFood'], ['drop', 'Water', 'qWater'], ['pill', 'Meds', 'qMeds'], ['bp', 'BP', 'logBp'], ['yoga', 'Breathe', 'qBreathe'], ['pulse', 'Sugar', 'logSugar'], ['moon', 'Sleep', 'logSleep'], ['steps', 'Exercise', 'logYoga'], ['scale', 'Weight', 'qWeight']];
   h += '<section class="c gqa" style="padding:12px 8px">' + qa.map(function (q) { return '<button data-act="' + q[2] + '">' + orb(q[0], 22) + q[1] + '</button>'; }).join('') + '</section>';
+  h += '<div class="ggrid" style="margin-bottom:12px">' + hpTile() + '</div>';
   /* vitals */
   var st = stepsFor(k), sl = sleepFor(k), en = energyFor(k), hr = latestHr(), hd = hrDay(k), bps = merged('bp'), bp = bps[0], su = merged('sugar').filter(function (x) { return x.type === 'fasting'; })[0], w = merged('weight')[0];
   var avg7 = function (m) { var v = []; for (var i = 0; i < 7; i++) { var x = TM[m].day(addDays(k, -i)); if (x != null) v.push(x); } return v.length >= 2 ? dayAvg(v) : null; };
