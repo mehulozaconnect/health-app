@@ -104,3 +104,5 @@ html[data-theme=glass] .c.dark .mint,html[data-theme=glass] .c.dark b.mint,html[
 .sit{display:flex;gap:8px;margin-top:8px}.sit div{flex:1;text-align:center;background:var(--card2);border:1px solid var(--edge);border-radius:14px;padding:8px 4px;font-size:11px;color:var(--mute)}.sit b{display:block;font-size:16px;color:var(--ink)}
 .wk{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px;text-align:center}.wk div{border-radius:14px;padding:8px 2px;background:var(--card2);border:1px solid var(--edge);font-size:11px;color:var(--mute)}.wk b{display:block;font-size:15px;color:var(--ink)}
 .rep{white-space:pre-wrap;font-family:inherit;font-size:13px;line-height:1.5;margin:0}
+.trow .btn{width:auto;flex:none;margin-left:auto;padding:8px 14px}
+.trow:has(> .btn){grid-template-columns:22px minmax(0,1fr) auto}

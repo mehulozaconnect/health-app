@@ -119,7 +119,8 @@ ROUTES.yoga = function () {
     var f = sessionFlow(slot), min = Math.round(routineSec(f) / 60);
     return '<section class="c"><div class="row sb"><div><div class="l">' + sub + '</div><h2>' + title + ' · ' + min + ' min</h2></div><button class="btn sm" data-act="startToday" data-s="' + slot + '">' + icon('play', 16) + 'Start</button></div>' + it.map(row).join('') + '</section>';
   };
-  h += sess('morning', 'Morning', 'BEFORE BREAKFAST') + sess('night', 'Bedtime', 'BEFORE SLEEP');
+  h += goalCard(T.P);
+  h += sess('morning', 'Morning', 'BEFORE BREAKFAST') + bpExtras(T.P) + sess('night', 'Bedtime', 'BEFORE SLEEP');
   if (T.s.meal.length) h += '<div class="tip">' + icon('food', 16) + '<span>After lunch and dinner: <b>' + esc(pose(T.s.meal[0].k).name) + '</b>, 5–10 min.</span></div>';
   h += '<button class="lnk" data-act="go" data-to="yplan">Why these? See your plan →</button>';
   h += '<div class="g2"><button class="tilebtn" data-act="go" data-to="breaths">' + icon('drop', 22) + '<b>Pranayama</b><small>Breathing with a guide</small></button><button class="tilebtn" data-act="go" data-to="poses">' + icon('yoga', 22) + '<b>Poses</b><small>With how-to demos</small></button></div>';
@@ -365,3 +366,27 @@ ACT.plNext = function () { plAdvance(); if (PL) rerender(); };
 ACT.plPrev = function () { PL.i = Math.max(0, PL.i - 1); if (PL.segs[PL.i].rest && PL.i > 0) PL.i--; PL.left = PL.segs[PL.i].sec; rerender(); };
 ACT.plMore = function (el) { PL.left += +el.getAttribute('data-d'); PL.segs[PL.i].sec += +el.getAttribute('data-d'); rerender(); };
 ACT.plEnd = function () { if (PL.done < 30) { clearInterval(PL.t); native('keepAwake', false); PL = null; go('yoga'); return; } plFinish(); };
+
+/* what today's practice is built for, from your own readings; it rebuilds itself as they change */
+function goalCard(P) {
+  var X = P.X; if (!X.list.length) return '';
+  var h = '<section class="c"><div class="l">Built for you from your readings · updates every day</div>' + X.list.slice(0, 3).map(function (c) { return '<div class="rd"><span><b>' + esc(c.label) + '</b><br><span class="l">' + esc(c.ev[0] || '') + '</span></span></div>'; }).join('');
+  if (P.avoid.length) h += '<div class="note warn mt"><b>Not for you right now:</b> ' + P.avoid.map(function (a) { return esc(practName(a.p)); }).filter(function (v, i, a) { return a.indexOf(v) === i; }).join(', ') + '. ' + esc(P.avoid[0].why.split('. ').slice(-1)[0]) + '</div>';
+  return h + '</section>';
+}
+/* the BP plan's two exercise habits, here where you plan your practice */
+function bpExtras(P) {
+  if (!(P.X.C.bp && P.X.C.bp.sev >= 2) && !DB.bpplan) return '';
+  var k = today(), w = typeof bpHabit === 'function' ? bpHabit('walk', k) : { ok: false }, ws = typeof bpHabit === 'function' ? bpHabit('wall', k) : { ok: false, note: '' };
+  var wallDays = 0; for (var i = 0; i < 7; i++) if (((bpPlan().ticks || {})[addDays(k, -i)] || {}).wall) wallDays++;
+  var wallToday = !ws.ok && wallDays < 3 && [1, 3, 5].indexOf(new Date().getDay()) >= 0 || ws.ok;
+  var row = function (done, name, sub, btn) { return '<div class="trow' + (done ? ' done' : '') + '"><i>' + (done ? icon('check', 14) : '') + '</i><span>' + name + '<small>' + sub + '</small></span>' + (done ? '' : btn) + '</div>'; };
+  return '<section class="c"><div class="row sb"><div><div class="l">FOR YOUR BP · ANY TIME</div><h2>Exercise</h2></div><button class="lnk" data-act="go" data-to="bpplan">BP plan</button></div>' +
+    row(w.ok, 'Brisk walk, 30 min', 'Fast enough to talk, not sing · lowers BP 5–8', '<button class="btn sm" data-act="quickWalk">Log</button>') +
+    (wallToday ? row(ws.ok, 'Wall sit, 4 × 2 min', 'Mon, Wed, Fri · ' + wallDays + ' of 3 this week', '<button class="btn sm" data-act="go" data-to="wallsit">' + icon('play', 14) + 'Start</button>') :
+      '<div class="l mt6">Wall sit: ' + wallDays + ' of 3 this week. Next on ' + ['Monday', 'Wednesday', 'Wednesday', 'Friday', 'Friday', 'Monday', 'Monday'][new Date().getDay()] + '.</div>') + '</section>';
+}
+ACT.quickWalk = function () {
+  sheet('<h2>Brisk walk</h2><div class="l">How long did you walk fast?</div><div class="chips mt">' + [15, 20, 30, 45, 60].map(function (m) { return '<button class="chip' + (m === 30 ? ' dk' : '') + '" data-act="quickWalkGo" data-m="' + m + '">' + m + ' min</button>'; }).join('') + '</div>');
+};
+ACT.quickWalkGo = function (el) { var m = +el.getAttribute('data-m'); day(today()).yoga.push({ t: Date.now(), min: m, kind: 'walk', name: 'Brisk walk' }); save(); sheet(null); feel('done'); rerender(); toast('Brisk walk saved · ' + m + ' min'); };

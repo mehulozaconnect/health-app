@@ -11,7 +11,7 @@ function planContext() {
   var C = {}, ev = {}, add = function (id, sev, label, line) { if (!C[id] || C[id].sev < sev) C[id] = { id: id, sev: sev, label: label, ev: (C[id] || {}).ev || [] }; if (line) C[id].ev.push(line); };
   var now = Date.now(), cls = {}; (typeof meds === 'function' ? meds() : []).forEach(function (m) { cls[m.cls] = (cls[m.cls] || []).concat([m.name]); });
   /* blood pressure */
-  var bp = merged('bp').filter(function (x) { return x.t > now - 30 * 86400000; });
+  var cuff = typeof cuffBp === 'function' ? cuffBp() : [], bp = (cuff.length ? cuff : merged('bp')).filter(function (x) { return x.t > now - 30 * 86400000; });
   if (bp.length) {
     var s = Math.round(avgN(bp.map(function (x) { return x.sys; }))), d = Math.round(avgN(bp.map(function (x) { return x.dia; })));
     var line = 'BP averages ' + s + '/' + d + ' over ' + bp.length + ' reading' + (bp.length > 1 ? 's' : '') + ' in the last 30 days';
@@ -78,7 +78,7 @@ function planContext() {
 /* t: 'p' pranayama (pacer key) or 'y' pose; f: what it helps (weight per concern); no: reasons to avoid; slot: morning / meal / evening / night */
 var PRACTICE = [
   { k: 'anulom', t: 'p', f: { bp: 3, stress: 3, sleep: 2, oxygen: 2, sugar: 1, thyroid: 1, energy: 1 }, slot: 'morning', min: 10,
-    dose: function (X) { return X.C.bp && X.C.bp.sev >= 2 ? { r: [5, 0, 5, 0], rounds: 30, txt: '5 : 5 with no holding, 30 rounds (5 min). Build up to 10 min over 2 weeks.' } : { r: [6, 2, 6, 2], rounds: 20, txt: '6 : 2 : 6 : 2, 20 rounds (about 5 min). Build up to 10 min.' }; },
+    dose: function (X) { return X.C.bp && X.C.bp.sev >= 2 ? { r: [4, 0, 6, 0], rounds: 36, txt: '4 in, 6 out, no holding: 6 breaths a minute, the pace that lowers BP. 36 rounds (6 min).' } : { r: [6, 2, 6, 2], rounds: 20, txt: '6 : 2 : 6 : 2, 20 rounds (about 5 min). Build up to 10 min.' }; },
     why: 'Slow, even breathing through alternate nostrils settles the nervous system: heart rate and BP come down while you do it, and with daily practice it carries into the day.',
     expect: 'Calmer within a few days. In studies of daily slow breathing, systolic BP falls about 5–10 mmHg after 4–8 weeks.' },
   { k: 'bhramari', t: 'p', f: { sleep: 3, stress: 3, bp: 2 }, slot: 'night', min: 4,
@@ -103,7 +103,7 @@ var PRACTICE = [
     dose: function () { return { r: [4, 2, 6, 0], rounds: 12, txt: '12 rounds (about 2 min). Skip when you have a cough or cold.' }; },
     why: 'Breathing in through the rolled tongue cools the body; used for acidity and heat.', expect: 'Cooling within minutes.' },
   { k: 'kapal', t: 'p', f: { sugar: 3, weight: 3, chol: 2, digest: 1, energy: 1 }, slot: 'morning', min: 5,
-    no: function (X) { return X.C.bp && X.C.bp.sev >= 2 ? (X.C.bp.ev[0] || 'BP is high') + '. Fast belly breathing pushes BP up; do slow breathing until BP stays under 130/85.' : null; },
+    no: function (X) { return X.C.bp && X.C.bp.sev >= 2 ? (X.C.bp.ev[0] || 'BP is high') + '. Fast belly breathing pushes BP up; do slow breathing until BP stays under 130/80.' : null; },
     dose: function () { return { fast: [60, 30, 30], rounds: 3, txt: '3 rounds of 30 strokes, rest 30 s between (about 3 min). Build to 60 strokes.' }; },
     why: 'Sharp belly pumping works the abdominal muscles and digestion; it is the pranayama most used for sugar and weight.',
     expect: 'Alongside diet and walking, fasting sugar and waist usually improve over 8–12 weeks.', caution: 'Only on an empty stomach, at least 3 hours after food.' },
