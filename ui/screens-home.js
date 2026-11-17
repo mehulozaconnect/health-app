@@ -18,7 +18,7 @@ ROUTES.home = function () {
   h += '<div class="row sb" style="margin-top:-4px">' + liveChip() + '</div>';
   /* calories */
   var gid = 'hr' + Date.now() % 1e6;
-  h += '<section class="c ghero" data-act="go" data-to="food"><svg width="124" height="124" viewBox="0 0 124 124" aria-hidden="true"><defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF7A59"/><stop offset=".5" stop-color="#FF3D8B"/><stop offset="1" stop-color="#8B5CFF"/></linearGradient></defs>' +
+  h += '<section class="c ghero" data-act="go" data-to="food"><svg width="124" height="124" viewBox="0 0 124 124" aria-hidden="true"><defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--r1,#FF7A59)"/><stop offset=".5" style="stop-color:var(--r2,#FF3D8B)"/><stop offset="1" style="stop-color:var(--r3,#8B5CFF)"/></linearGradient></defs>' +
     '<circle cx="62" cy="62" r="50" fill="none" stroke="var(--track)" stroke-width="14"/><circle cx="62" cy="62" r="50" fill="none" stroke="' + (left < 0 ? 'var(--bad)' : 'url(#' + gid + ')') + '" stroke-width="14" stroke-linecap="round" stroke-dasharray="' + (clamp(pct, 0, 100) / 100 * 314.2).toFixed(1) + ' 314.2" transform="rotate(-90 62 62)"/>' +
     '<text x="62" y="62" text-anchor="middle" font-weight="700" font-size="23" fill="var(--ink)">' + Math.round(pct) + '%</text><text x="62" y="80" text-anchor="middle" font-size="11.5" fill="var(--mute)">of budget</text></svg>' +
     '<div class="t f1"><small>Calories ' + (left < 0 ? 'over' : 'left') + '</small><b' + (left < 0 ? ' style="color:var(--bad)"' : '') + '>' + n0(Math.abs(left)) + '</b><span>' + n0(t.kcal) + ' eaten of ' + n0(b.total) + (b.earned ? ' (+' + n0(b.earned) + ' exercise)' : '') + '</span>' +

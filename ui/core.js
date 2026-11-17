@@ -78,14 +78,16 @@ function http(method, url, headers, body) {
 }
 function native(fn) { try { if (AND && AND[fn]) return AND[fn].apply(AND, [].slice.call(arguments, 1)); } catch (e) { console.log('native ' + fn + ' failed', e); } return null; }
 /* ---------- themes ---------- */
-var THEMES = [['glass', 'Glass', 'Frosted glass on bright colours', 0, '#FCE3D8', '#7A4DFF', '#FF3D8B', 'soft'], ['mist', 'Soft sage', 'Light and calm', 0, '#F3F6F4', '#4E8B76', '#BFE2D3', 'soft'], ['lavender', 'Soft lavender', 'Light lilac', 0, '#F5F4FA', '#7768AE', '#D6CFF0', 'soft'], ['peach', 'Soft peach', 'Warm and light', 0, '#FAF6F2', '#C07A57', '#F2D3C2', 'soft'], ['sky', 'Soft sky', 'Light blue', 0, '#F2F6FA', '#4C7DB0', '#C9DCF0', 'soft'], ['aurora', 'Aurora', 'Deep violet and teal glow', 1, '#0B0A14', '#8B6CFF', '#00C2D1'], ['neon', 'Neon mint', 'Dark with electric mint', 1, '#05110E', '#2BF5B4', '#3DA9FC'],
+var THEMES = [['glass', 'Glass', 'Frosted glass on bright colours', 0, '#FCE3D8', '#7A4DFF', '#FF3D8B', 'soft'],
+  ['gnight', 'Night glass', 'Dark, with neon glow', 1, '#0E0B1F', '#9B6BFF', '#FF4FA3', 'new', 1], ['gsunset', 'Sunset', 'Warm orange and coral', 0, '#FFE2CF', '#FF5A36', '#FFB13D', 'new', 1],
+  ['gocean', 'Ocean', 'Aqua and deep blue', 0, '#D8F3F7', '#0E8FB7', '#38D6C9', 'new', 1], ['gmint', 'Fresh mint', 'Lime, mint and sky', 0, '#E3F8EC', '#13A57A', '#9BE15D', 'new', 1], ['mist', 'Soft sage', 'Light and calm', 0, '#F3F6F4', '#4E8B76', '#BFE2D3', 'soft'], ['lavender', 'Soft lavender', 'Light lilac', 0, '#F5F4FA', '#7768AE', '#D6CFF0', 'soft'], ['peach', 'Soft peach', 'Warm and light', 0, '#FAF6F2', '#C07A57', '#F2D3C2', 'soft'], ['sky', 'Soft sky', 'Light blue', 0, '#F2F6FA', '#4C7DB0', '#C9DCF0', 'soft'], ['aurora', 'Aurora', 'Deep violet and teal glow', 1, '#0B0A14', '#8B6CFF', '#00C2D1'], ['neon', 'Neon mint', 'Dark with electric mint', 1, '#05110E', '#2BF5B4', '#3DA9FC'],
   ['sunrise', 'Sunrise', 'Warm coral and pink', 0, '#FFF3EB', '#FF8A3D', '#FF2E7E'], ['ocean', 'Ocean', 'Fresh blue and aqua', 0, '#EDF3FF', '#2563EB', '#06B6D4'], ['classic', 'Classic', 'Calm green, the original', 0, '#EEF2EF', '#0F6E56', '#9FE0C6']];
 function katoriMigrate() { if (!DB.settings.katoriV2) { DB.settings.katoriV2 = 1; DB.settings.katoriG = 150; } }
-function themeOf() { katoriMigrate(); if (!DB.settings.themeV3) { DB.settings.themeV2 = 1; DB.settings.themeV3 = 1; DB.settings.theme = 'glass'; } var k = DB.settings.theme || 'glass'; return THEMES.filter(function (t) { return t[0] === k; })[0] || THEMES[0]; }
+function themeOf() { katoriMigrate(); if (DB.settings.themeRotate) { var wkn = Math.floor((Date.now() / 86400000 + 3) / 7), pool = ['glass', 'gnight', 'gsunset', 'gocean', 'gmint']; DB.settings.theme = pool[wkn % pool.length]; } if (!DB.settings.themeV3) { DB.settings.themeV2 = 1; DB.settings.themeV3 = 1; DB.settings.theme = 'glass'; } var k = DB.settings.theme || 'glass'; return THEMES.filter(function (t) { return t[0] === k; })[0] || THEMES[0]; }
 function themeAccent() { return themeOf()[5]; }
 function applyTheme() {
   var t = themeOf(), d = document.documentElement;
-  d.setAttribute('data-theme', t[0]); if (t[3]) d.setAttribute('data-dark', ''); else d.removeAttribute('data-dark');
+  d.setAttribute('data-theme', t[8] ? 'glass' : t[0]); if (t[8]) d.setAttribute('data-skin', t[0]); else d.removeAttribute('data-skin'); if (t[3]) d.setAttribute('data-dark', ''); else d.removeAttribute('data-dark');
   var m = document.querySelector('meta[name=theme-color]'); if (m) m.setAttribute('content', t[4]);
   native('setBars', t[4], !!t[3]);
 }

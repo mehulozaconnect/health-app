@@ -157,12 +157,14 @@ ACT.saveWeight = function () {
 ROUTES.theme = function () {
   var cur0 = themeOf()[0], h = head('Look and colours', 'Pick a theme for the whole app');
   var sw = function (t) { return '<button class="thb' + (t[0] === cur0 ? ' on' : '') + '" data-act="setTheme" data-v="' + t[0] + '" style="background:' + (t[7] ? t[4] + ';color:' + t[5] + ';border:1px solid ' + t[6] : 'linear-gradient(135deg,' + t[5] + ',' + t[6] + ')') + '"><span>' + t[1] + '<small><br>' + t[2] + '</small></span><i><b style="background:' + t[4] + ';border:1px solid #ccc"></b><b style="background:' + t[5] + '"></b><b style="background:' + t[6] + '"></b></i></button>'; };
-  h += '<div class="thm"><h3 class="sech">Soft and light</h3>' + THEMES.filter(function (t) { return t[7]; }).map(sw).join('') + '<h3 class="sech">Bold</h3>' + THEMES.filter(function (t) { return !t[7]; }).map(sw).join('') + '</div>';
+  h += '<button class="tog" data-act="themeRot" role="switch" aria-checked="' + !!DB.settings.themeRotate + '"><span>New look every Monday<small style="display:block;color:var(--mute);font-weight:500">Rotates through the glass looks so the app never gets boring</small></span><i class="' + (DB.settings.themeRotate ? 'on' : '') + '"></i></button>';
+  h += '<div class="thm"><h3 class="sech">New glass looks</h3>' + THEMES.filter(function (t) { return t[7] === 'new' || t[0] === 'glass'; }).map(sw).join('') + '<h3 class="sech">Soft and light</h3>' + THEMES.filter(function (t) { return t[7] && t[7] !== 'new' && t[0] !== 'glass'; }).map(sw).join('') + '<h3 class="sech">Bold</h3>' + THEMES.filter(function (t) { return !t[7]; }).map(sw).join('') + '</div>';
   if (0) h += '<div class="thm">' + THEMES.map(function (t) { return '<button class="thb' + (t[0] === cur0 ? ' on' : '') + '" data-act="setTheme" data-v="' + t[0] + '" style="background:linear-gradient(135deg,' + t[5] + ',' + t[6] + ');' + (t[0] === 'classic' ? 'color:#fff' : '') + '"><span>' + t[1] + '<small><br>' + t[2] + '</small></span><i><b style="background:' + t[4] + '"></b><b style="background:' + t[5] + '"></b><b style="background:' + t[6] + '"></b></i></button>'; }).join('') + '</div>';
   h += '<section class="c"><div class="l">PREVIEW</div><div class="row g16 mt"><div>' + ring(68, 92, 10, 'var(--g)', '<text x="46" y="52" text-anchor="middle" class="rt3">68%</text>') + '</div><div class="f1"><b class="m18">Today</b><div class="l">1,240 of 1,800 kcal</div>' + bar(68) + '<div class="chips"><button class="chip dk">Selected</button><button class="chip">Chip</button></div></div></div><button class="btn mt">Primary button</button><button class="btn sec mt">Secondary</button></section>';
   return h;
 };
-ACT.setTheme = function (el) { DB.settings.theme = el.getAttribute('data-v'); save(); applyTheme(); rerender(); };
+ACT.themeRot = function () { DB.settings.themeRotate = !DB.settings.themeRotate; save(); applyTheme(); rerender(); };
+ACT.setTheme = function (el) { DB.settings.themeRotate = false; DB.settings.theme = el.getAttribute('data-v'); save(); applyTheme(); rerender(); };
 TABOF.theme = 'more';
 ROUTES.more = function () {
   var h = '<h1 class="big">More</h1>';

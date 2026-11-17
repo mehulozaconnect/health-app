@@ -106,3 +106,25 @@ html[data-theme=glass] .c.dark .mint,html[data-theme=glass] .c.dark b.mint,html[
 .rep{white-space:pre-wrap;font-family:inherit;font-size:13px;line-height:1.5;margin:0}
 .trow .btn{width:auto;flex:none;margin-left:auto;padding:8px 14px}
 .trow:has(> .btn){grid-template-columns:22px minmax(0,1fr) auto}
+/* ---------- glass skins: same layout, new mood ---------- */
+html[data-theme=glass][data-skin=gnight]{--bg:#0E0B1F;--card:rgba(255,255,255,.07);--card2:rgba(255,255,255,.06);--field:rgba(255,255,255,.09);--ink:#F4F1FF;--mute:#A9A3C9;--line:rgba(255,255,255,.09);--track:rgba(255,255,255,.12);
+  --g:#A989FF;--g3:#FF4FA3;--g2:rgba(169,137,255,.18);--onmint:#D9CCFF;--edge:rgba(255,255,255,.11);--shadow:0 10px 30px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.08);--navbg:rgba(24,20,48,.82);
+  --grad:linear-gradient(135deg,#FF4FA3,#9B6BFF 55%,#38C8FF);--dark:linear-gradient(135deg,#FF4FA3,#9B6BFF 55%,#38C8FF);--warntx:#FFC27A;--warnbg:rgba(255,170,90,.14);--badbg:rgba(255,61,139,.16);--bad:#FF6B9A;--wbg:rgba(56,200,255,.14);--purbg:rgba(169,137,255,.16)}
+html[data-theme=glass][data-skin=gnight] body{background:
+  radial-gradient(420px 420px at -10% -5%,rgba(155,107,255,.55) 0,rgba(155,107,255,0) 70%),radial-gradient(400px 400px at 112% 12%,rgba(255,79,163,.42) 0,rgba(255,79,163,0) 70%),
+  radial-gradient(380px 380px at -12% 58%,rgba(56,200,255,.35) 0,rgba(56,200,255,0) 70%),radial-gradient(400px 400px at 110% 85%,rgba(124,245,200,.25) 0,rgba(124,245,200,0) 70%),#0E0B1F;background-attachment:fixed}
+html[data-theme=glass][data-skin=gnight] .ni.on:before{background:var(--grad)}
+html[data-theme=glass][data-skin=gnight] .btn.sec,html[data-theme=glass][data-skin=gnight] .chip{background:rgba(255,255,255,.07);color:var(--ink)}
+html[data-theme=glass][data-skin=gnight] .sheet{background:rgba(26,22,50,.97)}
+html[data-theme=glass][data-skin=gnight] .ask input,html[data-theme=glass][data-skin=gnight] input,html[data-theme=glass][data-skin=gnight] select{color:var(--ink)}
+html[data-theme=glass][data-skin=gsunset]{--bg:#FFF1E6;--g:#F2542D;--g3:#FFB13D;--g2:rgba(242,84,45,.13);--onmint:#B8360F;--ink:#2B1610;--mute:#7A5348;--grad:linear-gradient(135deg,#FF8A3D,#F2542D 50%,#E0245E);--dark:linear-gradient(135deg,#FFB13D,#F2542D 55%,#C2185B)}
+html[data-theme=glass][data-skin=gsunset] body{background:radial-gradient(440px 440px at -12% -6%,#FFC27A 0,rgba(255,194,122,0) 70%),radial-gradient(420px 420px at 112% 10%,#FF7A6B 0,rgba(255,122,107,0) 70%),radial-gradient(400px 400px at -14% 55%,#FFD86B 0,rgba(255,216,107,0) 70%),radial-gradient(420px 420px at 112% 80%,#FF8FB1 0,rgba(255,143,177,0) 70%),#FFF1E6;background-attachment:fixed}
+html[data-theme=glass][data-skin=gocean]{--bg:#E8F8FB;--g:#0E8FB7;--g3:#38D6C9;--g2:rgba(14,143,183,.13);--onmint:#07607C;--ink:#0D2330;--mute:#4D6B78;--grad:linear-gradient(135deg,#38D6C9,#0E8FB7 50%,#2547E0);--dark:linear-gradient(135deg,#38D6C9,#0E8FB7 55%,#2547E0)}
+html[data-theme=glass][data-skin=gocean] body{background:radial-gradient(440px 440px at -12% -6%,#7FE7F0 0,rgba(127,231,240,0) 70%),radial-gradient(420px 420px at 112% 10%,#7DB6FF 0,rgba(125,182,255,0) 70%),radial-gradient(400px 400px at -14% 55%,#9AF7D3 0,rgba(154,247,211,0) 70%),radial-gradient(420px 420px at 112% 80%,#A7C7FF 0,rgba(167,199,255,0) 70%),#E8F8FB;background-attachment:fixed}
+html[data-theme=glass][data-skin=gmint]{--bg:#EEFBF3;--g:#13A57A;--g3:#9BE15D;--g2:rgba(19,165,122,.13);--onmint:#0B6E51;--ink:#0F2A20;--mute:#4E6E61;--grad:linear-gradient(135deg,#9BE15D,#13A57A 50%,#0EA5E9);--dark:linear-gradient(135deg,#9BE15D,#13A57A 55%,#0E8FB7)}
+html[data-theme=glass][data-skin=gmint] body{background:radial-gradient(440px 440px at -12% -6%,#C6F57A 0,rgba(198,245,122,0) 70%),radial-gradient(420px 420px at 112% 10%,#7FE0C0 0,rgba(127,224,192,0) 70%),radial-gradient(400px 400px at -14% 55%,#8FD8FF 0,rgba(143,216,255,0) 70%),radial-gradient(420px 420px at 112% 80%,#FFE38A 0,rgba(255,227,138,0) 70%),#EEFBF3;background-attachment:fixed}
+html[data-skin=gnight]{--r1:#FF4FA3;--r2:#9B6BFF;--r3:#38C8FF}
+html[data-skin=gsunset]{--r1:#FFB13D;--r2:#FF5A36;--r3:#E0245E}
+html[data-skin=gocean]{--r1:#38D6C9;--r2:#0E8FB7;--r3:#2547E0}
+html[data-skin=gmint]{--r1:#9BE15D;--r2:#13A57A;--r3:#0EA5E9}
+html[data-theme=glass][data-skin=gsunset] .ni.on:before,html[data-theme=glass][data-skin=gocean] .ni.on:before,html[data-theme=glass][data-skin=gmint] .ni.on:before{background:var(--grad)}
