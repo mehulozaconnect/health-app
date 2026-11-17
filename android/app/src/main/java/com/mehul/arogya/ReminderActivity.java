@@ -44,7 +44,7 @@ public class ReminderActivity extends Activity {
         else getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         Intent i = getIntent();
-        final boolean prana = "prana".equals(i.getStringExtra("kind")), water = "water".equals(i.getStringExtra("kind"));
+        final boolean bp = "bp".equals(i.getStringExtra("kind")), prana = bp || "prana".equals(i.getStringExtra("kind")), water = "water".equals(i.getStringExtra("kind"));
         this.water = water; final int glass = i.getIntExtra("glass", 250);
         final String route = i.getStringExtra("route");
         keys = i.getStringExtra("keys"); date = i.getStringExtra("date");
@@ -73,12 +73,12 @@ public class ReminderActivity extends Activity {
         LinearLayout top = new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL); top.setGravity(Gravity.CENTER_VERTICAL);
         TextView pill = new TextView(this);
-        pill.setText(water ? "💧" : prana ? "🧘" : "💊"); pill.setTextSize(26); pill.setGravity(Gravity.CENTER);
+        pill.setText(water ? "💧" : bp ? "❤️" : prana ? "🧘" : "💊"); pill.setTextSize(26); pill.setGravity(Gravity.CENTER);
         GradientDrawable pb = new GradientDrawable(GradientDrawable.Orientation.TL_BR, water ? new int[]{Color.parseColor("#4E8FD0"), Color.parseColor("#7CC6E8")} : new int[]{accent, Color.parseColor("#00D1C1")});
         pb.setCornerRadius(dp(18)); pill.setBackground(pb);
         top.addView(pill, new LinearLayout.LayoutParams(dp(56), dp(56)));
         LinearLayout tx = new LinearLayout(this); tx.setOrientation(LinearLayout.VERTICAL); tx.setPadding(dp(14), 0, 0, 0);
-        TextView kick = new TextView(this); kick.setText((water ? "WATER · " : prana ? "PRANAYAMA · " : "MEDICINE · ") + new java.text.SimpleDateFormat("h:mm a").format(new java.util.Date()).toLowerCase());
+        TextView kick = new TextView(this); kick.setText((water ? "WATER · " : bp ? "BP CHECK · " : prana ? "PRANAYAMA · " : "MEDICINE · ") + new java.text.SimpleDateFormat("h:mm a").format(new java.util.Date()).toLowerCase());
         kick.setTextColor(Color.parseColor("#9F95FF")); kick.setTextSize(12); kick.setTypeface(Typeface.DEFAULT_BOLD); kick.setLetterSpacing(0.08f);
         TextView t = new TextView(this); t.setText(title); t.setTextColor(Color.WHITE); t.setTextSize(21); t.setTypeface(Typeface.DEFAULT_BOLD);
         tx.addView(kick); tx.addView(t);
@@ -89,7 +89,7 @@ public class ReminderActivity extends Activity {
         LinearLayout.LayoutParams bl = new LinearLayout.LayoutParams(-1, -2); bl.topMargin = dp(14); bl.bottomMargin = dp(20);
         card.addView(bd, bl);
 
-        Button taken = btn(water ? "💧  +" + glass + " ml" : prana ? "▶  Start now" : "✓  Taken", water ? Color.parseColor("#4E8FD0") : accent, Color.WHITE);
+        Button taken = btn(water ? "💧  +" + glass + " ml" : bp ? "♥  Measure now" : prana ? "▶  Start now" : "✓  Taken", water ? Color.parseColor("#4E8FD0") : accent, Color.WHITE);
         card.addView(taken, new LinearLayout.LayoutParams(-1, dp(56)));
         LinearLayout row = new LinearLayout(this); row.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(-1, dp(52)); rl.topMargin = dp(10);

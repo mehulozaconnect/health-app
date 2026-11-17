@@ -183,10 +183,13 @@ function sugarCard(full) {
 }
 ROUTES.bp = function () {
   var all = merged('bp'), h = head('Blood pressure') + '<button class="btn" data-act="logBp">' + icon('plus', 18) + 'Log BP</button>' + hcCard('BP');
+  setTimeout(bpSevereCheck, 400);
+  var pw = bpWindow(7), pd = dashDay(today());
+  h += '<button class="gt w2 bpcta" data-act="go" data-to="bpplan"><div class="h"><span>Your BP plan</span>' + orb('heart', 16) + '</div><b style="font-size:22px">DASH diet and daily habits</b><div class="s">' + (pw ? '7-day average ' + pw.sys + '/' + pw.dia + ' · goal 120/80' : 'Bring it down to 120/80') + (pd.score != null ? ' · DASH today ' + pd.score : '') + '</div></button>';
   var span = function (d, f) { var r = all.filter(function (x) { return x.t > Date.now() - d * 86400000 && (!f || f(x)); }); return r.length ? Math.round(dayAvg(r.map(function (x) { return x.sys; }))) + '/' + Math.round(dayAvg(r.map(function (x) { return x.dia; }))) + '<small> · ' + r.length + '</small>' : '—'; };
   var am = function (x) { return new Date(x.t).getHours() < 12; };
   h += '<section class="c"><h2>Your averages</h2><div class="g3 mt"><div><div class="l">7 days</div><b class="m18">' + span(7) + '</b></div><div><div class="l">30 days</div><b class="m18">' + span(30) + '</b></div><div><div class="l">90 days</div><b class="m18">' + span(90) + '</b></div></div>' +
-    '<div class="g2 mt"><div><div class="l">Mornings · 30 days</div><b class="m18">' + span(30, am) + '</b></div><div><div class="l">Evenings · 30 days</div><b class="m18">' + span(30, function (x) { return !am(x); }) + '</b></div></div><div class="l mt6">Small number = readings. Under 130/85 is the target for most adults.</div></section>';
+    '<div class="g2 mt"><div><div class="l">Mornings · 30 days</div><b class="m18">' + span(30, am) + '</b></div><div><div class="l">Evenings · 30 days</div><b class="m18">' + span(30, function (x) { return !am(x); }) + '</b></div></div><div class="l mt6">Small number = readings. Under 130/80 is the 2025 target for adults.</div></section>';
   return h + trendBlock('bp', { title: 'Trend' }) + bpCard(true);
 };
 ROUTES.sugar = function () {
@@ -259,7 +262,8 @@ window.onHC = function (json) {
   DB.hc = DB.hc || {}; DB.hc.status = r.status; DB.hc.msg = r.msg || '';
   if (r.status === 'ok') { var before = (DB.hc.bp || []).length; DB.hc.bp = r.bp || []; DB.hc.sugar = r.sugar || []; DB.hc.weight = r.weight || []; DB.hc.at = Date.now(); DB.hc.on = true; if (HCWAIT) { toast('Health Connect: ' + DB.hc.bp.length + ' BP, ' + DB.hc.sugar.length + ' sugar, ' + DB.hc.weight.length + ' weight readings', 3500); HCWAIT = false; } }
   else if (HCWAIT) { HCWAIT = false; toast(r.status === 'no_permission' ? 'Health Connect: allow Arogya to read BP, sugar and weight' : r.status === 'not_installed' ? 'Health Connect is not installed' : 'Health Connect: ' + (r.msg || r.status), 3500); }
-  save(); if (['home', 'vitals', 'bp', 'sugar', 'weight', 'settings', 'trend'].indexOf(cur.name) >= 0) rerender();
+  save(); if (['home', 'vitals', 'bp', 'sugar', 'weight', 'settings', 'trend', 'bpplan'].indexOf(cur.name) >= 0) rerender();
+  setTimeout(bpSevereCheck, 400); if (typeof syncMeds === 'function') syncMeds();
 };
 var HCWAIT = false;
 window.onHCPerm = function () { DB.hc = DB.hc || {}; DB.hc.on = true; HCWAIT = true; save(); native('hcRead', 180); };

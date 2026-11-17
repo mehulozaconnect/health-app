@@ -424,6 +424,11 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void shareText(final String subject, final String text) {
+            ui.post(() -> { try { startActivity(Intent.createChooser(new Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_SUBJECT, subject).putExtra(Intent.EXTRA_TEXT, text), "Share")); } catch (Exception ignored) { } });
+        }
+
+        @JavascriptInterface
         public void openExactSettings() {
             ui.post(() -> { try { startActivity(new Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:" + getPackageName()))); } catch (Exception ignored) { } });
         }

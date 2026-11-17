@@ -138,7 +138,10 @@ function merged(kind) {
     (src || []).forEach(function (x) {
       /* the same reading saved in two places counts once; several readings in one sitting all count */
       var t = x.t, dupe = mine.some(function (m) {
-        if (m._s === name || Math.abs(m.t - t) > 10 * 60000) return false;
+        if (m._s === name) { /* the same source listing one reading twice: same time, same numbers */
+          if (Math.abs(m.t - t) > 30000) return false;
+          return kind === 'bp' ? m.sys === x.sys && m.dia === x.dia : kind === 'sugar' ? m.val === Math.round(x.mgdl) : m.kg === x.kg; }
+        else if (Math.abs(m.t - t) > 10 * 60000) return false;
         if (kind === 'bp') return Math.abs(m.sys - x.sys) <= 2 && Math.abs(m.dia - x.dia) <= 2;
         if (kind === 'sugar') return Math.abs(m.val - Math.round(x.mgdl)) <= 3;
         return Math.abs(m.kg - x.kg) <= 0.2;

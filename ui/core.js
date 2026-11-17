@@ -172,7 +172,7 @@ ACT.back = function () { if (history.length > 1) history.back(); else go('home')
 ACT.go = function (el) { go(el.getAttribute('data-to')); };
 
 /* ---------- small UI parts ---------- */
-var HERO = { 'Water': ['drop', '#4E8FD0'], 'Medicines': ['pill', '#8B6CC9'], 'Medicine': ['pill', '#8B6CC9'], 'Sleep': ['moon', '#5A5FC2'], 'Blood pressure': ['bp', '#D0566B'], 'Blood sugar': ['pulse', '#C9773A'], 'Weight': ['scale', '#3E9C86'],
+var HERO = { 'BP plan': ['heart', '#E0245E'], 'DASH diet': ['food', '#16C79A'], 'Wall sit': ['bolt', '#F5A60B'], 'Doctor report': ['doc', '#5B8CC0'], 'Water': ['drop', '#4E8FD0'], 'Medicines': ['pill', '#8B6CC9'], 'Medicine': ['pill', '#8B6CC9'], 'Sleep': ['moon', '#5A5FC2'], 'Blood pressure': ['bp', '#D0566B'], 'Blood sugar': ['pulse', '#C9773A'], 'Weight': ['scale', '#3E9C86'],
   'Yoga & pranayama': ['yoga', '#4E9B6B'], 'Pranayama': ['yoga', '#4E9B6B'], 'Routine': ['yoga', '#4E9B6B'], 'Pose library': ['yoga', '#4E9B6B'], 'My schedule': ['bell', '#4E9B6B'], 'Schedule': ['bell', '#4E9B6B'], 'Your plan': ['spark', '#4E9B6B'],
   'Settings': ['gear', '#6A7972'], 'Rewards': ['trophy', '#D9A21B'], 'Your food guide': ['food', '#E58A3A'], 'Trends': ['pulse', '#4E8FD0'], 'Me and my budget': ['heart', '#C2629A'], 'Medical reports': ['doc', '#5B8CC0'], 'Report': ['doc', '#5B8CC0'], 'Look and colours': ['spark', '#C2629A'], 'Samsung Health data': ['heart', '#5B8CC0'], 'Pranayama report': ['yoga', '#4E9B6B'] };
 function head(title, sub, right) {

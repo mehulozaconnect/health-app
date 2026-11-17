@@ -19,6 +19,7 @@ ROUTES.food = function () {
   h += '<section class="c dark trio"><div><div class="l">Eaten</div><b>' + n0(t.kcal) + '</b></div><div><div class="l">' + (b.earned ? 'Burned' : 'Budget') + '</div><b>' + (b.earned ? '+' + n0(b.earned) : n0(b.base)) + '</b></div><div><div class="l">' + (left >= 0 ? 'Left' : 'Over') + '</div><b class="' + (left >= 0 ? 'mint' : 'peach') + '">' + n0(Math.abs(left)) + '</b></div></section>';
   if (b.carry) h += '<div class="note warn">Today\'s budget is ' + b.carry + ' kcal lower to balance yesterday.</div>';
   h += katoriCard();
+  if (DB.bpplan) { var dd0 = dashDay(SEL || today()); h += '<button class="lnk" data-act="go" data-to="dash/' + (SEL || today()) + '" style="margin:-6px 0 6px">DASH score ' + (dd0.score == null ? '—' : dd0.score) + ' · salt ' + n0(dd0.na) + ' of 1,500 mg · see servings</button>'; }
   if (k === today()) { var nm = nextMeal(); h += '<button class="tip tipbtn" data-act="go" data-to="guide">' + icon('spark', 16) + '<span><b>Your food guide:</b> what to eat, what to avoid and how much, from your BP, sugar and body.</span></button>' ; }
   MEALS.forEach(function (m) {
     var items = d.meals[m[0]] || [], mt = sumItems(items), tgt = Math.round(b.base * m[2]);
