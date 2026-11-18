@@ -259,7 +259,9 @@ ROUTES.dish = function (arg) {
   h += '<div class="chips">' + units.map(function (x) { return '<button class="chip' + (x[0] === u[0] ? ' dk' : '') + '" data-act="du" data-u="' + esc(x[0]) + '">' + esc(unitLabel(x[0], name)) + '</button>'; }).join('') + '</div>';
   h += '<div class="hint">' + esc(unitHelp(u, name)) + ((DB.myUnits || {})[name] && DB.myUnits[name][u[0]] ? ' Your own size.' : '') + '</div>' + (u[0] !== 'grams' ? '<button class="lnk" data-act="mySize" data-n="' + esc(name) + '" data-u="' + esc(u[0]) + '" data-g="' + Math.round(u[1]) + '">Your ' + esc(u[0]) + ' is bigger or smaller? Set its weight</button>' : '') + '</section>';
   var list = DRINK.test(name) ? EXTRAS.slice(0, 3) : EXTRAS.filter(function (e) { return e[0] !== 'honey'; });
-  h += '<section class="c"><div class="l">ADDED ON TOP' + (u[0] === 'grams' ? '' : ' (per ' + esc(u[0]) + ')') + '</div>' + (/^(Tea with milk|Masala chai|Coffee with milk)/.test(name) ? '<div class="hint">Set the sugar you actually add. Your choice is remembered for next time.</div>' : '') +
+  var exOn = Object.keys(DISH.ex || {}).some(function (k) { return DISH.ex[k]; }), exTea = /^(Tea with milk|Masala chai|Coffee with milk)/.test(name);
+  if (!exOn && !exTea && !DISH.exOpen) h += '<button class="exopen" data-act="exOpen">' + icon('plus', 16) + 'Add sugar, ghee or oil on top</button>';
+  else h += '<section class="c"><div class="row sb"><div class="l">ADDED ON TOP' + (u[0] === 'grams' ? '' : ' (per ' + esc(u[0]) + ')') + '</div>' + (exOn || exTea ? '' : '<button class="lnk" data-act="exClose">Hide</button>') + '</div>' + (/^(Tea with milk|Masala chai|Coffee with milk)/.test(name) ? '<div class="hint">Set the sugar you actually add. Your choice is remembered for next time.</div>' : '') +
     list.map(function (e) { var n = DISH.ex[e[0]] || 0; return '<div class="exrow"><span>' + e[1] + '<small>' + e[2] + ' kcal per tsp</small></span><button class="exb" data-act="exd" data-k="' + e[0] + '" data-d="-0.5" aria-label="Less ' + e[1] + '">−</button><b>' + (n ? frac(n) + ' tsp' : '0') + '</b><button class="exb" data-act="exd" data-k="' + e[0] + '" data-d="0.5" aria-label="More ' + e[1] + '">+</button></div>'; }).join('') + '</section>';
   h += '<section class="c"><div class="row sb end"><div><div class="l">Calories</div><b class="huge">' + n0(s.kcal) + '</b></div><div class="r"><div class="l">of today\'s budget</div><b class="mid">' + Math.round(s.kcal / b.total * 100) + '%</b></div></div><div class="g4 mt">' +
     mac('Protein', s.p, tg.p) + mac('Carbs', s.c, tg.c) + mac('Fat', s.f, tg.f) + mac('Fibre', s.fi, tg.fi) + '</div><div class="l mt">Bars show this portion\'s share of your daily target.' + '</div></section>';
@@ -312,6 +314,8 @@ function overeat(m, it, over, b, t) {
   sheet('<div class="row g8"><span class="wico">' + icon('warn') + '</span><h2>Hold on a second</h2></div><p class="p">' + frac(it.q) + ' ' + esc(it.u) + ' is <b>' + n0(iv(it, 'k')) + ' kcal</b>. You have <b>' + n0(Math.max(0, room)) + '</b> left, so this puts you <b class="warnt">' + n0(over) + ' kcal over</b>' + (iv(it, 'f') > 15 ? ' and adds ' + n0(iv(it, 'f')) + ' g fat' : '') + '.</p>' + opts + (recent ? '<div class="l ctrtxt">You went over on ' + recent + ' of the last 7 days.</div>' : ''));
 }
 ACT.oeFit = function (el) { var q = +el.getAttribute('data-q'), it = PENDING.it, per = it.g / it.q; it.q = q; it.g = per * q; commitAdd(PENDING.m, it); };
+ACT.exOpen = function () { DISH.exOpen = true; rerender(); };
+ACT.exClose = function () { DISH.exOpen = false; rerender(); };
 ACT.oeAdd = function (el) { commitAdd(PENDING.m, PENDING.it, +el.getAttribute('data-carry')); };
 
 /* ---------- own food ---------- */
