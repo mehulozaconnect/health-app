@@ -5,10 +5,14 @@ function gVer(n) { var m = n.match(/gemini-(\d+(?:\.\d+)?)/); return m ? +m[1] :
 function gRank(n) {
   var s = gVer(n) * 100;
   if (/-flash(?!-lite)/.test(n)) s += 50; else if (/-pro/.test(n)) s += 20; else if (/lite/.test(n)) s += 5; else s -= 1000;
-  if (/exp|preview/.test(n)) s -= 150; if (/-\d{2}-\d{2}|\d{3,}$/.test(n)) s -= 10; if ((DB.settings.gbad || []).indexOf(n) >= 0) s -= 5000; if ((DB.settings.gok || []).indexOf(n) >= 0) s += 400;
+  if (/exp|preview/.test(n)) s -= 150; if (/-\d{2}-\d{2}|\d{3,}$/.test(n)) s -= 10; if ((DB.settings.gbad || []).indexOf(n) >= 0) s -= 5000; if (((DB.settings.gcool || {})[n] || 0) > Date.now()) s -= 3000; if ((DB.settings.gok || []).indexOf(n) >= 0) s += 400;
   return s;
 }
+/* a model that is only busy or slow is set aside for a while, not for ever */
+function gCool(model, ms) { var c = DB.settings.gcool = DB.settings.gcool || {}; c[model] = Date.now() + ms; Object.keys(c).forEach(function (k) { if (c[k] < Date.now()) delete c[k]; }); DB.settings.gmodel = ''; save(); }
 function gModel() {
+  if (!DB.settings.gbadV2) { DB.settings.gbad = []; DB.settings.gbadV2 = 1; DB.settings.gmodel = ''; }
+  if (DB.settings.gmodel && ((DB.settings.gcool || {})[DB.settings.gmodel] || 0) > Date.now()) DB.settings.gmodel = '';
   if (DB.settings.gmodel) return Promise.resolve(DB.settings.gmodel);
   return http('GET', GBASE + 'models?pageSize=200', { 'x-goog-api-key': DB.settings.gkey }).then(function (r) {
     var d = JSON.parse(r.text || '{}');
@@ -31,9 +35,14 @@ function gAsk(parts, opt) {
     if (opt.fast && !opt.noThink) body.generationConfig.thinkingConfig = /gemini-2\./.test(model) ? { thinkingBudget: 0 } : { thinkingLevel: opt.thinkLow ? 'low' : 'minimal' };
     return http('POST', GBASE + 'models/' + encodeURIComponent(model) + ':generateContent', { 'content-type': 'application/json', 'x-goog-api-key': DB.settings.gkey }, JSON.stringify(body)).then(function (r) {
       var d; try { d = JSON.parse(r.text); } catch (e) { throw new Error('Unexpected reply (' + r.status + ')'); }
-      if (r.status === 404 || (r.status === 429 && !opt.retried)) {
-        if (r.status === 429) DB.settings.gbad = (DB.settings.gbad || []).concat([model]);
-        DB.settings.gmodel = ''; save(); opt.retried = true; return gAsk(parts, opt);
+      if (r.status === 404 && !opt.retried) { DB.settings.gbad = (DB.settings.gbad || []).concat([model]); DB.settings.gmodel = ''; save(); opt.retried = true; return gAsk(parts, opt); }
+      if (r.status === 429) {
+        /* "limit: 0" = this model is not in the free plan at all; otherwise it's a per-minute or per-day cap */
+        if (/limit:\s*0\b/.test(r.text)) { DB.settings.gbad = (DB.settings.gbad || []).concat([model]); DB.settings.gmodel = ''; save(); }
+        else gCool(model, /per day|PerDay/i.test(r.text) ? 12 * 3600000 : 90000);
+        opt.q429 = (opt.q429 || 0) + 1;
+        if (opt.q429 < 5) return gAsk(parts, opt);
+        throw new Error('QUOTA');
       }
       if (r.status === 400 && opt.fast && !opt.noThink && /think/i.test(r.text)) { if (!opt.thinkLow) opt.thinkLow = true; else opt.noThink = true; return gAsk(parts, opt); }
       if (r.status >= 500 && !opt.retried5) { DB.settings.gbad = (DB.settings.gbad || []).concat([model]); DB.settings.gmodel = ''; save(); opt.retried5 = true; return gAsk(parts, opt); }
@@ -52,8 +61,7 @@ function gQuick(parts, opt, each, tries) {
   var used = DB.settings.gmodel;
   return withTimeout(gAsk(parts, opt), each).catch(function (e) {
     if (e.message !== 'TIMEOUT' || tries <= 1) throw e;
-    var m = DB.settings.gmodel || used; if (m) DB.settings.gbad = (DB.settings.gbad || []).concat([m]);
-    DB.settings.gmodel = ''; save();
+    var m = DB.settings.gmodel || used; if (m) gCool(m, 30 * 60000); else { DB.settings.gmodel = ''; save(); }
     return gQuick(parts, Object.assign({}, opt), each, tries - 1);
   });
 }
@@ -63,6 +71,7 @@ function withTimeout(pr, ms) {
 function aiErr(e) {
   DB.settings.lastAiErr = (e && e.message) || String(e); save();
   if (e.message === 'TIMEOUT') { sheet('<h2>Gemini didn\'t answer</h2><p class="p">Google didn\'t reply in time' + (DB.settings.gmodel ? ' (' + esc(DB.settings.gmodel) + ')' : '') + '. Check your internet, then More → AI, Samsung Health and backup → <b>Test key</b>.</p><p class="l">You don\'t need AI to log food: type the parts, like <b>samosa pav</b> or <b>dal rice</b>, and Arogya builds the dish from its own list.</p><button class="btn mt" data-act="go" data-to="settings">Open AI settings</button>'); return; }
+  if (e.message === 'QUOTA') { sheet('<h2>Gemini\'s free limit is used up</h2><p class="p">Your free Google key has hit its limit on every model Arogya tried. The daily limit resets at 1:30 pm India time; the per-minute one in a minute or two.</p><p class="l">Arogya now skips models that aren\'t free and moves to the next one by itself, so try again shortly. You can still log food without AI: type the parts, like <b>dal rice</b>.</p><button class="btn mt" data-act="closeSheet">OK</button>'); return; }
   if (e.message === 'NOKEY') { sheet('<h2>Add your Gemini key</h2><p class="p">AI features (reading reports, plate photos and the coach chat) use Google Gemini with your own key. It\'s free for personal use.</p><p class="p">Get one at aistudio.google.com → Get API key, then paste it in More → AI settings. You can use the same key as Trikaal.</p><button class="btn mt" data-act="go" data-to="settings">Open AI settings</button>'); return; }
   sheet('<h2>AI problem</h2><p class="p">' + esc(e.message) + '</p><p class="l">If it mentions the key, paste the key again in More → AI, Samsung Health and backup and tap Test key.</p><button class="btn mt" data-act="closeSheet">OK</button>');
 }
