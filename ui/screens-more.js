@@ -169,6 +169,7 @@ TABOF.theme = 'more';
 ROUTES.more = function () {
   var h = '<h1 class="big">More</h1>';
   var row = function (to, ic, t, s) { return '<button class="res" data-act="go" data-to="' + to + '"><span class="row g12"><span class="mic">' + icon(ic, 20) + '</span><span>' + t + '<small>' + s + '</small></span></span>' + icon('chev', 18) + '</button>'; };
+  h += row('myfoods', 'food', 'My foods', 'Your own foods, from screenshots or typed in');
   h += row('hp', 'shield', 'My health plan', 'Your conditions, Can I eat this?, exercise and coach');
   h += row('bpplan', 'heart', 'BP plan', 'DASH diet, daily habits, doctor report');
   h += row('rewards', 'trophy', 'Rewards and badges', (function () { var r = rwStats(); return 'Level ' + (r.lv + 1) + ' · ' + n0(r.pts) + ' points · ' + r.goodCur + '-day streak'; })());
@@ -270,6 +271,7 @@ ACT.tryFeel = function () { feel('win'); };
 function backupCard() {
   var st = {}; try { st = JSON.parse(native('backupStatus') || '{}'); } catch (e) { }
   var h = '<section class="c"><div class="row g12"><span class="mic" style="--sc:#4E8FD0">' + icon('cloud', 20) + '</span><div class="f1"><h2>Automatic backup</h2><div class="l">Once a day — every time you close Arogya and again at night — your data is copied to one file you choose. Pick it in Google Drive and it stays safe even if you lose the phone.</div></div></div>';
+  h += '<div class="rd"><span>Included every day<br><span class="l">Food diary, readings, medicines, plans, ' + DB.custom.length + ' own food' + (DB.custom.length === 1 ? '' : 's') + ' and ' + Object.keys(DB.pics || {}).length + ' dish photos</span></span><button class="lnk" data-act="go" data-to="myfoods">My foods</button></div>';
   if (!AND) return h + '<div class="note mt">Works in the phone app.</div></section>';
   if (!st.set) h += '<div class="note warn mt">Not set up yet. Tap below, choose <b>Drive</b> in the side menu, pick a folder and tap Save.</div><button class="btn mt" data-act="bkPick">' + icon('cloud', 18) + 'Choose Google Drive file</button>';
   else {

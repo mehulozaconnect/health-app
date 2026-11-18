@@ -312,7 +312,7 @@ ACT.hpCanU = function (el) { CANQ.u = +el.getAttribute('data-i'); canSheet(); };
 function canSheet() {
   var r = CANQ.r, us = unitsOf(r).filter(function (u) { return u[1] > 0 && u[0] !== 'grams' && !/tablespoon|teaspoon|tbsp|tsp/.test(u[0]); }); if (!us.length) us = [['100 g', 100]];
   if (CANQ.u == null) CANQ.u = 0; var u = us[Math.min(CANQ.u, us.length - 1)], g = u[1], V = hpVerdict(r, g), L = HPV[V.lvl];
-  var h = '<div class="hpvhead" style="--vc:' + L[1] + '"><span>' + icon(L[2], 22) + '</span><div><div class="l">' + esc(r[0].replace(/\s*\(.*\)$/, '')) + '</div><h2>' + L[0] + '</h2></div></div>' +
+  var h = '<div class="hpvhead" style="--vc:' + L[1] + '">' + dishPic(r[0], 56) + '<span>' + icon(L[2], 22) + '</span><div><div class="l">' + esc(r[0].replace(/\s*\(.*\)$/, '')) + '</div><h2>' + L[0] + '</h2></div></div>' +
     '<div class="chips mt">' + us.slice(0, 3).map(function (x, i) { return '<button class="chip' + (i === CANQ.u ? ' dk' : '') + '" data-act="hpCanU" data-i="' + i + '">' + (x[0] === '100 g' ? '100 ' + gu(r[0]) : '1 ' + esc(unitLabel(x[0], r[0])) + ' · ' + x[1] + ' ' + gu(r[0])) + '</button>'; }).join('') + '</div>' +
     '<div class="l mt6">' + n0(r[1] * g / 100) + ' kcal · protein ' + n1(r[2] * g / 100) + ' g · sodium ' + n0((r[9] || 0) * g / 100) + ' mg · added sugar ' + n1((r[8] || 0) * g / 100) + ' g</div>';
   if (!V.rows.length) h += '<p class="p mt">Add a condition first, and this checks the food against each one.</p>';
@@ -320,13 +320,13 @@ function canSheet() {
   var sw = null; if (V.lvl === 'avoid' || V.lvl === 'small') SWAPS.forEach(function (s) { if (!sw && s[0].test(r[0]) && food(s[1]) && hpVerdict(food(s[1]), 100).lvl !== 'avoid') sw = s; });
   if (sw) h += '<div class="hpswap"><span class="l">Have this instead</span><button class="lnk" data-act="hpCan" data-n="' + esc(sw[1]) + '">' + esc(sw[1].replace(/\s*\(.*\)$/, '')) + ' — ' + esc(sw[2]) + '</button></div>';
   h += '<button class="btn sec mt" data-act="hpAskFood" data-n="' + esc(r[0]) + '">' + icon('spark', 18) + 'Ask Gemini for more</button>';
-  sheet(h);
+  sheet(h); setTimeout(picFill, 30);
 }
 INP.hpq = function (el) {
   var q = el.value.trim(), box = document.getElementById('hpres'); if (!box) return;
   if (q.length < 2) { box.innerHTML = ''; return; }
   var res = searchFoods(q, 6);
-  box.innerHTML = res.map(function (r) { var V = hpVerdict(r, unitsOf(r)[0] ? unitsOf(r)[0][1] : 100), L = HPV[V.lvl]; return '<button class="hpres" data-act="hpCan" data-n="' + esc(r[0]) + '"><i style="background:' + L[1] + '"></i><span>' + esc(r[0]) + '</span><em style="color:' + L[1] + '">' + { good: 'Good', ok: 'Fine', small: 'Small', avoid: 'Skip' }[V.lvl] + '</em></button>'; }).join('') +
+  setTimeout(picFill, 30); box.innerHTML = res.map(function (r) { var V = hpVerdict(r, unitsOf(r)[0] ? unitsOf(r)[0][1] : 100), L = HPV[V.lvl]; return '<button class="hpres" data-act="hpCan" data-n="' + esc(r[0]) + '"><i style="background:' + L[1] + '"></i>' + dishPic(r[0], 36) + '<span>' + esc(r[0]) + '</span><em style="color:' + L[1] + '">' + { good: 'Good', ok: 'Fine', small: 'Small', avoid: 'Skip' }[V.lvl] + '</em></button>'; }).join('') +
     '<button class="hpres ai" data-act="hpAskFood" data-q="' + esc(q) + '">' + icon('spark', 16) + '<span>Ask Gemini about “' + esc(q) + '”</span></button>';
 };
 

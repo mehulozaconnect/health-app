@@ -29,7 +29,7 @@ ROUTES.food = function () {
     if (items.length) { var lt = Math.max.apply(null, items.map(function (x) { return x.t; })); sub += ' · ' + hm(lt); }
     h += '<section class="c meal' + (items.length ? '' : ' empty') + '"><div class="row sb"><div><h2>' + m[1] + '</h2><div class="l ' + cls + '">' + sub + '</div></div><button class="add" data-act="go" data-to="add/' + m[0] + '" aria-label="Add to ' + m[1] + '">' + icon('plus', 20) + '</button></div>';
     items.forEach(function (it) {
-      h += '<button class="it" data-act="editItem" data-m="' + m[0] + '" data-id="' + it.id + '"><span>' + esc(it.n) + '<small>' + frac(it.q) + ' ' + esc(unitLabel(it.u, it.n)) + (it.u === 'grams' ? '' : ' · ' + Math.round(it.g) + ' ' + gu(it.n)) + (it.exTxt ? ' · ' + esc(it.exTxt) : '') + '</small></span><b>' + n0(iv(it, 'k')) + '</b></button>';
+      h += '<button class="it" data-act="editItem" data-m="' + m[0] + '" data-id="' + it.id + '">' + dishPic(it.n, 38) + '<span class="f1">' + esc(it.n) + '<small>' + frac(it.q) + ' ' + esc(unitLabel(it.u, it.n)) + (it.u === 'grams' ? '' : ' · ' + Math.round(it.g) + ' ' + gu(it.n)) + (it.exTxt ? ' · ' + esc(it.exTxt) : '') + '</small></span><b>' + n0(iv(it, 'k')) + '</b></button>';
     });
     if (!items.length && k === today()) {
       var sug = suggestFor(m[0], left);
@@ -110,7 +110,7 @@ function searchList(m) {
     var us = Object.keys(DB.usual).filter(function (n) { return food(n); }).sort(function (a, b) { return (DB.usual[b].m === m) - (DB.usual[a].m === m) || DB.usual[b].n - DB.usual[a].n; }).slice(0, 12);
     if (us.length) h += '<h3 class="sech">Your usual</h3>' + us.map(function (n) { return resRow(food(n), m, DB.usual[n]); }).join('');
     else h += '<div class="empty-s">Type a dish in English or Hindi: <b>roti</b>, <b>dahi</b>, <b>poha</b>, <b>rajma</b>, <b>paneer</b>…</div>';
-    h += '<button class="btn sec mt" data-act="customFood">' + icon('plus', 18) + 'Add my own food</button>';
+    h += '<div class="g2 mt"><button class="btn" data-act="shotFood">' + icon('cam', 18) + 'From a screenshot</button><button class="btn sec" data-act="customFood">' + icon('plus', 18) + 'Type values</button></div><button class="lnk" data-act="go" data-to="myfoods">My foods (' + DB.custom.length + ')</button>';
     return h;
   }
   var r = searchFoods(SQ, 40), ai = aiFoodCard(m), cb = comboCard(m, r);
@@ -119,7 +119,7 @@ function searchList(m) {
   var close = searchFoods(SQ, 12, true);
   return cb + ai + (close.length ? '<h3 class="sech">Close matches</h3>' + close.map(function (x) { return resRow(x, m); }).join('') : '') +
     (DB.profile.vegOnly ? '<button class="lnk" data-act="toggleVeg">Search all foods (not only veg)</button>' : '') +
-    '<button class="btn sec mt" data-act="customFood">' + icon('plus', 18) + 'Enter values myself</button>';
+    '<div class="g2 mt"><button class="btn" data-act="shotFood">' + icon('cam', 18) + 'From a screenshot</button><button class="btn sec" data-act="customFood">' + icon('plus', 18) + 'Type values</button></div>';
 }
 /* "samosa pav", "dal rice", "roti + sabzi": build the dish from foods already in the list — no internet needed */
 var COMBO = null;
@@ -208,7 +208,7 @@ ACT.aiFood = function (el) {
 function resRow(r, m, usual) {
   var us = unitsOf(r), u = usual ? (us.filter(function (x) { return x[0] === usual.u; })[0] || us[0]) : us[0], q = usual ? usual.q : 1;
   var kc = r[1] * u[1] * q / 100 + (usual && usual.ex ? exTotals(usual.ex, u[0] === 'grams' ? 1 : q).k : 0);
-  return '<button class="res" data-act="pickFood" data-n="' + esc(r[0]) + '" data-m="' + m + '"><span>' + esc(r[0]) + '<small>' + frac(q) + ' ' + esc(u[0]) + ' · ' + n0(kc) + ' kcal · ' + n1(r[2] * u[1] * q / 100) + ' g protein</small></span>' + icon('chev', 18) + '</button>';
+  return '<button class="res" data-act="pickFood" data-n="' + esc(r[0]) + '" data-m="' + m + '">' + dishPic(r[0], 42) + '<span class="f1">' + esc(r[0]) + '<small>' + frac(q) + ' ' + esc(u[0]) + ' · ' + n0(kc) + ' kcal · ' + n1(r[2] * u[1] * q / 100) + ' g protein</small></span>' + icon('chev', 18) + '</button>';
 }
 INP.sq = function (el) { SQ = el.value; document.getElementById('sres').innerHTML = searchList(cur.arg || mealFor()); };
 ACT.toggleVeg = function () { DB.profile.vegOnly = !DB.profile.vegOnly; save(); rerender(); };
@@ -252,7 +252,7 @@ ROUTES.dish = function (arg) {
   if (r[8] > 10) tags.push('<span class="tag warn">Sugary</span>');
   if (r[9] > 500) tags.push('<span class="tag warn">Salty</span>');
   var h = head('', 'Adding to ' + mealName(m));
-  h += '<section class="c"><h1 class="big">' + esc(r[0]) + '</h1><div class="l">Per 100 ' + gu(r[0]) + ': ' + n0(r[1]) + ' kcal · ' + (r[12] === 'INDB' ? 'Indian Nutrient Databank' : r[12] === 'INDB-adj' ? 'Indian Nutrient Databank, corrected for oil actually absorbed' : r[12] === 'Mine' ? 'Your home version' + (r[13] ? ': ' + esc(r[13]) : '') : r[12] === 'AI' ? 'AI estimate for a home recipe' + (r[13] ? ': ' + r[13] : '') + '. Adjust if yours is made differently.' : 'Standard home-style values') + '</div><div class="chips mt">' + tags.join('') + '</div></section>';
+  h += '<section class="c"><button class="dhero" data-act="picChange" data-n="' + esc(r[0]) + '" aria-label="Change photo">' + dishPic(r[0], 128) + '<span>' + icon('cam', 14) + 'Photo</span></button><h1 class="big">' + esc(r[0]) + '</h1><div class="l">Per 100 ' + gu(r[0]) + ': ' + n0(r[1]) + ' kcal · ' + (r[12] === 'INDB' ? 'Indian Nutrient Databank' : r[12] === 'INDB-adj' ? 'Indian Nutrient Databank, corrected for oil actually absorbed' : r[12] === 'Mine' ? 'Your home version' + (r[13] ? ': ' + esc(r[13]) : '') : r[12] === 'AI' ? 'AI estimate for a home recipe' + (r[13] ? ': ' + r[13] : '') + '. Adjust if yours is made differently.' : 'Standard home-style values') + '</div><div class="chips mt">' + tags.join('') + '</div></section>';
   h += verdictHtml(r, g, u[0], u[1], m);
   h += '<section class="c"><div class="l">HOW MUCH?</div><div class="stepper"><button class="step" data-act="dq" data-d="-1" aria-label="Less">−</button><div class="ctr"><b class="huge">' + (u[0] === 'grams' ? Math.round(DISH.q) : frac(DISH.q)) + '</b><div class="l">' + esc(unitLabel(u[0], name)) + (u[0] === 'grams' ? '' : ' · ' + Math.round(g) + ' ' + gu(name)) + '</div></div><button class="step" data-act="dq" data-d="1" aria-label="More">+</button></div>';
   if (u[0] !== 'grams') h += '<div class="chips c4">' + [0.5, 1, 1.5, 2].map(function (q) { return '<button class="chip' + (DISH.q === q ? ' on' : '') + '" data-act="dqSet" data-q="' + q + '">' + frac(q) + '</button>'; }).join('') + '</div>';
@@ -316,7 +316,7 @@ ACT.oeAdd = function (el) { commitAdd(PENDING.m, PENDING.it, +el.getAttribute('d
 
 /* ---------- own food ---------- */
 ACT.customFood = function () {
-  sheet('<h2>Add my own food</h2><div class="l">Values for 1 serving (check the pack label)</div>' +
+  sheet('<h2>Add my own food</h2><button class="btn mt" data-act="shotFood">' + icon('cam', 18) + 'Read it from a screenshot</button><div class="l mt">Or type the values for 1 serving (check the pack label)</div>' +
     '<label class="fld">Name<input id="cf_n" value="' + esc(SQ) + '"></label><div class="g2">' +
     '<label class="fld">Serving name<input id="cf_u" value="piece"></label><label class="fld">Serving grams<input id="cf_g" type="number" inputmode="decimal" value="100"></label>' +
     '<label class="fld">Calories<input id="cf_k" type="number" inputmode="decimal"></label><label class="fld">Protein g<input id="cf_p" type="number" inputmode="decimal"></label>' +
