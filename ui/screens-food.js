@@ -254,7 +254,7 @@ ROUTES.dish = function (arg) {
   var h = head('', 'Adding to ' + mealName(m));
   h += '<section class="c"><button class="dhero" data-act="picChange" data-n="' + esc(r[0]) + '" aria-label="Change photo">' + dishPic(r[0], 128) + '<span>' + icon('cam', 14) + 'Photo</span></button><h1 class="big">' + esc(r[0]) + '</h1><div class="l">Per 100 ' + gu(r[0]) + ': ' + n0(r[1]) + ' kcal · ' + (r[12] === 'INDB' ? 'Indian Nutrient Databank' : r[12] === 'INDB-adj' ? 'Indian Nutrient Databank, corrected for oil actually absorbed' : r[12] === 'Mine' ? 'Your home version' + (r[13] ? ': ' + esc(r[13]) : '') : r[12] === 'AI' ? 'AI estimate for a home recipe' + (r[13] ? ': ' + r[13] : '') + '. Adjust if yours is made differently.' : 'Standard home-style values') + '</div><div class="chips mt">' + tags.join('') + '</div><div class="dishbar"><button data-act="foodEdit" data-n="' + esc(r[0]) + '">' + icon('edit', 16) + 'Edit</button><button data-act="foodDel" data-n="' + esc(r[0]) + '">' + icon('x', 16) + 'Delete</button></div></section>';
   h += verdictHtml(r, g, u[0], u[1], m);
-  h += '<section class="c"><div class="l">HOW MUCH?</div><div class="stepper"><button class="step" data-act="dq" data-d="-1" aria-label="Less">−</button><div class="ctr"><b class="huge">' + (u[0] === 'grams' ? Math.round(DISH.q) : frac(DISH.q)) + '</b><div class="l">' + esc(unitLabel(u[0], name)) + (u[0] === 'grams' ? '' : ' · ' + Math.round(g) + ' ' + gu(name)) + '</div></div><button class="step" data-act="dq" data-d="1" aria-label="More">+</button></div>';
+  h += '<section class="c"><div class="l">HOW MUCH?</div><div class="stepper"><button class="step" data-act="dq" data-d="-1" aria-label="Less">−</button><div class="ctr"><button class="huge qtap" data-act="dqType" aria-label="Type amount">' + (u[0] === 'grams' ? Math.round(DISH.q) : frac(DISH.q)) + '</button><div class="l">' + esc(unitLabel(u[0], name)) + (u[0] === 'grams' ? '' : ' · ' + Math.round(g) + ' ' + gu(name)) + '</div></div><button class="step" data-act="dq" data-d="1" aria-label="More">+</button></div>';
   if (u[0] !== 'grams') h += '<div class="chips c4">' + [0.5, 1, 1.5, 2].map(function (q) { return '<button class="chip' + (DISH.q === q ? ' on' : '') + '" data-act="dqSet" data-q="' + q + '">' + frac(q) + '</button>'; }).join('') + '</div>';
   h += '<div class="chips">' + units.map(function (x) { return '<button class="chip' + (x[0] === u[0] ? ' dk' : '') + '" data-act="du" data-u="' + esc(x[0]) + '">' + esc(unitLabel(x[0], name)) + '</button>'; }).join('') + '</div>';
   h += '<div class="hint">' + esc(unitHelp(u, name)) + ((DB.myUnits || {})[name] && DB.myUnits[name][u[0]] ? ' Your own size.' : '') + '</div>' + (u[0] !== 'grams' ? '<button class="lnk" data-act="mySize" data-n="' + esc(name) + '" data-u="' + esc(u[0]) + '" data-g="' + Math.round(u[1]) + '">Your ' + esc(u[0]) + ' is bigger or smaller? Set its weight</button>' : '') + '</section>';
@@ -282,7 +282,14 @@ ROUTES.dish = function (arg) {
   return h;
 };
 function mac(n, v, t) { return '<div class="mac"><span class="l">' + n + '</span><b>' + n1(v) + ' g</b>' + bar(v / t * 100) + '</div>'; }
-ACT.dq = function (el) { var d = +el.getAttribute('data-d'); if (DISH.u === 'grams') DISH.q = clamp(DISH.q + d * 25, 10, 2000); else DISH.q = clamp(DISH.q + d * 0.5, 0.5, 20); rerender(); };
+ACT.dq = function (el) { var d = +el.getAttribute('data-d'); if (DISH.u === 'grams') DISH.q = clamp(DISH.q + d * 25, 10, 2000); else DISH.q = clamp(DISH.q + d * (DISH.q + d * 0.5 > 5 ? 1 : 0.5), 0.5, 500); DISH.q = DISH.q > 5 ? Math.round(DISH.q) : DISH.q; rerender(); };
+/* tap the number to type any amount */
+ACT.dqType = function () {
+  var gr = DISH.u === 'grams';
+  sheet('<h2>How much?</h2><label class="fld">' + (gr ? 'Grams' : 'Number of ' + esc(DISH.u || 'servings')) + '<input id="dq_in" type="number" inputmode="decimal" step="any" value="' + (gr ? Math.round(DISH.q) : DISH.q) + '"></label><button class="btn mt" data-act="dqTypeOk">Done</button>');
+  setTimeout(function () { var i = document.getElementById('dq_in'); if (i) { i.focus(); i.select(); i.addEventListener('keydown', function (e) { if (e.key === 'Enter') ACT.dqTypeOk(); }); } }, 80);
+};
+ACT.dqTypeOk = function () { var v = parseFloat((document.getElementById('dq_in') || {}).value); if (!(v > 0)) return toast('Enter a number'); DISH.q = DISH.u === 'grams' ? clamp(Math.round(v), 1, 5000) : clamp(Math.round(v * 100) / 100, 0.1, 500); sheet(null); rerender(); };
 ACT.exd = function (el) { var k = el.getAttribute('data-k'), v = clamp((DISH.ex[k] || 0) + +el.getAttribute('data-d'), 0, 10); DISH.ex = Object.assign({}, DISH.ex); if (v) DISH.ex[k] = v; else delete DISH.ex[k]; rerender(); };
 ACT.dqSet = function (el) { DISH.q = +el.getAttribute('data-q'); rerender(); };
 ACT.du = function (el) { DISH.u = el.getAttribute('data-u'); DISH.q = DISH.u === 'grams' ? 100 : 1; rerender(); };
