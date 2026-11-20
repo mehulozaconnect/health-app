@@ -33,7 +33,7 @@ function searchFoods(q, limit, partial) {
   q = q.trim().toLowerCase(); if (!q) return [];
   var toks = q.split(/\s+/), vegOnly = DB.profile.vegOnly, out = [];
   var mine = {}; DB.custom.forEach(function (r) { mine[r[0]] = 1; });
-  var all = DB.custom.concat(F.filter(function (r) { return !mine[r[0]]; }));
+  var hid = DB.hidden || {}, all = DB.custom.concat(F.filter(function (r) { return !mine[r[0]] && !hid[r[0]]; }));
   for (var i = 0; i < all.length; i++) {
     var r = all[i]; if (vegOnly && r[6] !== 1) continue;
     var nm0 = r[0].toLowerCase(), al = FA[r[0]], n = al ? nm0 + ' ' + al.toLowerCase() : nm0, s = 0, ok = true, got = 0;

@@ -57,7 +57,7 @@ function suggestFor(m, left) {
     var its = M.items.map(function (x) { var it = itemOf(x.r, x.q, x.u, unitG(x.r, x.u) * x.q); return /^(Tea with milk|Masala chai|Coffee with milk)/.test(x.r[0]) ? withExtras(it, { sugar: brain().sugarHi ? 0.5 : 1 }) : it; });
     return { items: its, text: its.map(function (i) { return i.n.replace(/\s*\(.*\)$/, '').replace(/ \/ Phulka/, '') + ' ' + frac(i.q) + ' ' + i.u; }).join(' + ') + '. ' + n0(M.s.k) + ' kcal, ' + n0(M.s.p) + ' g protein.' };
   }
-  var picks = Object.keys(DB.usual).map(function (n) { return [n, DB.usual[n]]; }).filter(function (x) { return x[1].m === m && x[1].n >= 3 && food(x[0]); }).sort(function (a, b) { return b[1].n - a[1].n; }).slice(0, 2)
+  var picks = Object.keys(DB.usual).map(function (n) { return [n, DB.usual[n]]; }).filter(function (x) { return x[1].m === m && x[1].n >= 3 && food(x[0]) && !(DB.hidden || {})[x[0]]; }).sort(function (a, b) { return b[1].n - a[1].n; }).slice(0, 2)
     .map(function (x) { return [x[0], x[1].q, x[1].u]; });
   if (!picks.length) picks = DEFAULTS[m];
   var items = picks.map(function (p) { var r = food(p[0]); if (!r) return null; var us = unitsOf(r), u = us.filter(function (x) { return x[0] === p[2]; })[0] || us[0]; return itemOf(r, p[1], u[0], u[1] * p[1]); }).filter(Boolean);
@@ -107,7 +107,7 @@ ROUTES.add.after = function () { var i = document.getElementById('sq'); if (i &&
 function searchList(m) {
   var h = '';
   if (!SQ.trim()) {
-    var us = Object.keys(DB.usual).filter(function (n) { return food(n); }).sort(function (a, b) { return (DB.usual[b].m === m) - (DB.usual[a].m === m) || DB.usual[b].n - DB.usual[a].n; }).slice(0, 12);
+    var us = Object.keys(DB.usual).filter(function (n) { return food(n) && !(DB.hidden || {})[n]; }).sort(function (a, b) { return (DB.usual[b].m === m) - (DB.usual[a].m === m) || DB.usual[b].n - DB.usual[a].n; }).slice(0, 12);
     if (us.length) h += '<h3 class="sech">Your usual</h3>' + us.map(function (n) { return resRow(food(n), m, DB.usual[n]); }).join('');
     else h += '<div class="empty-s">Type a dish in English or Hindi: <b>roti</b>, <b>dahi</b>, <b>poha</b>, <b>rajma</b>, <b>paneer</b>…</div>';
     h += '<div class="g2 mt"><button class="btn" data-act="shotFood">' + icon('cam', 18) + 'From a screenshot</button><button class="btn sec" data-act="customFood">' + icon('plus', 18) + 'Type values</button></div><button class="lnk" data-act="go" data-to="myfoods">My foods (' + DB.custom.length + ')</button>';
@@ -252,7 +252,7 @@ ROUTES.dish = function (arg) {
   if (r[8] > 10) tags.push('<span class="tag warn">Sugary</span>');
   if (r[9] > 500) tags.push('<span class="tag warn">Salty</span>');
   var h = head('', 'Adding to ' + mealName(m));
-  h += '<section class="c"><button class="dhero" data-act="picChange" data-n="' + esc(r[0]) + '" aria-label="Change photo">' + dishPic(r[0], 128) + '<span>' + icon('cam', 14) + 'Photo</span></button><h1 class="big">' + esc(r[0]) + '</h1><div class="l">Per 100 ' + gu(r[0]) + ': ' + n0(r[1]) + ' kcal · ' + (r[12] === 'INDB' ? 'Indian Nutrient Databank' : r[12] === 'INDB-adj' ? 'Indian Nutrient Databank, corrected for oil actually absorbed' : r[12] === 'Mine' ? 'Your home version' + (r[13] ? ': ' + esc(r[13]) : '') : r[12] === 'AI' ? 'AI estimate for a home recipe' + (r[13] ? ': ' + r[13] : '') + '. Adjust if yours is made differently.' : 'Standard home-style values') + '</div><div class="chips mt">' + tags.join('') + '</div></section>';
+  h += '<section class="c"><button class="dhero" data-act="picChange" data-n="' + esc(r[0]) + '" aria-label="Change photo">' + dishPic(r[0], 128) + '<span>' + icon('cam', 14) + 'Photo</span></button><h1 class="big">' + esc(r[0]) + '</h1><div class="l">Per 100 ' + gu(r[0]) + ': ' + n0(r[1]) + ' kcal · ' + (r[12] === 'INDB' ? 'Indian Nutrient Databank' : r[12] === 'INDB-adj' ? 'Indian Nutrient Databank, corrected for oil actually absorbed' : r[12] === 'Mine' ? 'Your home version' + (r[13] ? ': ' + esc(r[13]) : '') : r[12] === 'AI' ? 'AI estimate for a home recipe' + (r[13] ? ': ' + r[13] : '') + '. Adjust if yours is made differently.' : 'Standard home-style values') + '</div><div class="chips mt">' + tags.join('') + '</div><div class="dishbar"><button data-act="foodEdit" data-n="' + esc(r[0]) + '">' + icon('edit', 16) + 'Edit</button><button data-act="foodDel" data-n="' + esc(r[0]) + '">' + icon('x', 16) + 'Delete</button></div></section>';
   h += verdictHtml(r, g, u[0], u[1], m);
   h += '<section class="c"><div class="l">HOW MUCH?</div><div class="stepper"><button class="step" data-act="dq" data-d="-1" aria-label="Less">−</button><div class="ctr"><b class="huge">' + (u[0] === 'grams' ? Math.round(DISH.q) : frac(DISH.q)) + '</b><div class="l">' + esc(unitLabel(u[0], name)) + (u[0] === 'grams' ? '' : ' · ' + Math.round(g) + ' ' + gu(name)) + '</div></div><button class="step" data-act="dq" data-d="1" aria-label="More">+</button></div>';
   if (u[0] !== 'grams') h += '<div class="chips c4">' + [0.5, 1, 1.5, 2].map(function (q) { return '<button class="chip' + (DISH.q === q ? ' on' : '') + '" data-act="dqSet" data-q="' + q + '">' + frac(q) + '</button>'; }).join('') + '</div>';

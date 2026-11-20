@@ -104,8 +104,62 @@ ROUTES.myfoods = function () {
   var L = DB.custom.slice().reverse(), h = head('My foods', L.length + ' saved · in every backup');
   h += '<div class="g2"><button class="btn" data-act="shotFood">' + icon('cam', 18) + 'From a screenshot</button><button class="btn sec" data-act="customFood">' + icon('plus', 18) + 'Type values</button></div>';
   if (!L.length) h += '<section class="c"><p class="p">Take a screenshot of a dish in another app, like HealthifyMe, and add it here. Arogya reads the name, calories, protein, carbs, fat and the dish photo, and keeps it as your own food.</p></section>';
-  else h += '<section class="c">' + L.map(function (r) { var u = unitsOf(r)[0]; return '<button class="res pic" data-act="picChange" data-n="' + esc(r[0]) + '">' + dishPic(r[0], 46) + '<span class="f1">' + esc(r[0]) + '<small>1 ' + esc(unitLabel(u[0], r[0])) + ' · ' + n0(r[1] * u[1] / 100) + ' kcal · ' + n1(r[2] * u[1] / 100) + ' g protein · ' + (r[12] === 'AI' ? 'AI estimate' : r[13] === 'From your screenshot' ? 'from screenshot' : 'your values') + '</small></span></button>'; }).join('') + '</section>';
-  h += '<p class="l">Your own foods, their photos and your portion sizes are part of your data, so the daily backup copies them with everything else.</p>';
+  else h += '<section class="c">' + L.map(function (r) { var u = unitsOf(r)[0]; return '<button class="res pic" data-act="myFoodOpen" data-n="' + esc(r[0]) + '">' + dishPic(r[0], 46) + '<span class="f1">' + esc(r[0]) + '<small>1 ' + esc(unitLabel(u[0], r[0])) + ' · ' + n0(r[1] * u[1] / 100) + ' kcal · ' + n1(r[2] * u[1] / 100) + ' g protein · ' + (r[12] === 'AI' ? 'AI estimate' : r[13] === 'From your screenshot' ? 'from screenshot' : 'your values') + '</small></span></button>'; }).join('') + '</section>';
+  var hid = Object.keys(DB.hidden || {});
+  if (hid.length) h += '<section class="c"><h2>Hidden dishes</h2>' + hid.map(function (n) { return '<div class="rd"><span>' + esc(n) + '</span><button class="lnk" data-act="foodUnhide" data-n="' + esc(n) + '">Show again</button></div>'; }).join('') + '</section>';
+  h += '<p class="l">Tap a food to edit or delete it. Your own foods, their photos and your portion sizes are part of your data, so the daily backup copies them with everything else.</p>';
   return h;
 };
 TABOF.myfoods = 'food'; HERO['My foods'] = ['food', '#E58A3A'];
+
+/* ---------- edit or delete any food ---------- */
+function isOwn(n) { return FX[n] == null && DB.custom.some(function (r) { return r[0] === n; }); }
+var FED = null;
+ACT.foodEdit = function (el) {
+  var n = el.getAttribute('data-n'), r = food(n); if (!r) return;
+  var us = unitsOf(r), u = us.filter(function (x) { return x[0] === DISH.u; })[0] || us[0]; if (u[0] === 'grams') u = ['serving', 100];
+  var f = u[1] / 100, own = isOwn(n); FED = { n: n, base: r, own: own };
+  var fl = function (id, lab, v) { return '<label class="fld">' + lab + '<input id="' + id + '" type="number" inputmode="decimal" value="' + (v == null ? '' : v) + '"></label>'; };
+  sheet('<h2>Edit ' + esc(n.replace(/\s*\(.*\)$/, '')) + '</h2><div class="l">' + (own ? 'Your own food. Change anything.' : 'Your changes are saved as your home version. The standard values stay, and you can go back to them.') + '</div>' +
+    (own ? '<label class="fld">Name<input id="fe_n" value="' + esc(n) + '"></label>' : '') +
+    '<div class="g2"><label class="fld">Serving<input id="fe_u" value="' + esc(u[0]) + '"></label>' + fl('fe_g', 'Serving ' + gu(n), Math.round(u[1])) +
+    fl('fe_k', 'Calories', Math.round(r[1] * f)) + fl('fe_p', 'Protein g', n1(r[2] * f)) + fl('fe_c', 'Carbs g', n1(r[3] * f)) + fl('fe_f', 'Fat g', n1(r[4] * f)) + fl('fe_fi', 'Fibre g', n1((r[5] || 0) * f)) + fl('fe_na', 'Sodium mg', Math.round((r[9] || 0) * f)) + '</div>' +
+    '<div class="l mt6">Values for 1 serving.</div><button class="btn mt" data-act="foodEditSave">Save</button>');
+};
+ACT.foodEditSave = function () {
+  var v = function (id) { var x = document.getElementById(id); return x && x.value !== '' ? +x.value : 0; }, E = FED, b = E.base, g = v('fe_g') || 100, f = 100 / g;
+  if (!v('fe_k')) return toast('Enter calories');
+  var nn = E.own ? (document.getElementById('fe_n').value.trim() || E.n) : E.n;
+  if (nn !== E.n && food(nn)) return toast('A food with that name already exists');
+  var u = (document.getElementById('fe_u').value.trim() || 'serving').toLowerCase().replace(/[:|]/g, '');
+  var units = [u + ':' + Math.round(g)].concat(String(b[7] || '').split('|').filter(function (x) { return x && x.split(':')[0] !== u; })).join('|');
+  var r1 = function (x) { return Math.round(x * f * 10) / 10; };
+  var row = [nn, Math.round(v('fe_k') * f), r1(v('fe_p')), r1(v('fe_c')), r1(v('fe_f')), r1(v('fe_fi')), b[6], units, b[8] || 0, Math.round(v('fe_na') * f), b[10] || 0, b[11] || 0, 'Mine', E.own ? b[13] || '' : 'edited by you'];
+  if (b[14]) row[14] = b[14];
+  DB.custom = DB.custom.filter(function (r) { return r[0] !== E.n; }); DB.custom.push(row);
+  if (nn !== E.n) { pics(); if (DB.pics[E.n]) { DB.pics[nn] = DB.pics[E.n]; delete DB.pics[E.n]; } if (DB.usual[E.n]) { DB.usual[nn] = DB.usual[E.n]; delete DB.usual[E.n]; } }
+  DISH.u = u; DISH.q = 1; FED = null; save(); sheet(null); feel('done'); toast('Saved');
+  if (nn !== E.n && cur.name === 'dish') { var a = String(cur.arg || '').split('/'); go('dish/' + a[0] + '/' + encodeURIComponent(nn)); } else rerender();
+};
+ACT.foodDel = function (el) {
+  var n = el.getAttribute('data-n'), own = isOwn(n), shadow = !own && DB.custom.some(function (r) { return r[0] === n; }), s = '<h2>' + (own ? 'Delete ' : 'Remove ') + esc(n.replace(/\s*\(.*\)$/, '')) + '?</h2>';
+  if (own) s += '<p class="p">It\'s removed from your foods. Days you already logged it keep their calories.</p><button class="btn mt" style="background:var(--bad)" data-act="foodDelGo" data-n="' + esc(n) + '" data-m="del">Delete</button>';
+  else {
+    if (shadow) s += '<button class="btn sec mt" data-act="foodDelGo" data-n="' + esc(n) + '" data-m="reset">Go back to the standard values</button>';
+    s += '<p class="p mt">This is one of Arogya\'s built-in dishes. You can hide it so it no longer shows in search. Bring it back any time from More → My foods.</p><button class="btn mt" style="background:var(--bad)" data-act="foodDelGo" data-n="' + esc(n) + '" data-m="hide">Hide from search</button>';
+  }
+  sheet(s + '<button class="btn sec mt" data-act="closeSheet">Cancel</button>');
+};
+ACT.foodDelGo = function (el) {
+  var n = el.getAttribute('data-n'), m = el.getAttribute('data-m'); pics();
+  if (m === 'reset') { DB.custom = DB.custom.filter(function (r) { return r[0] !== n; }); DISH.u = ''; save(); sheet(null); rerender(); toast('Back to standard values'); return; }
+  DB.custom = DB.custom.filter(function (r) { return r[0] !== n; });
+  if (m === 'del') { delete DB.pics[n]; } else { DB.hidden = DB.hidden || {}; DB.hidden[n] = Date.now(); }
+  delete DB.usual[n]; save(); sheet(null); feel('tick'); toast(m === 'del' ? 'Deleted' : 'Hidden from search');
+  if (cur.name === 'dish') history.back(); else rerender();
+};
+ACT.foodUnhide = function (el) { var n = el.getAttribute('data-n'); if (DB.hidden) delete DB.hidden[n]; save(); rerender(); toast(n.replace(/\s*\(.*\)$/, '') + ' is back in search'); };
+ACT.myFoodOpen = function (el) {
+  var n = el.getAttribute('data-n');
+  sheet('<div class="row g12">' + dishPic(n, 56) + '<h2 style="margin:0">' + esc(n) + '</h2></div><div class="g2 mt"><button class="btn" data-act="foodEdit" data-n="' + esc(n) + '">' + icon('edit', 18) + 'Edit</button><button class="btn sec" data-act="foodDel" data-n="' + esc(n) + '">Delete</button></div><button class="btn sec mt" data-act="picChange" data-n="' + esc(n) + '">' + icon('cam', 18) + 'Change photo</button>');
+};
