@@ -42,3 +42,4 @@
 .dishbar{display:flex;gap:8px;margin-top:12px}
 .dishbar button{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:999px;padding:8px 14px;font:inherit;font-weight:700;font-size:13.5px;background:var(--field);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
 .dishbar button+button{color:var(--bad)}
+.micd{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}.micd summary,.micd2 summary{font-weight:700;font-size:14.5px;cursor:pointer;padding:6px 0;color:var(--g)}.micd2{margin-top:4px}

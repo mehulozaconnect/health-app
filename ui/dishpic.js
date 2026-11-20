@@ -60,6 +60,23 @@ ACT.picPick = function (el) {
 };
 ACT.picDel = function (el) { var n = el.getAttribute('data-n'); pics(); if (DB.pics[n]) delete DB.pics[n]; else { DB.picUrl[n] = ''; DB.picMiss = DB.picMiss || {}; DB.picMiss[n] = Date.now() + 3650 * 86400000; } save(); sheet(null); rerender(); };
 
+/* micronutrient fields (per serving), sodium has its own field */
+function micFields(pre, mi) {
+  mi = mi || []; var any = mi.some(function (v, i) { return i !== 6 && v > 0; });
+  var f = function (i) { var x = MIC[i], v = mi[i]; return '<label class="fld">' + x[0] + ' ' + x[1] + '<input id="' + pre + i + '" type="number" inputmode="decimal" value="' + (v > 0 ? micFmt(v) : '') + '"></label>'; };
+  var idx = MIC.map(function (x, i) { return i; }).filter(function (i) { return i !== 6; });
+  var filled = idx.filter(function (i) { return mi[i] > 0; }), empty = idx.filter(function (i) { return !(mi[i] > 0); });
+  return '<details class="micd"' + (any ? ' open' : '') + '><summary>Micronutrients' + (any ? ' (' + filled.length + ')' : '') + '</summary><div class="g2">' + filled.map(f).join('') + '</div>' +
+    (empty.length ? '<details class="micd2"><summary>' + (filled.length ? 'Add more' : 'Add calcium, iron, vitamins…') + '</summary><div class="g2">' + empty.map(f).join('') + '</div></details>' : '') + '</details>';
+}
+/* back to per 100 g; f = 100 / serving grams. Keeps old values for fields left untouched */
+function micRead(pre, f, old, na100) {
+  var out = MIC.map(function (x, i) { return old && old[i] ? old[i] : 0; }), any = false;
+  MIC.forEach(function (x, i) { if (i === 6) return; var el = document.getElementById(pre + i); if (!el) return; out[i] = el.value === '' ? 0 : Math.round(+el.value * f * 1000) / 1000; });
+  out[6] = na100 || 0; any = out.some(function (v) { return v > 0; });
+  return any ? out : undefined;
+}
+
 /* ---------- own food from a screenshot of another app ---------- */
 var SHOT = null;
 ACT.shotFood = function () {
@@ -69,13 +86,13 @@ ACT.shotFood = function () {
     sheet('<h2>Reading your screenshot</h2><div class="ctrtxt"><div class="spin"></div><p class="p">Gemini is reading the dish, its values and the photo. About 15 seconds.</p></div>');
     Promise.all(imgs.map(shrink)).then(function (sm) {
       var parts = sm.map(function (i) { return { inline_data: { mime_type: i.mime, data: i.data } }; });
-      parts.push({ text: 'These are screenshots of one food from another nutrition app (for example HealthifyMe). Read exactly what the screen says; do not guess values that are shown. Return JSON: {"name": the dish name as shown (add the English name in brackets if the shown name is Hindi only), "serving_name": the serving or unit shown, like "katori" or "piece" or "plate" or "glass" (lowercase, one or two words), "serving_qty": the quantity shown for it (number, often 1), "serving_grams": weight in grams (or ml for drinks) of that quantity if the screen says it, else your best estimate, "liquid": true if it is a drink, "kcal": calories for that quantity, "protein": g, "carb": g, "fat": g, "fibre": g or null, "sugar": g or null, "sodium": mg or null, "veg": "veg"|"egg"|"nonveg", "units": [other household measures shown on the screen, each {"name", "grams"}], "photo": [ymin, xmin, ymax, xmax] of the dish photo in the FIRST image on a 0-1000 scale, or null if there is no food photo, "unsure": one short line on anything you could not read, or ""}. If the screenshots do not show a food with nutrition values, return {"error": "reason"}.' });
+      parts.push({ text: 'These are screenshots of one food from another nutrition app (for example HealthifyMe). Read exactly what the screen says; do not guess values that are shown. Return JSON: {"name": the dish name as shown (add the English name in brackets if the shown name is Hindi only), "serving_name": the serving or unit shown, like "katori" or "piece" or "plate" or "glass" (lowercase, one or two words); if the screen only shows a weight such as "Net wt: 29 g", use "serving", "serving_qty": the quantity shown for it (number, 1 when only a weight is shown), "serving_grams": the weight in grams (or ml for drinks) for that quantity. If the screen shows any weight ("Net wt", "Serving size", "Weight", "(29 g)") copy that exact number; estimate ONLY when no weight is visible anywhere, and then say so in "unsure", "liquid": true if it is a drink, "kcal": calories for that quantity, "protein": g, "carb": g, "fat": g, "fibre": g or null, "sugar": g or null, "sodium": mg or null, "veg": "veg"|"egg"|"nonveg", "micros": {for every micronutrient shown on the screen, for the same quantity: keys exactly from this list ' + MIC.map(function (x) { return '\"' + x[0] + '\" (' + x[1] + ')'; }).join(', ') + ' — convert to that unit, number only; leave out ones not shown or shown as "-"}, "units": [other household measures shown on the screen, each {"name", "grams"}], "photo": [ymin, xmin, ymax, xmax] of the dish photo in the FIRST image on a 0-1000 scale, or null if there is no food photo, "unsure": one short line on anything you could not read, or ""}. If the screenshots do not show a food with nutrition values, return {"error": "reason"}.' });
       return gQuick(parts, { json: true, temp: 0 }, 45000, 3).then(function (j) {
         if (j.error) throw new Error(j.error);
         var q = +j.serving_qty || 1, f = 1 / q;
         SHOT = { img: sm[0], name: String(j.name || '').trim(), u: String(j.serving_name || 'serving').toLowerCase().replace(/[:|]/g, '').trim() || 'serving', g: Math.round((+j.serving_grams || 100) * f), liquid: !!j.liquid,
           k: Math.round((+j.kcal || 0) * f), p: n1((+j.protein || 0) * f), c: n1((+j.carb || 0) * f), f: n1((+j.fat || 0) * f), fi: j.fibre == null ? null : n1(+j.fibre * f), su: j.sugar == null ? null : n1(+j.sugar * f), na: j.sodium == null ? null : Math.round(+j.sodium * f),
-          veg: j.veg === 'nonveg' ? 0 : j.veg === 'egg' ? 2 : 1, units: (j.units || []).filter(function (u) { return u && u.name && +u.grams > 0 && +u.grams < 2000; }), unsure: j.unsure || '', pic: null };
+          veg: j.veg === 'nonveg' ? 0 : j.veg === 'egg' ? 2 : 1, mi: MIC.map(function (x) { var v = j.micros && j.micros[x[0]]; return v > 0 ? +v * f : 0; }), units: (j.units || []).filter(function (u) { return u && u.name && +u.grams > 0 && +u.grams < 2000; }), unsure: j.unsure || '', pic: null };
         return cropTo(sm[0], j.photo, 240).then(function (d) { SHOT.pic = j.photo ? d : null; shotSheet(); });
       });
     }).catch(function (e) { sheet(null); aiErr(e); });
@@ -84,7 +101,7 @@ ACT.shotFood = function () {
 function shotSheet() {
   var S = SHOT, fl = function (id, lab, v, num) { return '<label class="fld">' + lab + '<input id="' + id + '"' + (num ? ' type="number" inputmode="decimal"' : '') + ' value="' + esc(v == null ? '' : v) + '"></label>'; };
   sheet('<h2>Check and save</h2><div class="row g12 mt6">' + (S.pic ? '<img class="dpic" style="width:72px;height:72px" src="' + S.pic + '" alt="">' : '<span class="dpic ph" style="width:72px;height:72px;font-size:28px">' + esc((S.name || '?').charAt(0)) + '</span>') + '<div class="f1 l">' + (S.pic ? 'Photo taken from your screenshot.' : 'No dish photo in the screenshot. Arogya will look for one, or add your own later.') + (S.unsure ? '<br><span class="warnt">' + esc(S.unsure) + '</span>' : '') + '</div></div>' +
-    fl('sh_n', 'Name', S.name) + '<div class="g2">' + fl('sh_u', 'Serving', S.u) + fl('sh_g', 'Serving ' + (S.liquid ? 'ml' : 'grams'), S.g, 1) + fl('sh_k', 'Calories', S.k, 1) + fl('sh_p', 'Protein g', S.p, 1) + fl('sh_c', 'Carbs g', S.c, 1) + fl('sh_f', 'Fat g', S.f, 1) + fl('sh_fi', 'Fibre g', S.fi, 1) + fl('sh_na', 'Sodium mg', S.na, 1) + '</div>' +
+    fl('sh_n', 'Name', S.name) + '<div class="g2">' + fl('sh_u', 'Serving', S.u) + fl('sh_g', 'Serving ' + (S.liquid ? 'ml' : 'grams'), S.g, 1) + fl('sh_k', 'Calories', S.k, 1) + fl('sh_p', 'Protein g', S.p, 1) + fl('sh_c', 'Carbs g', S.c, 1) + fl('sh_f', 'Fat g', S.f, 1) + fl('sh_fi', 'Fibre g', S.fi, 1) + fl('sh_na', 'Sodium mg', S.na, 1) + '</div>' + micFields('sh_m', S.mi) +
     '<div class="l mt6">Values for 1 ' + esc(S.u) + ', as the screenshot shows. Change anything that looks wrong.</div><button class="btn mt" data-act="shotSave">Save to my foods</button>');
 }
 ACT.shotSave = function () {
@@ -94,6 +111,7 @@ ACT.shotSave = function () {
   var units = [u + ':' + Math.round(g)].concat(S.units.map(function (x) { return String(x.name).toLowerCase().replace(/[:|]/g, '') + ':' + Math.round(+x.grams); }).filter(function (x) { return x.split(':')[0] !== u; })).concat(['tablespoon:15']);
   DB.custom = DB.custom.filter(function (r) { return r[0] !== n; });
   DB.custom.push([n, Math.round(v('sh_k') * f), r1(v('sh_p')), r1(v('sh_c')), r1(v('sh_f')), r1(v('sh_fi')), S.veg, units.join('|'), r1(S.su), Math.round((v('sh_na') || 0) * f), 0, 0, 'Mine', 'From your screenshot']);
+  var row = DB.custom[DB.custom.length - 1], mi = micRead('sh_m', f, null, row[9]); if (mi) { row[14] = mi; row[10] = mi[1]; row[11] = mi[0]; }
   pics(); if (S.pic) DB.pics[n] = S.pic;
   SHOT = null; save(); sheet(null); feel('done'); toast('Saved ' + n + ' to your foods');
   if (cur.name === 'add') { SQ = n; DISH = { q: 1, u: u, ex: {} }; go('dish/' + (cur.arg || mealFor()) + '/' + encodeURIComponent(n)); } else rerender();
@@ -123,7 +141,7 @@ ACT.foodEdit = function (el) {
   sheet('<h2>Edit ' + esc(n.replace(/\s*\(.*\)$/, '')) + '</h2><div class="l">' + (own ? 'Your own food. Change anything.' : 'Your changes are saved as your home version. The standard values stay, and you can go back to them.') + '</div>' +
     (own ? '<label class="fld">Name<input id="fe_n" value="' + esc(n) + '"></label>' : '') +
     '<div class="g2"><label class="fld">Serving<input id="fe_u" value="' + esc(u[0]) + '"></label>' + fl('fe_g', 'Serving ' + gu(n), Math.round(u[1])) +
-    fl('fe_k', 'Calories', Math.round(r[1] * f)) + fl('fe_p', 'Protein g', n1(r[2] * f)) + fl('fe_c', 'Carbs g', n1(r[3] * f)) + fl('fe_f', 'Fat g', n1(r[4] * f)) + fl('fe_fi', 'Fibre g', n1((r[5] || 0) * f)) + fl('fe_na', 'Sodium mg', Math.round((r[9] || 0) * f)) + '</div>' +
+    fl('fe_k', 'Calories', Math.round(r[1] * f)) + fl('fe_p', 'Protein g', n1(r[2] * f)) + fl('fe_c', 'Carbs g', n1(r[3] * f)) + fl('fe_f', 'Fat g', n1(r[4] * f)) + fl('fe_fi', 'Fibre g', n1((r[5] || 0) * f)) + fl('fe_na', 'Sodium mg', Math.round((r[9] || 0) * f)) + '</div>' + micFields('fe_m', (r[14] && r[14].length ? r[14] : MIC.map(function (x, i) { return i === 0 ? r[11] || 0 : i === 1 ? r[10] || 0 : 0; })).map(function (v) { return (v || 0) * f; })) +
     '<div class="l mt6">Values for 1 serving.</div><button class="btn mt" data-act="foodEditSave">Save</button>');
 };
 ACT.foodEditSave = function () {
@@ -135,7 +153,7 @@ ACT.foodEditSave = function () {
   var units = [u + ':' + Math.round(g)].concat(String(b[7] || '').split('|').filter(function (x) { return x && x.split(':')[0] !== u; })).join('|');
   var r1 = function (x) { return Math.round(x * f * 10) / 10; };
   var row = [nn, Math.round(v('fe_k') * f), r1(v('fe_p')), r1(v('fe_c')), r1(v('fe_f')), r1(v('fe_fi')), b[6], units, b[8] || 0, Math.round(v('fe_na') * f), b[10] || 0, b[11] || 0, 'Mine', E.own ? b[13] || '' : 'edited by you'];
-  if (b[14]) row[14] = b[14];
+  var mi = micRead('fe_m', f, b[14], row[9]); if (mi) { row[14] = mi; row[10] = mi[1]; row[11] = mi[0]; } else if (b[14]) row[14] = b[14];
   DB.custom = DB.custom.filter(function (r) { return r[0] !== E.n; }); DB.custom.push(row);
   if (nn !== E.n) { pics(); if (DB.pics[E.n]) { DB.pics[nn] = DB.pics[E.n]; delete DB.pics[E.n]; } if (DB.usual[E.n]) { DB.usual[nn] = DB.usual[E.n]; delete DB.usual[E.n]; } }
   DISH.u = u; DISH.q = 1; FED = null; save(); sheet(null); feel('done'); toast('Saved');
