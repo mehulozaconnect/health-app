@@ -33,7 +33,7 @@ function dpOK(n) {
   /* skip what a condition lists to avoid or keep small; a nutrient flag only counts when it says avoid */
   if (ok && typeof hpConds === 'function') { var nm = fname(r), u = unitsOf(r)[0], g = u ? u[1] : 100;
     hpConds().forEach(function (c) { if (!ok) return; var D = hpDef(c);
-      if ((D.avoid || []).concat(D.limit || []).some(function (x) { return x[1] && x[1].test(nm); })) ok = false;
+      if ((D.avoid || []).concat(D.limit || []).some(function (x) { return x[1] && x[1].test && x[1].test(nm); })) ok = false;
       else if (D.nutr) { var v = D.nutr(r, g); if (v && v[0] === 'avoid') ok = false; } }); }
   return (DPOK[key] = ok);
 }

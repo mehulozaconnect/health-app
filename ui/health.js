@@ -172,14 +172,19 @@ function hpConds() { return hp().conds; }
 function hpArr(x) { return Array.isArray(x) ? x : typeof x === 'string' && x.trim() ? x.split(/[,;\n]+/).map(function (y) { return y.trim(); }).filter(Boolean) : x && typeof x === 'object' ? [x] : []; }
 function wre(words) { var w = hpArr(words).map(function (x) { return String(x).trim().toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).filter(function (x) { return x.length > 2; }); return w.length ? new RegExp(w.join('|'), 'i') : null; }
 /* the plan behind a condition: the library entry, or what Gemini wrote for one we don't have */
+var HPCACHE = {};
 function hpDef(c) {
   if (c.k && HPL[c.k]) return HPL[c.k];
   var a = c.ai || {};
-  if (!a._built) {
-    a._eatRe = wre(a.eat_words); var grp = function (x) { return typeof x === 'string' ? [x, wre([x]), ''] : [x.label || (hpArr(x.words)[0] || ''), wre(x.words || x.label), x.why || '']; }; a._av = hpArr(a.avoid).map(grp); a._li = hpArr(a.limit).map(grp); a._built = 1;
+  /* matching rules live in memory only: saved copies lose their patterns */
+  delete a._built; delete a._av; delete a._li; delete a._eatRe;
+  var X = HPCACHE[c.id];
+  if (!X) {
+    X = HPCACHE[c.id] = {};
+    X.eatRe = wre(a.eat_words); var grp = function (x) { return typeof x === 'string' ? [x, wre([x]), ''] : [x.label || (hpArr(x.words)[0] || ''), wre(x.words || x.label), x.why || '']; }; X.av = hpArr(a.avoid).map(grp); X.li = hpArr(a.limit).map(grp);
     hpArr(a.exercise).forEach(function (x, i) { if (typeof x === 'string') x = { name: x, min: 10 }; HPX['c' + c.id + i] = { n: x.name || 'Exercise', min: +x.min || 10, how: x.how, ic: /breath|pranayam/i.test(x.name || '') ? 'yoga' : /walk|cycl|swim/i.test(x.name || '') ? 'steps' : 'bolt', kind: /walk/i.test(x.name || '') ? 'walk' : /breath|pranayam|yoga|asana/i.test(x.name || '') ? 'yoga' : 'strength', go: 'timer', days: x.days === 'weekly3' ? [1, 3, 5] : x.days === 'weekly2' ? [2, 6] : null }; });
   }
-  return { name: c.name, ic: 'shield', col: '#7A4DFF', what: a.what || '', eat: hpArr(a.eat), eatRe: a._eatRe, avoid: a._av, limit: a._li, habits: hpArr(a.habits), check: a.check && a.check.q ? { q: a.check.q, a: [[a.check.label || 'Today', (a.check.scale || ['None', 'Mild', 'Bothersome', 'Severe']).slice(0, 4)]] } : null, ex: hpArr(a.exercise).map(function (x, i) { return 'c' + c.id + i; }), doctor: hpArr(a.doctor), ai: true };
+  return { name: c.name, ic: 'shield', col: '#7A4DFF', what: a.what || '', eat: hpArr(a.eat), eatRe: X.eatRe, avoid: X.av, limit: X.li, habits: hpArr(a.habits), check: a.check && a.check.q ? { q: a.check.q, a: [[a.check.label || 'Today', (a.check.scale || ['None', 'Mild', 'Bothersome', 'Severe']).slice(0, 4)]] } : null, ex: hpArr(a.exercise).map(function (x, i) { return 'c' + c.id + i; }), doctor: hpArr(a.doctor), ai: true };
 }
 
 /* ---------- today's exercise ---------- */
@@ -295,8 +300,8 @@ function hpVerdict(r, g) {
   var nm = fname(r), rows = [];
   hpConds().forEach(function (c) {
     var D = hpDef(c), lvl = 'ok', why = '';
-    (D.avoid || []).forEach(function (a) { if (lvl !== 'avoid' && a[1] && a[1].test(nm)) { lvl = 'avoid'; why = a[0] + ': ' + a[2]; } });
-    if (lvl === 'ok') (D.limit || []).forEach(function (a) { if (lvl === 'ok' && a[1] && a[1].test(nm)) { lvl = 'small'; why = a[0] + ': ' + a[2]; } });
+    (D.avoid || []).forEach(function (a) { if (lvl !== 'avoid' && a[1] && a[1].test && a[1].test(nm)) { lvl = 'avoid'; why = a[0] + ': ' + a[2]; } });
+    if (lvl === 'ok') (D.limit || []).forEach(function (a) { if (lvl === 'ok' && a[1] && a[1].test && a[1].test(nm)) { lvl = 'small'; why = a[0] + ': ' + a[2]; } });
     var nu = D.nutr ? D.nutr(r, g) : null;
     if (nu && VRANK[nu[0]] > VRANK[lvl]) { lvl = nu[0]; why = nu[1]; } else if (nu && nu[0] === lvl) why += (why ? ' ' : '') + nu[1] + '.';
     if (lvl === 'ok' && D.eatRe && D.eatRe.test(nm)) { lvl = 'good'; why = 'On your eat-more list.'; }
@@ -493,7 +498,7 @@ ROUTES.hpc = function (id) {
     list(c.k === 'urticaria' ? 'KEEP SMALL, OR TEST ONE AT A TIME' : 'KEEP SMALL', 'warnt', (D.limit || []).map(function (a) { return '<div class="hpli small"><b>' + esc(a[0]) + '</b><span class="l">' + esc(a[2]) + '</span></div>'; })) +
     list('SKIP', 'badt', (D.avoid || []).map(function (a) { return '<div class="hpli avoid"><b>' + esc(a[0]) + '</b><span class="l">' + esc(a[2]) + '</span></div>'; }));
   /* what you actually ate this week that clashes */
-  var wk = {}; for (var i = 0; i < 7; i++) dayItems(addDays(k, -i)).forEach(function (it) { var r = food(it.n); if (!r) return; var nm = fname(r), hit = (D.avoid || []).concat(D.limit || []).filter(function (a) { return a[1] && a[1].test(nm); })[0]; if (hit) { var n = it.n.replace(/\s*\(.*\)$/, ''); wk[n] = (wk[n] || 0) + 1; } });
+  var wk = {}; for (var i = 0; i < 7; i++) dayItems(addDays(k, -i)).forEach(function (it) { var r = food(it.n); if (!r) return; var nm = fname(r), hit = (D.avoid || []).concat(D.limit || []).filter(function (a) { return a[1] && a[1].test && a[1].test(nm); })[0]; if (hit) { var n = it.n.replace(/\s*\(.*\)$/, ''); wk[n] = (wk[n] || 0) + 1; } });
   var wn = Object.keys(wk).sort(function (a, b) { return wk[b] - wk[a]; });
   if (wn.length) h += '<div class="hpweek"><b>From your diary this week</b><div class="l">' + wn.slice(0, 5).map(function (n) { return esc(n) + (wk[n] > 1 ? ' ×' + wk[n] : ''); }).join(' · ') + '</div></div>';
   h += '</section>';
