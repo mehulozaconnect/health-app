@@ -142,7 +142,9 @@ function render() {
   var f = ROUTES[cur.name] || ROUTES.home;
   var app = document.getElementById('app');
   var y = app.scrollTop;
-  var body = f(cur.arg);
+  var body;
+  try { body = f(cur.arg); }
+  catch (e) { body = '<header class="hd"><button class="ib" data-act="back" aria-label="Back">' + icon('back') + '</button><div class="hdt"><h1>Something went wrong</h1></div></header><section class="c"><p class="p">This screen hit a problem. Please send a screenshot of this so it can be fixed.</p><p class="l mt6" style="word-break:break-word">' + esc(cur.name + ': ' + (e && e.message || e)) + '<br>' + esc(String(e && e.stack || '').split('\n').slice(1, 3).join(' · ')) + '</p><button class="btn mt" data-act="go" data-to="home">Back to Home</button></section>'; }
   var tab = TABOF[cur.name];
   app.innerHTML = '<main class="pg">' + body + '</main>';
   var nav = document.getElementById('nav');

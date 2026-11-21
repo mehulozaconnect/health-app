@@ -168,16 +168,18 @@ var HPORDER = ['bp', 'urticaria', 'diabetes', 'cholesterol', 'acidity', 'thyroid
 /* ---------- state ---------- */
 function hp() { DB.hp = DB.hp || { conds: [], ticks: {}, chk: {}, chat: [] }; ['ticks', 'chk'].forEach(function (x) { DB.hp[x] = DB.hp[x] || {}; }); DB.hp.chat = DB.hp.chat || []; return DB.hp; }
 function hpConds() { return hp().conds; }
-function wre(words) { var w = (words || []).map(function (x) { return String(x).trim().toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).filter(function (x) { return x.length > 2; }); return w.length ? new RegExp(w.join('|'), 'i') : null; }
+/* Gemini sometimes sends a list as plain text */
+function hpArr(x) { return Array.isArray(x) ? x : typeof x === 'string' && x.trim() ? x.split(/[,;\n]+/).map(function (y) { return y.trim(); }).filter(Boolean) : x && typeof x === 'object' ? [x] : []; }
+function wre(words) { var w = hpArr(words).map(function (x) { return String(x).trim().toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).filter(function (x) { return x.length > 2; }); return w.length ? new RegExp(w.join('|'), 'i') : null; }
 /* the plan behind a condition: the library entry, or what Gemini wrote for one we don't have */
 function hpDef(c) {
   if (c.k && HPL[c.k]) return HPL[c.k];
   var a = c.ai || {};
   if (!a._built) {
-    a._eatRe = wre(a.eat_words); a._av = (a.avoid || []).map(function (x) { return [x.label, wre(x.words), x.why]; }); a._li = (a.limit || []).map(function (x) { return [x.label, wre(x.words), x.why]; }); a._built = 1;
-    (a.exercise || []).forEach(function (x, i) { HPX['c' + c.id + i] = { n: x.name, min: +x.min || 10, how: x.how, ic: /breath|pranayam/i.test(x.name) ? 'yoga' : /walk|cycl|swim/i.test(x.name) ? 'steps' : 'bolt', kind: /walk/i.test(x.name) ? 'walk' : /breath|pranayam|yoga|asana/i.test(x.name) ? 'yoga' : 'strength', go: 'timer', days: x.days === 'weekly3' ? [1, 3, 5] : x.days === 'weekly2' ? [2, 6] : null }; });
+    a._eatRe = wre(a.eat_words); var grp = function (x) { return typeof x === 'string' ? [x, wre([x]), ''] : [x.label || (hpArr(x.words)[0] || ''), wre(x.words || x.label), x.why || '']; }; a._av = hpArr(a.avoid).map(grp); a._li = hpArr(a.limit).map(grp); a._built = 1;
+    hpArr(a.exercise).forEach(function (x, i) { if (typeof x === 'string') x = { name: x, min: 10 }; HPX['c' + c.id + i] = { n: x.name || 'Exercise', min: +x.min || 10, how: x.how, ic: /breath|pranayam/i.test(x.name || '') ? 'yoga' : /walk|cycl|swim/i.test(x.name || '') ? 'steps' : 'bolt', kind: /walk/i.test(x.name || '') ? 'walk' : /breath|pranayam|yoga|asana/i.test(x.name || '') ? 'yoga' : 'strength', go: 'timer', days: x.days === 'weekly3' ? [1, 3, 5] : x.days === 'weekly2' ? [2, 6] : null }; });
   }
-  return { name: c.name, ic: 'shield', col: '#7A4DFF', what: a.what || '', eat: a.eat || [], eatRe: a._eatRe, avoid: a._av, limit: a._li, habits: a.habits || [], check: a.check && a.check.q ? { q: a.check.q, a: [[a.check.label || 'Today', (a.check.scale || ['None', 'Mild', 'Bothersome', 'Severe']).slice(0, 4)]] } : null, ex: (a.exercise || []).map(function (x, i) { return 'c' + c.id + i; }), doctor: a.doctor || [], ai: true };
+  return { name: c.name, ic: 'shield', col: '#7A4DFF', what: a.what || '', eat: hpArr(a.eat), eatRe: a._eatRe, avoid: a._av, limit: a._li, habits: hpArr(a.habits), check: a.check && a.check.q ? { q: a.check.q, a: [[a.check.label || 'Today', (a.check.scale || ['None', 'Mild', 'Bothersome', 'Severe']).slice(0, 4)]] } : null, ex: hpArr(a.exercise).map(function (x, i) { return 'c' + c.id + i; }), doctor: hpArr(a.doctor), ai: true };
 }
 
 /* ---------- today's exercise ---------- */
