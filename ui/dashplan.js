@@ -60,9 +60,40 @@ function dpUsual(meal, g) {
 }
 function dpItem(c) { var r = food(c[0]); if (!r) return null; var g = c[1] * unitG(r, c[2]); return { n: r[0], q: c[1], u: c[2], g: g, ug: unitG(r, c[2]), p: dashParts({ n: r[0], g: g }), na: (r[9] || 0) * g / 100, k: r[1] * g / 100 }; }
 /* the plan for a day: done meals show what you ate; the rest are planned to cover what's still missing */
+/* the last 3 days with food logged: what was short, what was repeated, salt, calories, fibre, hives */
+function dpHistory(k) {
+  var days = [];
+  for (var i = 1; i <= 6 && days.length < 3; i++) { var kk = addDays(k, -i); if (dayItems(kk).length >= 2) days.push(kk); }
+  var H = { n: days.length, days: days, avg: {}, low: [], ate: {}, na: 0, over: 0, fi: 0, kc: 0, flare: false, sweets: 0 };
+  if (!days.length) return H;
+  DG.forEach(function (x) { H.avg[x[0]] = 0; });
+  days.forEach(function (kk, i) {
+    var D = dashDay(kk), t = dayTotals(kk), b = budgetFor(kk);
+    DG.forEach(function (x) { H.avg[x[0]] += D.s[x[0]] / days.length; });
+    H.na += t.na / days.length; H.fi += t.fi / days.length; H.kc += t.kcal / days.length; H.sweets += D.sweets || 0;
+    if (t.kcal > b.base * 1.1) H.over++;
+    if (i < 2) dayItems(kk).forEach(function (it) { var n = it.n; H.ate[n] = (H.ate[n] || 0) + 1; });
+  });
+  var T = dashTargets(k);
+  H.low = DG.filter(function (x) { return H.avg[x[0]] < T[x[0]] * 0.5; }).map(function (x) { return x[0]; }).sort(function (a, b) { return H.avg[a] / T[a] - H.avg[b] / T[b]; });
+  if (typeof hpConds === 'function') hpConds().forEach(function (c) { var D2 = hpDef(c); if (D2.check) { var sc = hpChkScore(c, addDays(k, -1)); if (sc != null && sc >= 2) H.flare = D2.name; } });
+  H.constip = typeof hpConds === 'function' && hpConds().some(function (c) { return c.k === 'constipation'; });
+  return H;
+}
 function dashPlanFor(k) {
   k = k || today(); var D = dashDay(k), T = D.T, need = {}, d = dayIf(k), now = new Date(), isT = k === today(), nowM = now.getHours() * 60 + now.getMinutes(), P = dplan();
   DG.forEach(function (x) { need[x[0]] = T[x[0]] - D.s[x[0]]; });
+  var H = dpHistory(k), why = [], lowSalt = H.na > 2000 || D.na > 1000, lighter = H.over >= 2, fibre = H.constip && H.fi < 25, swapped = [];
+  /* order candidates: not eaten in the last 2 days first; low salt when salt has been high; more fibre when constipated */
+  var rank = function (list, g) {
+    return list.map(function (c, i) {
+      var it = dpItem(c); if (!it) return null; var sc = i;
+      if (H.ate[it.n]) sc += 20 * H.ate[it.n];
+      if (lowSalt && it.na > 300) sc += 30;
+      if (fibre && (g === 'veg' || g === 'fruit' || g === 'grain')) { var r = food(it.n); sc -= (r[5] || 0) * it.g / 100; }
+      return { c: c, sc: sc, rep: !!H.ate[it.n] };
+    }).filter(Boolean).sort(function (a, b) { return a.sc - b.sc; });
+  };
   var slots = MEALS.map(function (m) {
     var t = dpTime(m), tm = +t.slice(0, 2) * 60 + +t.slice(3), ate = d ? (d.meals[m[0]] || []) : [];
     var st = ate.length ? 'done' : isT && nowM > tm + 120 ? 'missed' : 'plan';
@@ -73,8 +104,12 @@ function dashPlanFor(k) {
     var sw = P.swap[k + s.m] || 0, used = {}, fast = isFast(k);
     ((fast ? DFAST : DTPL)[s.m] || []).forEach(function (row) {
       var g = row[0]; if (need[g] < 0.4 && !(fast && g === 'grain')) return;
-      var ch = (fast ? [] : dpUsual(s.m, g)).concat(row[1]).filter(function (c) { return !used[c[0]] && dpOK(c[0]); }); if (!ch.length) return;
-      var it = dpItem(ch[sw % ch.length]); if (!it) return; used[it.n] = 1; s.items.push(it);
+      var raw = (fast ? [] : dpUsual(s.m, g)).concat(row[1]).filter(function (c) { return !used[c[0]] && dpOK(c[0]); }); if (!raw.length) return;
+      var rk = rank(raw, g); if (!rk.length) return;
+      if (rk[0].c[0] !== raw[0][0] && H.ate[raw[0][0]]) swapped.push([raw[0][0], rk[0].c[0]]);
+      var pick = rk[sw % rk.length].c.slice();
+      if (lighter && g === 'grain' && s.m === 'dinner' && pick[1] > 1) pick[1] = 1;
+      var it = dpItem(pick); if (!it) return; used[it.n] = 1; s.items.push(it);
       Object.keys(it.p).forEach(function (x) { need[x] -= it.p[x]; });
     });
   });
@@ -94,7 +129,21 @@ function dashPlanFor(k) {
   DG.forEach(function (x) { proj += 14 * Math.min(1, s2[x[0]] / T[x[0]]); });
   proj += 15 * clamp((3000 - na) / 1500, 0, 1) + 7.5 * clamp((T.fatG * 1.5 - D.fat) / (T.fatG * 0.5), 0, 1) + 7.5 * clamp((3 - D.sweets) / (3 - T.sweetsDay), 0, 1);
   var next = slots.filter(function (s) { return s.st === 'plan' && s.items.length; })[0] || null;
-  return { k: k, D: D, slots: slots, next: next, proj: Math.round(proj), s2: s2, need: need };
+  /* the reasons, in plain words */
+  var gl = { grain: 'whole grains', veg: 'vegetables', fruit: 'fruit', dairy: 'dairy', leg: 'dal or nuts' }, sh = function (n) { return n.replace(/\s*\([^)]*\)/g, '').replace(/^Roti \/ Phulka.*/, 'phulka').toLowerCase(); };
+  if (!H.n) why.push('Not enough food logged in the last few days, so this plan only looks at today.');
+  else {
+    H.low.slice(0, 2).forEach(function (g) { why.push(gl[g].charAt(0).toUpperCase() + gl[g].slice(1) + ' averaged ' + n1(H.avg[g]).replace(/\.0$/, '') + ' of ' + T[g] + ' a day over your last ' + H.n + ' days, so it comes first today.'); });
+    if (swapped.length) why.push('You had ' + sh(swapped[0][0]) + ' recently, so ' + sh(swapped[0][1]) + ' is in its place for variety.');
+    if (H.na > 2000) why.push('Salt averaged ' + n0(H.na) + ' mg a day (limit 1,500), so salty dishes are left out today.');
+    else if (D.na > 1000) why.push('Salt is ' + n0(D.na) + ' mg already today, so the rest is kept low-salt.');
+    if (lighter) why.push('You went over your calories on ' + H.over + ' of the last ' + H.n + ' days, so dinner has 1 roti, not 2.');
+    if (fibre) why.push('Fibre averaged ' + n0(H.fi) + ' g a day (aim 30+) and constipation is on your plan, so the highest-fibre options are picked.');
+    if (H.flare) why.push(H.flare + ' were bad yesterday, so the plan keeps to plain, fresh, cooling foods.');
+  }
+  if ((P.avoid || []).length) why.push('Never suggests ' + P.avoid.slice(0, 3).join(', ') + (P.avoid.length > 3 ? ' and ' + (P.avoid.length - 3) + ' more' : '') + (typeof hpConds === 'function' && hpConds().length ? ', or what your health plan says to skip' : '') + '.');
+  if (isFast(k)) why.unshift('Fast day: no wheat, rice or dal.');
+  return { k: k, D: D, slots: slots, next: next, proj: Math.round(proj), s2: s2, need: need, H: H, why: why };
 }
 function dpTags(it) { return Object.keys(it.p).filter(function (g) { return it.p[g] >= 0.3; }).map(function (g) { var v = it.p[g]; return '<span class="dtg ' + DGC[g] + '">+' + frac(Math.max(0.5, Math.round(v * 2) / 2)) + ' ' + DGN[g] + '</span>'; }).join(''); }
 function dpSlotTags(s) { var t = {}; s.items.forEach(function (it) { Object.keys(it.p).forEach(function (g) { t[g] = (t[g] || 0) + it.p[g]; }); }); return Object.keys(t).filter(function (g) { return t[g] >= 0.3; }).map(function (g) { return '<span class="dtg ' + DGC[g] + '">+' + frac(Math.max(0.5, Math.round(t[g] * 2) / 2)) + ' ' + DGN[g] + '</span>'; }).join(''); }
@@ -147,6 +196,8 @@ ROUTES.dashplan = function () {
   h += '<section class="c"><button class="tog' + (isFast() ? ' on' : '') + '" data-act="fastToggle" style="border:0;margin:0;padding:0"><span><b>I\'m fasting today</b><br><span class="l">Rajgira, sama, sabudana, fruit, milk, makhana</span></span><i></i></button></section>';
   h += '<section class="c"><div class="row sb"><div><div class="l">DASH score</div><div class="dpsc">' + (D.score == null ? 0 : D.score) + ' <span>→ ' + PL.proj + '</span></div><div class="l">now → if you follow the rest of today</div></div><button class="lnk" data-act="go" data-to="dash">Servings</button></div>' +
     '<div class="dprows">' + DG.map(function (x) { var got = D.s[x[0]], pl = PL.s2[x[0]], T = D.T[x[0]]; return '<div class="dpr"><span>' + x[1].replace('Low-fat dairy', 'Dairy').replace('Dal, beans, nuts', 'Dal, nuts') + '</span><i><b style="width:' + Math.min(100, got / T * 100) + '%;background:' + x[3] + '"></b><b class="pl" style="width:' + Math.max(0, Math.min(100, (pl - got) / T * 100)) + '%;background:' + x[3] + '"></b></i><em>' + n1(got).replace(/\.0$/, '') + '/' + T + '</em></div>'; }).join('') + '</div><div class="l mt6">Solid: eaten. Light: planned below.</div></section>';
+  h += '<section class="c"><div class="row sb"><h2>Why this plan</h2>' + orb('spark', 15) + '</div>' + PL.why.map(function (t) { return '<div class="mst"><span class="n">•</span><span>' + esc(t) + '</span></div>'; }).join('') +
+    '<button class="lnk mt6" data-act="dpAskAi">Ask Gemini to check today\'s plan</button></section>';
   h += '<section class="c">' + PL.slots.map(function (s) {
     var cls = s.st === 'done' ? ' dn' : PL.next === s ? ' now' : s.st === 'missed' ? ' ms' : '';
     var body = s.st === 'done' ? esc(s.ate.map(function (i) { return i.n.replace(/\s*\(.*\)$/, ''); }).join(', ')) : s.st === 'missed' ? 'Skipped. What it had is moved to your next meals.' : s.items.length ? esc(s.items.map(dpLabel).join(' · ')) : 'Nothing more needed. Eat light if hungry.';
@@ -252,3 +303,9 @@ function focusCard() {
   h += '<div class="fbar"><button class="' + (isFast() ? 'on' : '') + '" data-act="fastToggle">' + (isFast() ? '✓ Fasting today' : 'Fasting today?') + '</button><button data-act="go" data-to="dashplan">' + icon('food', 15) + 'Diet plan</button>' + (new Date().getDay() === 0 ? '<button data-act="go" data-to="dashweek">Week review</button>' : '') + '</div></section>';
   return h;
 }
+
+ACT.dpAskAi = function () {
+  var PL = dashPlanFor(today()), plan = PL.slots.filter(function (s) { return s.st === 'plan' && s.items.length; }).map(function (s) { return s.name + ': ' + s.items.map(dpLabel).join(', '); }).join('; ');
+  var q = 'Check my DASH plan for the rest of today against what I ate in the last 3 days, my BP, my conditions and Ayurveda (I avoid raw curd for hives). Plan: ' + plan + '. Say what to keep, what to change and why, in under 120 words.' + (isFast() ? ' I am fasting today (no grains or dal).' : '');
+  go('hpcoach'); setTimeout(function () { hpSend(q); }, 50);
+};
