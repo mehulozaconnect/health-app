@@ -189,12 +189,12 @@ public class MedReceiver extends BroadcastReceiver {
         PendingIntent take = PendingIntent.getBroadcast(c, 23, new Intent(c, MedReceiver.class).setAction(TAKE).putExtra("keys", ks).putExtra("date", date), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         PendingIntent snooze = PendingIntent.getBroadcast(c, 24, new Intent(c, MedReceiver.class).setAction(SNOOZE).putExtra("keys", ks).putExtra("date", date), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Notification.Builder nb = new Notification.Builder(c, card ? QCH : CH)
-                .setContentTitle(("bp".equals(kind) ? "❤️ " : "prana".equals(kind) ? "🧘 Time for " : "💊 Time for ") + String.join(", ", names))
+                .setContentTitle(("bp".equals(kind) ? "❤️ " : "meal".equals(kind) ? "🍽 " : "prana".equals(kind) ? "🧘 Time for " : "💊 Time for ") + String.join(", ", names))
                 .setContentText(lines.get(0))
                 .setStyle(new Notification.BigTextStyle().bigText(String.join("\n", lines)))
                 .setContentIntent(show).setAutoCancel(true)
                 .setCategory(Notification.CATEGORY_REMINDER)
-                .addAction("prana".equals(kind) || "bp".equals(kind) ? new Notification.Action.Builder(null, "bp".equals(kind) ? "Measure now" : "Start now", show).build() : new Notification.Action.Builder(null, open.size() > 1 ? "Taken all" : "Taken", take).build())
+                .addAction("prana".equals(kind) || "bp".equals(kind) || "meal".equals(kind) ? new Notification.Action.Builder(null, "bp".equals(kind) ? "Measure now" : "meal".equals(kind) ? "Log it" : "Start now", show).build() : new Notification.Action.Builder(null, open.size() > 1 ? "Taken all" : "Taken", take).build())
                 .addAction(new Notification.Action.Builder(null, "In 15 min", snooze).build())
                 .addAction(new Notification.Action.Builder(null, "Skip", PendingIntent.getBroadcast(c, 26, new Intent(c, MedReceiver.class).setAction(SKIP).putExtra("keys", ks).putExtra("date", date), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE)).build())
                 ;
@@ -218,7 +218,7 @@ public class MedReceiver extends BroadcastReceiver {
 
     static Intent card(Context c, String ks, String date, List<String> names, List<String> lines, String route, String kind) {
         return new Intent(c, ReminderActivity.class).putExtra("route", route).putExtra("kind", kind).putExtra("keys", ks).putExtra("date", date)
-                .putExtra("title", "Time for " + String.join(", ", names))
+                .putExtra("title", ("bp".equals(kind) || "meal".equals(kind) ? "" : "Time for ") + String.join(", ", names))
                 .putExtra("body", lines.size() == 1 && lines.get(0).contains(" · ") ? lines.get(0).substring(lines.get(0).indexOf(" · ") + 3) : String.join("\n", lines))
                 .putExtra("accent", cfg(c).optString("accent", "#7C5CFF"));
     }
