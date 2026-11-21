@@ -38,11 +38,13 @@ var DRX = {
   fruit: /\b(coconut water|nariyal pani|tender coconut|banana|kela|apple|papaya|papita|guava|amrood|orange|santra|mosambi|sweet lime|mango|grapes|angoor|pomegranate|anar|watermelon|tarbooz|muskmelon|kharbooja|chikoo|chiku|sapota|pear|nashpati|pineapple|ananas|kiwi|strawberr|berries|jamun|plum|peach|fig|anjeer|dates|khajur|raisins?|kishmish|custard apple|sitaphal|lychee|fruit)/i,
   dairy: /\b(milk|doodh|curd|dahi|yogh?urt|buttermilk|chaas|chhaas|lassi|paneer|cottage cheese|cheese|raita|shrikhand|kadhi)\b/i,
   leg: /\b(dal|daal|dals|sambar|rajma|chole|chana|chickpeas?|moong|mung|masoor|toor|tuvar|arhar|urad|lobia|chawli|matki|moth|kulith|usal|misal|sprouts|soya|soy|tofu|chilla|cheela|dhokla|almonds?|badam|walnuts?|akhrot|cashews?|kaju|peanuts?|groundnuts?|moongphali|pista|pistachio|seeds|flax|chia|makhana)\b/i,
-  grain: /\b(roti|chapati|chapatti|phulka|bhakri|bhakhri|paratha|parantha|thepla|naan|kulcha|puri|poori|rice|chawal|pulao|pulav|biryani|khichdi|poha|upma|daliya|dalia|oats|sabudana|idli|dosa|uttapam|appam|bread|pav|toast|vermicelli|seviyan|noodles|pasta|millet|bajra|jowar|ragi|nachni|quinoa|muesli|cornflakes|corn flakes|khakhra)\b/i,
+  grain: /\b(roti|chapati|chapatti|phulka|bhakri|bhakhri|paratha|parantha|thepla|naan|kulcha|puri|poori|rice|chawal|pulao|pulav|biryani|khichdi|poha|upma|daliya|dalia|oats|sabudana|idli|dosa|uttapam|appam|bread|pav|toast|vermicelli|seviyan|noodles|pasta|millet|bajra|jowar|ragi|nachni|quinoa|muesli|cornflakes|corn flakes|khakhra|rajgira|amaranth|kuttu|buckwheat|sama|samo|moraiyo|morayo|vari|varai|barnyard|singhara|thalipeeth)\b/i,
   veg: /\b(sabzi|sabji|subzi|bhaji|bharta|salad|kachumber|koshimbir|soup|palak|spinach|methi|aloo|potato|gobi|cauliflower|cabbage|kobi|bhindi|okra|baingan|brinjal|tendli|tondli|karela|lauki|dudhi|turai|parwal|pumpkin|kaddu|beans|carrot|gajar|beetroot|cucumber|kakdi|tomato|capsicum|mushroom|corn|peas|matar|drumstick|sarson|saag|vegetables?|veg|tinda|arbi|suran|yam|sweet potato|shakarkandi|poriyal|thoran|avial|kofta)\b/i
 };
 var DNOT = /pakora|pakoda|bhajiya|chips|wafer|fries|halwa|kheer|cake|jam\b|jelly|murabba|ice cream|candy|barfi|burfi|ladoo|laddu|biscuit|cookie|chocolate|soda|cola/i;
 var DSPLIT = [
+  /* fast-day dishes: no dal in them, some peanuts */
+  [/(sama|samo|moraiyo|morayo|vari|varai|barnyard).*(khichdi|pulao|bhat)|(khichdi|pulao).*\(vrat\)/i, { grain: 0.85, leg: 0.15 }], [/sabudana (khichdi|vada|thalipeeth)/i, { grain: 0.7, leg: 0.3 }],
   [/khichdi/i, { grain: 0.5, leg: 0.5 }], [/curd rice|dahi chawal/i, { grain: 0.6, dairy: 0.4 }], [/(palak|matar|kadai|shahi|butter) paneer|paneer (bhurji|tikka|butter)/i, { veg: 0.5, dairy: 0.5 }],
   [/kadhi/i, { dairy: 0.6, leg: 0.4 }], [/raita/i, { dairy: 0.8, veg: 0.2 }], [/\b(tea|chai|coffee)\b/i, { dairy: 0.3 }], [/milkshake|shake|smoothie|lassi/i, { dairy: 0.6, fruit: 0.4 }],
   [/sambar/i, { leg: 0.6, veg: 0.4 }], [/(dal|daal)\b.*(palak|methi|lauki|dudhi|spinach)|(palak|methi|lauki|dudhi|spinach).*(dal|daal)\b/i, { leg: 0.6, veg: 0.4 }]
@@ -51,7 +53,7 @@ function dashParts(it) {
   var n = it.n, g = it.g || 0, sh = null;
   for (var i = 0; i < DSPLIT.length; i++) if (DSPLIT[i][0].test(n)) { sh = DSPLIT[i][1]; break; }
   if (!sh) {
-    var hit = DG.map(function (x) { return x[0]; }).filter(function (k) { return DRX[k].test(n) && !((k === 'veg' || k === 'fruit') && DNOT.test(n)); });
+    var hit = DG.map(function (x) { return x[0]; }).filter(function (k) { return DRX[k].test(n) && !((k === 'veg' || k === 'fruit' || k === 'grain') && (DNOT.test(n) || (k === 'grain' && /kheer|payasam|chikki/i.test(n)))); });
     if (/juice/i.test(n)) hit = hit.filter(function (k) { return k === 'fruit'; });
     if (!hit.length) return {};
     sh = {}; hit.forEach(function (k) { sh[k] = 1 / hit.length; });

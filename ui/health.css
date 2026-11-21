@@ -67,3 +67,4 @@
 .fcard .fhd{font-size:17px}.fbp{border:0;background:var(--field);border-radius:999px;padding:6px 11px;font:inherit;font-weight:800;font-size:13px;color:var(--ink)}
 .frow{display:flex;gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}.frow:nth-of-type(1){border-top:0}.frow .gorb{width:38px;height:38px;flex:none}.frow b{font-size:15px}.frow .l{line-height:1.35;margin-top:2px}
 .fbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}.fbar button{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:999px;padding:8px 13px;font:inherit;font-weight:700;font-size:13px;background:var(--field);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}.fbar button.on{background:#F08A0B;color:#fff;box-shadow:none}
+.ddash{display:flex;flex-wrap:wrap;align-items:center;gap:2px 4px;margin-top:8px}.ddash .l{margin-right:4px}.dtg.na{background:#FFE4E4;color:#B91C1C}
