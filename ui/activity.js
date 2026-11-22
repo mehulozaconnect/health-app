@@ -135,3 +135,6 @@ function dayRows(k) {
   (d ? d.yoga : []).forEach(function (s, i) { rows.push({ t: s.t, h: actRow(s, k, i).replace('</small>', (watchCovers(s) ? ' · also on watch, counted once' : '') + '</small>') }); });
   return rows.sort(function (a, b) { return b.t - a.t; }).map(function (r) { return r.h; }).join('');
 }
+
+/* pranayama section removed: old links land on Activity */
+ROUTES.breaths = function () { return ROUTES.yoga(); }; TABOF.breaths = 'home';

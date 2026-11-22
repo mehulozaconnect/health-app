@@ -170,7 +170,8 @@ ROUTES.more = function () {
   var h = '<h1 class="big">More</h1>';
   var row = function (to, ic, t, s) { return '<button class="res" data-act="go" data-to="' + to + '"><span class="row g12"><span class="mic">' + icon(ic, 20) + '</span><span>' + t + '<small>' + s + '</small></span></span>' + icon('chev', 18) + '</button>'; };
   h += row('myfoods', 'food', 'My foods', 'Your own foods, from screenshots or typed in');
-  h += row('hp', 'shield', 'My health plan', 'Your conditions, Can I eat this?, exercise and coach');
+  h += row('dashplan', 'food', 'Diet plan', 'DASH meals for today, fast days, never-suggest list');
+  h += row('hp', 'shield', 'My health plan', 'Your conditions, Can I eat this?, check-in and coach');
   h += row('bpplan', 'heart', 'BP plan', 'DASH diet, daily habits, doctor report');
   h += row('rewards', 'trophy', 'Rewards and badges', (function () { var r = rwStats(); return 'Level ' + (r.lv + 1) + ' · ' + n0(r.pts) + ' points · ' + r.goodCur + '-day streak'; })());
   h += row('reports', 'doc', 'Medical reports', DB.reports.length ? DB.reports.length + ' saved · AI reads them' : 'Scan or upload, AI reads them');
