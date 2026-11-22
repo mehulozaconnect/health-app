@@ -59,7 +59,8 @@ ROUTES.home = function () {
   var wp = merged('weight').filter(function (x) { return w && x.t < w.t - 6 * 86400000; })[0];
   h += tile('weight', 'scale', 'Weight', w ? n1(w.kg) + ' <small>kg</small>' : '—', w && wp ? (w.kg <= wp.kg ? '▼ ' : '▲ ') + n1(Math.abs(w.kg - wp.kg)) + ' kg this week' : 'Goal ' + n1(DB.profile.goal) + ' kg');
   var ym = yogaMin(k);
-  h += tile('yoga', 'yoga', 'Yoga', ym + ' <small>min</small>', ym >= yogaGoal() ? 'Done today' : 'of ' + yogaGoal() + ' min');
+  var am = moveMin(k);
+  h += tile('yoga', 'steps', 'Activity', am + ' <small>min</small>', am ? 'Tap to log more' : 'Tap to log');
   h += '</div>';
   h += staleNote() ? '<div class="ctrtxt">' + staleNote() + '</div>' : '';
   h += medsCard();

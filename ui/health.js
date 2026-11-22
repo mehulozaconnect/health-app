@@ -447,7 +447,8 @@ ROUTES.hp = function () {
   }
   /* can I eat this */
   h += '<section class="c"><h2>Can I eat this?</h2><label class="fld"><input id="hpq" placeholder="Type a food, like pav bhaji or mango" data-inp="hpq" autocomplete="off" enterkeyhint="search"></label><div id="hpres" class="hpresl"></div></section>';
-  /* today's exercise */
+  h += '<section class="c"><div class="row sb"><h2>Activity today</h2><b>' + moveMin(k) + ' min</b></div>' + ((dayIf(k) || {}).yoga || []).map(function (y, i) { return actRow(y, k, i); }).join('') + '<button class="btn sec mt" data-act="logAct">' + icon('plus', 18) + 'Log activity</button></section>';
+  /* today's exercise (retired) */
   var P = hpProgress(k), rs = rwStats(), streak = (rs.cur || {}).plan || 0;
   if (P.total) {
     h += '<section class="c"><div class="row sb"><h2>Today\'s exercise</h2><b class="hpcount">' + P.done + '/' + P.total + '</b></div>';
@@ -504,7 +505,7 @@ ROUTES.hpc = function (id) {
   h += '</section>';
   /* exercise */
   var dw = new Date().getDay();
-  h += '<section class="c"><h2>Exercise</h2>' + (D.ex || []).map(function (id) { var x = HPX[id]; if (!x) return ''; var on = !x.days || x.days.indexOf(dw) >= 0, d = hpExDone(id, k); return '<div class="lev">' + orb(x.ic, 16) + '<div class="f1"><b>' + esc(x.n) + '</b><div class="l">' + esc(x.how) + (x.days ? ' ' + x.days.map(function (z) { return DOW[z]; }).join(', ') + '.' : ' Daily.') + '</div></div>' + (on ? (d.ok ? '<span class="tick on">✓</span>' : '<button class="hpgo" data-act="hpStart" data-id="' + id + '">Start</button>') : '<span class="l">Rest day</span>') + '</div>'; }).join('') + '</section>';
+  h += '<section class="c"><div class="row sb"><h2>Activity today</h2><b>' + moveMin(k) + ' min</b></div><div class="l">Log what you did; it counts here and everywhere else.</div><button class="btn sec mt" data-act="logAct">' + icon('plus', 18) + 'Log activity</button></section>';
   if ((D.habits || []).length) h += '<section class="c"><h2>Daily habits</h2>' + D.habits.map(function (t) { return '<div class="mst"><span class="n">•</span><span>' + esc(t) + '</span></div>'; }).join('') + '</section>';
   /* Gemini, personal */
   h += '<section class="c"><div class="row sb"><h2>This week, for you</h2>' + orb('spark', 16) + '</div>' + (c.tips ? '<div class="p mt6">' + fmt(c.tips) + '</div><div class="l mt6">Written by Gemini ' + ago(c.tipsAt) + '</div>' : '<div class="l">Gemini reads your last 7 days of food, readings and check-ins, and says what to change.</div>') +

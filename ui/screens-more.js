@@ -175,7 +175,7 @@ ROUTES.more = function () {
   h += row('rewards', 'trophy', 'Rewards and badges', (function () { var r = rwStats(); return 'Level ' + (r.lv + 1) + ' · ' + n0(r.pts) + ' points · ' + r.goodCur + '-day streak'; })());
   h += row('reports', 'doc', 'Medical reports', DB.reports.length ? DB.reports.length + ' saved · AI reads them' : 'Scan or upload, AI reads them');
   h += row('weight', 'scale', 'Weight', lastWeight() ? n1(lastWeight()) + ' kg · goal ' + n1(DB.profile.goal) : 'Track towards your goal');
-  h += row('yoga', 'yoga', 'Yoga', yogaMin(today()) + ' min today');
+  h += row('yoga', 'steps', 'Activity', moveMin(today()) + ' min today · log what you did');
   h += row('water', 'drop', 'Water', (waterMl(today()) / 1000).toFixed(2) + ' L today · reminders');
   h += row('meds', 'pill', 'Medicines', meds().length ? meds().length + ' active · ' + (adherence(7).pct == null ? 'no doses yet' : adherence(7).pct + '% taken this week') : 'Doses, reminders, stock');
   h += row('bp', 'bp', 'Blood pressure', merged('bp').length + ' readings');

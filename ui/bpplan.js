@@ -171,7 +171,7 @@ ROUTES.bpplan = function () {
   h += '<section class="c"><h2>Today · ' + done + ' of ' + hs.length + '</h2>' + hs.map(function (r) {
     var x = r.x;
     return '<div class="lev">' + orb(x[2], 16) + '<div class="f1"><b>' + x[1] + '</b><div class="l">' + esc(r.note || x[3]) + '</div>' +
-      (x[0] === 'wall' ? '<button class="lnk" data-act="go" data-to="wallsit">Do it with the timer</button>' : x[0] === 'breath' ? '<button class="lnk" data-act="go" data-to="breaths">Open pranayama</button>' : x[0] === 'dash' ? '<button class="lnk" data-act="go" data-to="dashplan">Today\'s meal plan</button>' : '') + '</div>' +
+      (x[0] === 'walk' ? '<button class="lnk" data-act="logAct" data-a="brisk">Log a walk</button>' : x[0] === 'breath' ? '<button class="lnk" data-act="logAct" data-a="prana">Log pranayama</button>' : x[0] === 'dash' ? '<button class="lnk" data-act="go" data-to="dashplan">Today\'s meal plan</button>' : '') + '</div>' +
       (r.auto ? '<span class="tick' + (r.ok ? ' on' : ' auto') + '" aria-label="' + (r.ok ? 'Done' : 'Not yet') + '">' + (r.ok ? '✓' : '') + '</span>' : '<button class="tick' + (r.ok ? ' on' : '') + '" data-act="bpTick" data-id="' + x[0] + '" aria-label="Mark ' + esc(x[1]) + '">' + (r.ok ? '✓' : '') + '</button>') + '</div>';
   }).join('') + '<div class="l mt6">Ticks with no box fill in by themselves from your food, sleep and BP readings.</div></section>';
   /* DASH summary */

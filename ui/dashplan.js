@@ -296,6 +296,8 @@ function focusItems() {
     var HP = hpProgress(k), nx = HP.list.filter(function (e) { return !hpExDone(e.id, k).ok; })[0];
     if (nx) out.push({ p: nm >= 18 * 60 ? 78 : 60, ic: nx.x.ic, c: '#16C79A', t: nx.x.n, s: HP.done + ' of ' + HP.total + ' done today. ' + (nx.x.how || '').split('. ')[0] + '.', a: 'hpStart', id: nx.id, b: 'Start' });
   }
+  /* activity: a nudge in the evening if nothing is logged */
+  if (nm >= 17 * 60 && moveMin(k) < 15) out.push({ p: 58, ic: 'steps', c: '#16C79A', t: moveMin(k) ? 'Only ' + moveMin(k) + ' min of activity today' : 'No activity logged today', s: 'Did yoga, a walk or anything else? Log it so your calories and BP plan count it.', a: 'logAct', b: 'Log' });
   /* water */
   var wg = DB.settings.water.glass, behind = Math.round((waterPace() - waterMl(k)) / wg);
   if (behind >= 2) out.push({ p: 55, ic: 'drop', c: '#4E8FD0', t: behind + ' glasses behind on water', s: isFast(k) ? 'Water matters more on a fast day.' : 'Have one now; it also helps constipation and bloating.', a: 'qWater', b: '+1 glass' });
