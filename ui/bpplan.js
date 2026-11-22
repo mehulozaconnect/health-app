@@ -137,7 +137,7 @@ var BPH = [
   ['measure', 'BP morning and evening', 'heart', '2 readings each time']
 ];
 function bpHabit(id, k) {
-  var P = bpPlan(), man = (P.ticks[k] || {})[id], d = dayIf(k), ys = d ? d.yoga || [] : [];
+  var P = bpPlan(), man = (P.ticks[k] || {})[id], d = dayIf(k), ys = typeof dayActs === 'function' ? dayActs(k) : d ? d.yoga || [] : [];
   if (id === 'dash') { var dd = dashDay(k); return { ok: dd.score != null && dd.score >= 70, auto: 1, note: dd.score == null ? 'Log food to score' : 'Score ' + dd.score }; }
   if (id === 'salt') { var na = dashDay(k).na; return { ok: dashDay(k).n > 0 && na <= 1500, auto: 1, note: dashDay(k).n ? n0(na) + ' mg so far' : 'Log food to count' }; }
   if (id === 'walk') { var w = ys.filter(function (y) { return y.kind === 'walk' || /walk/i.test(y.name || ''); }).reduce(function (a, y) { return a + (y.min || 0); }, 0); return { ok: man || w >= 30, note: w ? Math.round(w) + ' min logged' : 'Tick when done' }; }

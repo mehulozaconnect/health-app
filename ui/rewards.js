@@ -10,7 +10,7 @@ var GOALS = [
   ['protein', 'Protein target', 'bolt', '#C2629A', function (k) { var t = dayTotals(k), g = macroTargets().p; return { ok: t.p >= g * 0.9, now: Math.round(t.p), of: Math.round(g), unit: 'g', show: dayItems(k).length > 0 || k === today() }; }],
   ['water', 'Water goal', 'drop', '#4E8FD0', function (k) { var g = DB.settings.water.goal, m = waterMl(k); return { ok: m >= g, now: m, of: g, unit: 'ml', show: true }; }],
   ['move', 'Moved enough', 'steps', '#3E9C86', function (k) {
-    var s = stepsFor(k) || 0, ex = ((dayIf(k) || {}).yoga || []).filter(function (y) { return y.kind && y.kind !== 'yoga'; }).reduce(function (a, y) { return a + (y.min || 0); }, 0);
+    var s = stepsFor(k) || 0, ex = (typeof dayActs === 'function' ? dayActs(k) : ((dayIf(k) || {}).yoga || [])).filter(function (y) { return y.kind && y.kind !== 'yoga'; }).reduce(function (a, y) { return a + (y.min || 0); }, 0);
     return { ok: s >= stepGoal() || ex >= 30, now: s, of: stepGoal(), unit: 'steps', show: true, extra: ex ? Math.round(ex) + ' min exercise' : '' };
   }],
   ['yoga', 'Yoga or pranayama', 'yoga', '#4E9B6B', function (k) { var m = yogaMin(k); return { ok: m >= yogaGoal(), now: m, of: yogaGoal(), unit: 'min', show: true }; }],

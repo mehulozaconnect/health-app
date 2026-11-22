@@ -298,13 +298,34 @@ public class SamsungHealth {
 
             try {
                 JSONArray ex = new JSONArray();
-                for (HealthDataPoint p : readAll(DataTypes.EXERCISE.getReadDataRequestBuilder().setLocalTimeFilter(LocalTimeFilter.of(today.minusDays(2).atStartOfDay(), to)))) {
+                for (HealthDataPoint p : readAll(DataTypes.EXERCISE.getReadDataRequestBuilder().setLocalTimeFilter(LocalTimeFilter.of(today.minusDays(7).atStartOfDay(), to)))) {
                     String title = null;
                     try { title = p.getValue(DataType.ExerciseType.CUSTOM_TITLE); } catch (Exception ignored) { }
                     if (title == null || title.isEmpty()) {
                         try { Object t = p.getValue(DataType.ExerciseType.EXERCISE_TYPE); if (t != null) { String n = t.toString().replace('_', ' ').toLowerCase(); title = Character.toUpperCase(n.charAt(0)) + n.substring(1); } } catch (Exception ignored) { }
                     }
-                    ex.put(new JSONObject().put("start", ms(p.getStartTime())).put("end", ms(p.getEndTime())).put("title", title == null ? "Workout" : title));
+                    JSONObject e = new JSONObject().put("start", ms(p.getStartTime())).put("end", ms(p.getEndTime())).put("title", title == null ? "Workout" : title);
+                    try { Object t = p.getValue(DataType.ExerciseType.EXERCISE_TYPE); if (t != null) e.put("type", t.toString()); } catch (Exception ignored) { }
+                    /* calories, time and heart rate from the workout's sessions */
+                    try {
+                        java.util.List<com.samsung.android.sdk.health.data.data.entries.ExerciseSession> ss = p.getValue(DataType.ExerciseType.SESSIONS);
+                        if (ss != null && !ss.isEmpty()) {
+                            double kcal = 0, sec = 0, hrSum = 0, hrW = 0, hrMax = 0, dist = 0; boolean auto = false;
+                            for (com.samsung.android.sdk.health.data.data.entries.ExerciseSession x : ss) {
+                                kcal += x.getCalories();
+                                double d = x.getDuration() != null ? x.getDuration().getSeconds() : 0; sec += d;
+                                if (x.getMeanHeartRate() != null && x.getMeanHeartRate() > 0) { hrSum += x.getMeanHeartRate() * Math.max(1, d); hrW += Math.max(1, d); }
+                                if (x.getMaxHeartRate() != null) hrMax = Math.max(hrMax, x.getMaxHeartRate());
+                                if (x.getDistance() != null) dist += x.getDistance();
+                                if (Boolean.TRUE.equals(x.getAutoDetected())) auto = true;
+                                if (e.optString("type", "").isEmpty() && x.getExerciseType() != null) e.put("type", x.getExerciseType().toString());
+                            }
+                            e.put("kcal", Math.round(kcal)).put("sec", Math.round(sec)).put("dist", Math.round(dist)).put("auto", auto);
+                            if (hrW > 0) e.put("hr", Math.round(hrSum / hrW));
+                            if (hrMax > 0) e.put("hrMax", Math.round(hrMax));
+                        }
+                    } catch (Throwable ignored) { }
+                    ex.put(e);
                 }
                 o.put("exercise", ex);
             } catch (Exception e) { errs.put("exercise: " + msgOf(e)); }

@@ -73,20 +73,20 @@ ACT.actEdit = function (el) {
 function actName(s) { return s.name || (s.prana ? 'Pranayama' : s.kind === 'walk' ? 'Walk' : 'Yoga'); }
 function actRow(s, k, i) { return '<button class="res" data-act="actEdit" data-k="' + k + '" data-i="' + i + '"><span class="actic">' + icon(s.kind === 'walk' ? 'steps' : s.kind === 'yoga' || !s.kind ? 'yoga' : 'bolt', 18) + '</span><span class="f1">' + esc(actName(s)) + '<small>' + hm(s.t) + ' · ' + Math.round(s.min) + ' min' + (s.int && s.int !== 'mod' ? ' · ' + AINT[s.int][1].toLowerCase() : '') + ' · ' + sessionKcal(s) + ' kcal' + (s.note ? ' · ' + esc(s.note) : '') + '</small></span>' + icon('chev', 18) + '</button>'; }
 ROUTES.yoga = function () {
-  var k = today(), d = dayIf(k), ys = d ? d.yoga : [], tot = moveMin(k), kc = loggedKcal(k);
+  var k = today(), tot = moveMin(k), kc = loggedKcal(k) + watchSessions(k).reduce(function (a, s) { return a + (s.kcal || 0); }, 0), rows = dayRows(k);
   var h = head('Activity', 'Log what you did; Arogya does the rest');
   h += '<button class="btn" data-act="logAct" style="margin-bottom:14px">' + icon('plus', 18) + 'Log activity</button>';
   h += '<div class="chips" style="margin:-4px 0 14px">' + ['yoga', 'prana', 'brisk', 'gym'].map(function (a) { return '<button class="chip" data-act="logAct" data-a="' + a + '">+ ' + actOf(a)[1] + '</button>'; }).join('') + '</div>';
   h += '<section class="c"><div class="row sb"><h2>Today</h2><b>' + tot + ' min · ' + kc + ' kcal</b></div>' +
-    (ys.length ? ys.map(function (s, i) { return { s: s, i: i }; }).sort(function (a, b) { return b.s.t - a.s.t; }).map(function (x) { return actRow(x.s, k, x.i); }).join('') : '<p class="l">Nothing logged yet today.</p>') + '</section>';
+    (rows || '<p class="l">Nothing yet today. Workouts from your watch show up here by themselves.</p>') + '</section>';
   /* week */
   var days = [], mx = 30; for (var i = 6; i >= 0; i--) { var dk = addDays(k, -i), m = moveMin(dk); days.push([dk, m]); mx = Math.max(mx, m); }
   var wt = days.reduce(function (a, x) { return a + x[1]; }, 0), act = days.filter(function (x) { return x[1] >= 30; }).length;
   h += '<section class="c"><div class="row sb"><h2>This week</h2><b>' + wt + ' min</b></div><div class="dwbars">' + days.map(function (x) { return '<div><i class="' + (x[1] >= 30 ? '' : 'lo') + '" style="height:' + Math.max(3, x[1] / mx * 100) + '%;background:' + (x[1] >= 30 ? '#16C79A' : '#BFE9DC') + '"></i><span>' + DOW[fromKey(x[0]).getDay()].slice(0, 2) + '</span></div>'; }).join('') + '</div>' +
     '<div class="l mt6">' + act + ' of 7 days with 30+ minutes. For BP, aim for 150 minutes a week.</div></section>';
   /* earlier days */
-  var past = []; for (var j = 1; j <= 6; j++) { var pk = addDays(k, -j), pd = dayIf(pk); if (pd && pd.yoga.length) past.push([pk, pd]); }
-  if (past.length) h += '<section class="c"><h2>Earlier</h2>' + past.map(function (p) { return '<div class="l mt6">' + niceDate(p[0]) + '</div>' + p[1].yoga.map(function (s, i) { return actRow(s, p[0], i); }).join(''); }).join('') + '</section>';
+  var past = []; for (var j = 1; j <= 6; j++) { var pk = addDays(k, -j), pr = dayRows(pk); if (pr) past.push([pk, pr]); }
+  if (past.length) h += '<section class="c"><h2>Earlier</h2>' + past.map(function (p) { return '<div class="l mt6">' + niceDate(p[0]) + '</div>' + p[1]; }).join('') + '</section>';
   h += '<p class="l">What you log adds to calories burned, your rewards, the BP plan walk and breathing ticks, and what the coach knows.' + (DB.health && DB.health.exercise && DB.health.exercise.length ? ' Sessions your watch already recorded are not counted twice.' : '') + '</p>';
   return h;
 };
@@ -103,3 +103,35 @@ BPH.forEach(function (x) { if (x[0] === 'walk') x[3] = 'Log it under Activity; 3
 })();
 /* health plan: no daily exercise list */
 hpExToday = function () { return []; };
+
+/* ---------- workouts from Samsung Health (watch) ---------- */
+function watchAct(e) {
+  var t = String((e.type || '') + ' ' + (e.title || '')).toUpperCase();
+  return /YOGA|PILATES|STRETCH/.test(t) ? 'yoga' : /BREATH|MEDITAT/.test(t) ? 'prana' : /RUN/.test(t) ? 'run' : /WALK|HIK/.test(t) ? 'walk' : /CYCL|BIK|SPIN/.test(t) ? 'cycle' : /SWIM/.test(t) ? 'swim' : /WEIGHT|STRENGTH|CIRCUIT|CROSS|DUMB|BARBELL|PUSH|SQUAT|PLANK|GYM/.test(t) ? 'gym' : /DANC|ZUMBA|AEROBIC/.test(t) ? 'dance' : /STAIR|STEP/.test(t) ? 'stairs' : /BADMINTON|TENNIS|CRICKET|FOOTBALL|BASKET|VOLLEY|TABLE|SQUASH|GOLF/.test(t) ? 'sport' : 'other';
+}
+function watchSessions(k) {
+  var ex = (DB.health && DB.health.exercise) || [];
+  return ex.filter(function (e) { return dkey(new Date(e.start)) === k && !((DB.hideW || {})[e.start]); }).map(function (e) {
+    var a = watchAct(e), A = actOf(a), min = e.sec ? e.sec / 60 : (e.end - e.start) / 60000;
+    var nm = e.title && !/^Workout$/i.test(e.title) ? e.title.replace(/^Custom /i, '') : A[1];
+    return { t: e.end, start: e.start, min: Math.round(min), kind: A[2], act: a, name: nm, prana: a === 'prana' ? 'watch' : undefined, kcal: e.kcal, hr: e.hr, hrMax: e.hrMax, dist: e.dist, auto: e.auto, src: 'watch' };
+  }).filter(function (s) { return s.min >= 1; });
+}
+/* everything you did that day: watch workouts plus what you logged (a log the watch also recorded counts once) */
+function dayActs(k) { var d = dayIf(k), mine = d ? d.yoga.filter(function (s) { return !watchCovers(s); }) : []; return watchSessions(k).concat(mine); }
+moveMin = function (k) { return Math.round(dayActs(k).reduce(function (a, y) { return a + (y.min || 0); }, 0)); };
+yogaMin = function (k) { return Math.round(dayActs(k).filter(function (y) { return !y.kind || y.kind === 'yoga'; }).reduce(function (a, y) { return a + (y.min || 0); }, 0)); };
+ACT.watchInfo = function (el) {
+  var k = el.getAttribute('data-k'), st = +el.getAttribute('data-s'), s = watchSessions(k).filter(function (x) { return x.start === st; })[0]; if (!s) return;
+  sheet('<h2>' + esc(s.name) + '</h2><div class="l">From your watch · ' + hm(s.start) + '–' + hm(s.t) + (s.auto ? ' · detected automatically' : '') + '</div>' +
+    '<div class="g2 mt">' + [['Duration', s.min + ' min'], ['Calories', s.kcal != null ? s.kcal + ' kcal' : '—'], ['Avg heart rate', s.hr ? s.hr + ' bpm' : '—'], ['Max heart rate', s.hrMax ? s.hrMax + ' bpm' : '—']].concat(s.dist ? [['Distance', (s.dist / 1000).toFixed(2) + ' km']] : []).map(function (x) { return '<div class="dwcmp"><span>' + x[0] + '</span><b>' + x[1] + '</b></div>'; }).join('') + '</div>' +
+    '<p class="l mt">Counted in your activity minutes, rewards and BP plan. Its calories already come in with your watch\'s active calories.</p><button class="btn sec mt" data-act="watchHide" data-s="' + st + '">Don\'t count this one</button>');
+};
+ACT.watchHide = function (el) { DB.hideW = DB.hideW || {}; DB.hideW[el.getAttribute('data-s')] = 1; save(); sheet(null); rerender(); toast('Not counted'); };
+function watchRow(s, k) { return '<button class="res" data-act="watchInfo" data-k="' + k + '" data-s="' + s.start + '"><span class="actic">' + icon(s.kind === 'walk' ? 'steps' : s.kind === 'yoga' ? 'yoga' : 'bolt', 18) + '</span><span class="f1">' + esc(s.name) + ' <span class="wtag">watch</span><small>' + hm(s.start) + ' · ' + s.min + ' min' + (s.kcal != null ? ' · ' + s.kcal + ' kcal' : '') + (s.hr ? ' · ' + s.hr + ' bpm avg' : '') + '</small></span>' + icon('chev', 18) + '</button>'; }
+/* list both kinds, newest first */
+function dayRows(k) {
+  var d = dayIf(k), rows = watchSessions(k).map(function (s) { return { t: s.start, h: watchRow(s, k) }; });
+  (d ? d.yoga : []).forEach(function (s, i) { rows.push({ t: s.t, h: actRow(s, k, i).replace('</small>', (watchCovers(s) ? ' · also on watch, counted once' : '') + '</small>') }); });
+  return rows.sort(function (a, b) { return b.t - a.t; }).map(function (r) { return r.h; }).join('');
+}
