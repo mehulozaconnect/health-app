@@ -51,6 +51,11 @@ public class MainActivity extends Activity {
     private SamsungHealth sh;
     private TextToSpeech tts;
     private boolean ttsReady = false, loaded = false;
+    private android.media.MediaPlayer clipMp;
+    static volatile MainActivity live;
+
+    /** the guided session finished or was stopped: let the page log it */
+    static void sessionEnded() { MainActivity a = live; if (a != null && a.loaded) a.js("window.onSessionEnd && window.onSessionEnd()"); }
 
     @Override
     protected void onCreate(Bundle b) {
@@ -112,6 +117,7 @@ public class MainActivity extends Activity {
             if (st == TextToSpeech.SUCCESS) { tts.setLanguage(new Locale("en", "IN")); tts.setSpeechRate(0.92f); ttsReady = true; }
         });
         WaterReceiver.schedule(this);
+        live = this;
     }
 
     private Intent cameraIntent() throws Exception {
@@ -148,6 +154,8 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         if (tts != null) tts.shutdown();
+        if (clipMp != null) try { clipMp.release(); } catch (Exception ignored) { }
+        if (live == this) live = null;
         super.onDestroy();
     }
 
@@ -471,6 +479,79 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void stopSpeak() { if (ttsReady) tts.stop(); }
+
+        /* ---------- guided sessions (play on with the screen locked) ---------- */
+        @JavascriptInterface
+        public boolean sessionStart(String json) {
+            try {
+                SessionService.pending = json;
+                Intent i = new Intent(MainActivity.this, SessionService.class).setAction("start");
+                if (Build.VERSION.SDK_INT >= 26) startForegroundService(i); else startService(i);
+                return true;
+            } catch (Exception e) { return false; }
+        }
+
+        @JavascriptInterface
+        public void sessionCtl(final String a) { ui.post(() -> { SessionService s = SessionService.inst; if (s != null) s.control(a); }); }
+
+        @JavascriptInterface
+        public String sessionState() { return SessionService.state(); }
+
+        @JavascriptInterface
+        public String sessionTake() { return SessionService.takeResults(MainActivity.this); }
+
+        @JavascriptInterface
+        public boolean clipSave(String key, String b64, int rate) { return SessionService.saveClip(MainActivity.this, key, b64, rate > 0 ? rate : 24000); }
+
+        @JavascriptInterface
+        public String clipList() { return SessionService.clipList(MainActivity.this); }
+
+        @JavascriptInterface
+        public void clipClear() { SessionService.clipClear(MainActivity.this); }
+
+        @JavascriptInterface
+        public boolean clipPlay(final String key) {
+            final File f = SessionService.clip(MainActivity.this, key);
+            if (f == null) return false;
+            ui.post(() -> {
+                try {
+                    if (clipMp != null) { clipMp.release(); clipMp = null; }
+                    clipMp = new android.media.MediaPlayer(); clipMp.setDataSource(f.getPath()); clipMp.prepare(); clipMp.start();
+                } catch (Exception ignored) { }
+            });
+            return true;
+        }
+
+        /** the phone's own voices for English, best first */
+        @JavascriptInterface
+        public String ttsVoices() {
+            JSONArray a = new JSONArray();
+            try {
+                if (ttsReady) for (android.speech.tts.Voice v : tts.getVoices()) {
+                    Locale l = v.getLocale();
+                    if (!"en".equals(l.getLanguage()) || v.getFeatures().contains("notInstalled")) continue;
+                    a.put(new JSONObject().put("name", v.getName()).put("loc", l.getCountry()).put("q", v.getQuality()).put("net", v.isNetworkConnectionRequired()));
+                }
+            } catch (Exception ignored) { }
+            return a.toString();
+        }
+
+        @JavascriptInterface
+        public String voicePref() { try { return new JSONObject().put("voice", SessionService.prefs(MainActivity.this).getString("voice", "")).put("rate", (double) SessionService.prefs(MainActivity.this).getFloat("rate", 0.9f)).toString(); } catch (Exception e) { return "{}"; } }
+
+        /** choose a phone voice (empty = default) and hear it */
+        @JavascriptInterface
+        public void ttsUse(String name, float rate, String sample) {
+            SessionService.prefs(MainActivity.this).edit().putString("voice", name == null ? "" : name).putFloat("rate", rate > 0 ? rate : 0.9f).apply();
+            if (!ttsReady) return;
+            try {
+                tts.setSpeechRate(rate > 0 ? rate : 0.9f);
+                boolean set = false;
+                if (name != null && !name.isEmpty()) for (android.speech.tts.Voice v : tts.getVoices()) if (v.getName().equals(name)) { tts.setVoice(v); set = true; break; }
+                if (!set) tts.setLanguage(new Locale("en", "IN"));
+                if (sample != null && !sample.isEmpty()) tts.speak(sample, TextToSpeech.QUEUE_FLUSH, null, "preview");
+            } catch (Exception ignored) { }
+        }
 
         @JavascriptInterface
         public void keepAwake(final boolean on) {

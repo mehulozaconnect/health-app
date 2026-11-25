@@ -22,6 +22,7 @@ jobs:
           node build.js
           mkdir -p android/app/src/main/assets/www
           cp dist/index.html android/app/src/main/assets/www/index.html
+          rm -rf android/app/src/main/assets/www/img && cp -r img android/app/src/main/assets/www/img
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

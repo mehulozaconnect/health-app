@@ -305,8 +305,8 @@ function syncMeds() {
   native('setMeds', JSON.stringify({ date: k, done: done, popup: DB.settings.medPopup !== false, accent: (typeof themeAccent === 'function' ? themeAccent() : '#7C5CFF'), doses: meds().filter(function (m) { return m.remind !== false; }).map(function (m) {
     var fw = FOODW.filter(function (f) { return f[0] === m.food; })[0];
     return { id: m.id, n: medLabel(m), q: medQty(m) + (fw && fw[0] !== 'any' ? ' · ' + fw[1].toLowerCase() : ''), times: m.times, days: m.days || [], every: +m.every || 1, start: m.start || '', end: m.end || '' };
-  }).concat([].map(function (s) {
-    return { id: 'ps_' + s.id, n: s.name, q: s.items.map(function (k) { return PRANA[k][0]; }).join(', ') + ' · ' + Math.round(pschedSec(s) / 60) + ' min', times: [s.time], days: [], every: 1, start: '', end: '', route: 'psched/' + s.id, kind: 'prana' };
+  }).concat(pscheds().filter(function (s) { return s.remind && s.items.length; }).map(function (s) {
+    return { id: 'ps_' + s.id, n: s.name, q: s.items.map(function (k) { return exName(k); }).join(', ') + ' · ' + Math.round(pschedSec(s) / 60) + ' min', times: [s.time], days: [], every: 1, start: '', end: '', route: 'psgo/' + s.id, kind: 'prana' };
   })).concat(typeof bpReminderDoses === 'function' ? bpReminderDoses() : []) }));
 }
 function takeMedAdds() {
