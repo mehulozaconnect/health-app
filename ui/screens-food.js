@@ -29,7 +29,7 @@ ROUTES.food = function () {
     if (items.length) { var lt = Math.max.apply(null, items.map(function (x) { return x.t; })); sub += ' · ' + hm(lt); }
     h += '<section class="c meal' + (items.length ? '' : ' empty') + '"><div class="row sb"><div><h2>' + m[1] + '</h2><div class="l ' + cls + '">' + sub + '</div></div><button class="add" data-act="go" data-to="add/' + m[0] + '" aria-label="Add to ' + m[1] + '">' + icon('plus', 20) + '</button></div>';
     items.forEach(function (it) {
-      h += '<button class="it" data-act="editItem" data-m="' + m[0] + '" data-id="' + it.id + '">' + dishPic(it.n, 38) + '<span class="f1">' + esc(it.n) + '<small>' + frac(it.q) + ' ' + esc(unitLabel(it.u, it.n)) + (it.u === 'grams' ? '' : ' · ' + Math.round(it.g) + ' ' + gu(it.n)) + (it.exTxt ? ' · ' + esc(it.exTxt) : '') + '</small></span><b>' + n0(iv(it, 'k')) + '</b></button>';
+      h += '<button class="it" data-act="editItem" data-m="' + m[0] + '" data-id="' + it.id + '">' + dishPic(it.n, 38) + '<span class="f1">' + esc(it.n) + '<small>' + (it.t ? hm(it.t) + ' · ' : '') + frac(it.q) + ' ' + esc(unitLabel(it.u, it.n)) + (it.u === 'grams' ? '' : ' · ' + Math.round(it.g) + ' ' + gu(it.n)) + (it.exTxt ? ' · ' + esc(it.exTxt) : '') + '</small></span><b>' + n0(iv(it, 'k')) + '</b></button>';
     });
     if (!items.length && k === today()) {
       var sug = suggestFor(m[0], left);
@@ -80,6 +80,7 @@ ACT.editItem = function (el) {
   EDIT = { m: m, id: id };
   sheet('<h2>' + esc(it.n) + '</h2><div class="l">' + frac(it.q) + ' ' + esc(unitLabel(it.u, it.n)) + (it.u === 'grams' ? '' : ' · ' + Math.round(it.g) + ' ' + gu(it.n)) + ' · ' + n0(iv(it, 'k')) + ' kcal</div>' +
     '<div class="stepper mt"><button class="step" data-act="editQty" data-d="-0.5" aria-label="Less">−</button><b id="eq">' + frac(it.q) + '</b><button class="step" data-act="editQty" data-d="0.5" aria-label="More">+</button></div>' +
+    '<label class="fld mt">Eaten at<input type="time" id="et" value="' + hm24(it.t || Date.now()) + '" data-inp="editAt"></label>' +
     '<div class="l mt">Move to</div><div class="chips">' + MEALS.map(function (x) { return '<button class="chip' + (x[0] === m ? ' on' : '') + '" data-act="moveItem" data-to="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>' +
     '<div class="g2 mt"><button class="btn sec" data-act="delItem">' + icon('trash', 18) + 'Remove</button><button class="btn" data-act="closeSheet">Done</button></div>');
 };
@@ -276,6 +277,7 @@ ROUTES.dish = function (arg) {
   else if (s.fi < 2 && s.kcal > 200) tip = 'Little fibre here. Add a salad or some fruit with it.';
   else tip = 'Good fit. ' + n0(Math.max(0, tg.p - t.p - s.p)) + ' g protein still to go today.';
   h += '<section class="c ' + (over ? 'peachbg' : 'mintbg') + '"><div class="l2">AFTER YOU ADD THIS</div><b class="mid">' + (over ? n0(-left) + ' kcal over today' : n0(left) + ' kcal left for today') + '</b><p>' + tip + '</p></section>';
+  h += '<label class="fld eatat">Eaten at<input type="time" id="dish_at" value="' + (DISH.at || defEatAt(m)) + '" data-inp="dishAt"></label>';
   h += '<button class="btn big" data-act="addDish" data-m="' + m + '" data-n="' + esc(name) + '">Add to ' + mealName(m) + ' · ' + n0(s.kcal) + ' kcal</button>';
   h += '<button class="btn sec" data-act="tuneFood" data-n="' + esc(name) + '" data-u="' + esc(u[0]) + '" data-g="' + Math.round(u[0] === 'grams' ? 100 : u[1]) + '">' + icon('edit', 18) + (r[12] === 'Mine' ? 'Edit my home version' : 'Made differently at home? Adjust') + '</button>';
   if (r[12] === 'Mine' && FX[name] != null) h += '<button class="lnk" data-act="untuneFood" data-n="' + esc(name) + '">Go back to the standard values</button>';
@@ -296,7 +298,7 @@ ACT.du = function (el) { DISH.u = el.getAttribute('data-u'); DISH.q = DISH.u ===
 function dishItem(name) { var r = food(name), units = unitsOf(r), u = units.filter(function (x) { return x[0] === DISH.u; })[0] || units[0]; return withExtras(itemOf(r, DISH.q, u[0], u[0] === 'grams' ? DISH.q : u[1] * DISH.q), DISH.ex); }
 ACT.addDish = function (el) {
   var m = el.getAttribute('data-m'), name = el.getAttribute('data-n'), it = dishItem(name);
-  if (SEL === today()) it.t = Date.now(); else { var mt = MEALS.filter(function (x) { return x[0] === m; })[0][3].split(':'); var d = fromKey(SEL); d.setHours(+mt[0], +mt[1]); it.t = d.getTime(); }
+  var at = ((document.getElementById('dish_at') || {}).value) || DISH.at || defEatAt(m), d = fromKey(SEL); d.setHours(+at.slice(0, 2), +at.slice(3), 0, 0); it.t = d.getTime(); DISH.at = '';
   var b = budgetFor(SEL), t = dayTotals(SEL), over = t.kcal + iv(it, 'k') - b.total;
   if (over > 50) return overeat(m, it, over, b, t);
   commitAdd(m, it);
@@ -393,3 +395,9 @@ ACT.mySize = function (el) {
 ACT.msq = function (el) { MS.g = clamp(MS.g + +el.getAttribute('data-d'), 1, 2000); document.getElementById('msv').textContent = MS.g; };
 ACT.msSave = function () { DB.myUnits = DB.myUnits || {}; DB.myUnits[MS.n] = DB.myUnits[MS.n] || {}; DB.myUnits[MS.n][MS.u] = MS.g; save(); sheet(null); rerender(); toast('1 ' + MS.u + ' = ' + MS.g + ' ' + gu(MS.n) + ', saved for next time'); };
 ACT.msReset = function () { if (DB.myUnits && DB.myUnits[MS.n]) { delete DB.myUnits[MS.n][MS.u]; save(); } sheet(null); rerender(); };
+
+/* when you ate it: now for today, the usual meal time for other days */
+function hm24(t) { var d = new Date(t); return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+function defEatAt(m) { if (SEL === today()) return hm24(Date.now()); var mt = MEALS.filter(function (x) { return x[0] === m; })[0]; return mt ? mt[3] : '12:00'; }
+INP.dishAt = function (el) { DISH.at = el.value; };
+INP.editAt = function (el) { var it = editIt(); if (!it || !el.value) return; var d = fromKey(SEL); d.setHours(+el.value.slice(0, 2), +el.value.slice(3), 0, 0); it.t = d.getTime(); save(); rerender(); };
