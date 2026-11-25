@@ -56,3 +56,25 @@ html[data-theme=glass] .ni.on:before{width:44px}
 .ctr{text-align:center;align-self:center}
 .xr-done .rd{padding:8px 0}
 @media (max-width:360px){.xgrid{grid-template-columns:1fr 1fr}}
+.xrow .xrb{border:0;background:none;text-align:left;color:var(--ink);font:inherit;padding:0;min-width:0}
+.xck{width:34px;height:34px;flex:none;border-radius:10px;border:2px solid var(--line);background:none;color:var(--on);font-weight:800;font-size:17px}
+.xck.on{background:var(--grad);border-color:transparent}
+.xsts{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:10px}
+.xst{text-align:center}.xst .row{justify-content:center;gap:4px;margin-top:4px}.xst b{font-size:24px;font-weight:800;min-width:44px;text-align:center}
+#xrsets{display:flex;flex-direction:column;gap:8px}#xrsets:empty{display:none}
+.xset{display:flex;align-items:center;gap:12px;border:0;background:var(--card);border-radius:14px;padding:12px 14px;font:inherit;color:var(--ink);text-align:left}
+.xset i{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-style:normal;font-size:13px;font-weight:800;flex:none}
+.xset.dn i{background:var(--g);border-color:var(--g);color:#fff}
+.xset.now{box-shadow:0 0 0 2px var(--g) inset}
+.xset b{font-size:16px;flex:1}.xset span{font-size:13.5px;color:var(--mute);font-weight:700}
+.xr-card.rest{background:rgba(20,20,40,.92);color:#fff}.xr-card.rest small{color:#cfd3e6}.xr-card.rest .rt3{fill:#fff}
+.xdone{display:flex;flex-direction:column;align-items:center;font-size:13px;font-weight:800;line-height:1}
+.trtime{font-size:56px;font-weight:800;text-align:center;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.trg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.trg div{background:var(--card);border-radius:16px;padding:12px 14px}
+.trg span{display:block;font-size:12.5px;color:var(--mute);font-weight:700}.trg b{font-size:22px;font-weight:800}
+.xr-done .trg div{background:var(--card2)}
+.xr-c.fin{background:var(--badbg);color:var(--bad)}
+.trs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.trb{display:flex;align-items:center;gap:8px;border:0;background:var(--card);border-radius:16px;padding:16px 14px;font:inherit;font-size:15px;font-weight:800;color:var(--ink);text-align:left;box-shadow:var(--shadow)}
+.trb svg{color:var(--g);flex:none}

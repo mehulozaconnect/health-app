@@ -41,7 +41,7 @@ import java.util.Locale;
 
 /** Arogya: the app is one offline web page in a WebView, plus a bridge for Samsung Health, files, reminders, voice and HTTP. */
 public class MainActivity extends Activity {
-    private static final int REQ_SAVE = 11, REQ_OPEN = 12, REQ_CHOOSER = 13, REQ_NOTIFY = 14, REQ_HC = 15, REQ_BKP = 16;
+    private static final int REQ_SAVE = 11, REQ_OPEN = 12, REQ_CHOOSER = 13, REQ_NOTIFY = 14, REQ_HC = 15, REQ_BKP = 16, REQ_TRACK = 17;
     private static final int BG = 0xFFEEF2EF;
     private WebView web;
     private String pendingSave = null;
@@ -164,6 +164,20 @@ public class MainActivity extends Activity {
         web.evaluateJavascript("(window.arogyaBack ? window.arogyaBack() : 'false')", r -> {
             if (r == null || !r.contains("true")) finish();
         });
+    }
+
+    private void startTrack() {
+        try {
+            Intent i = new Intent(this, TrackService.class).setAction("start");
+            if (Build.VERSION.SDK_INT >= 26) startForegroundService(i); else startService(i);
+            js("window.onTrackStarted && window.onTrackStarted(true)");
+        } catch (Exception e) { js("window.onTrackStarted && window.onTrackStarted(false)"); }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int req, String[] perms, int[] res) {
+        super.onRequestPermissionsResult(req, perms, res);
+        if (req == REQ_TRACK && TrackService.pending != null) startTrack();
     }
 
     private void js(final String code) { ui.post(() -> web.evaluateJavascript(code, null)); }
@@ -490,6 +504,29 @@ public class MainActivity extends Activity {
                 return true;
             } catch (Exception e) { return false; }
         }
+
+        /* ---------- live tracker: walk, run, cycle, sports (steps, distance, time) ---------- */
+        @JavascriptInterface
+        public void trackStart(final String json, final boolean gps) {
+            ui.post(() -> {
+                TrackService.pending = json;
+                java.util.ArrayList<String> need = new java.util.ArrayList<>();
+                if (checkSelfPermission(android.Manifest.permission.ACTIVITY_RECOGNITION) != android.content.pm.PackageManager.PERMISSION_GRANTED) need.add(android.Manifest.permission.ACTIVITY_RECOGNITION);
+                if (gps && checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED) { need.add(android.Manifest.permission.ACCESS_FINE_LOCATION); need.add(android.Manifest.permission.ACCESS_COARSE_LOCATION); }
+                if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != android.content.pm.PackageManager.PERMISSION_GRANTED) need.add("android.permission.POST_NOTIFICATIONS");
+                if (need.isEmpty()) startTrack();
+                else requestPermissions(need.toArray(new String[0]), REQ_TRACK);
+            });
+        }
+
+        @JavascriptInterface
+        public void trackCtl(final String a) { ui.post(() -> { TrackService t = TrackService.inst; if (t != null) t.control(a); }); }
+
+        @JavascriptInterface
+        public String trackState() { return TrackService.state(); }
+
+        @JavascriptInterface
+        public String trackTake() { return TrackService.takeResults(MainActivity.this); }
 
         @JavascriptInterface
         public void sessionCtl(final String a) { ui.post(() -> { SessionService s = SessionService.inst; if (s != null) s.control(a); }); }

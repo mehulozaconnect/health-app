@@ -8,7 +8,7 @@ IC.prev = '<path d="M18 5l-9 7 9 7zM6 5v14"/>';
 IC.stop = '<rect x="6" y="6" width="12" height="12" rx="2"/>';
 IC.mic = '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>';
 NAV.splice(2, 0, ['ex', 'Exercise', 'dumb']);
-['ex', 'exy', 'exa', 'excat', 'exsport', 'exvoice', 'breath', 'psched', 'breathlog'].forEach(function (k) { TABOF[k] = 'ex'; });
+['ex', 'exy', 'exa', 'exw', 'excat', 'exsport', 'exvoice', 'breath', 'psched', 'breathlog'].forEach(function (k) { TABOF[k] = 'ex'; });
 HERO['Exercise'] = ['dumb', '#7A5AF8']; HERO['Yoga & pranayama'] = ['yoga', '#4E9B6B']; HERO['Voice'] = ['mic', '#7A5AF8']; HERO['Walk, run & sports'] = ['steps', '#2F7FD8'];
 ROUTES.breaths = function () { return ROUTES.exy(); };
 
@@ -46,26 +46,19 @@ function asSec(k) { var a = ASANA[k]; return 8 + asHold(k) * (a[5] ? 2 : 1) + (a
 
 /* one list for schedules: 'anulom' is a pranayama, 'a:tada' a yoga pose */
 function exIsA(k) { return k.slice(0, 2) === 'a:'; }
-function exName(k) { return exIsA(k) ? (ASANA[k.slice(2)] || ['?'])[0] : (PRANA[k] || ['?'])[0]; }
-function exPhoto(k) { return exIsA(k) ? ASANA[k.slice(2)][3] : PIMG[k]; }
-function exSec(k) { if (exIsA(k)) return ASANA[k.slice(2)] ? asSec(k.slice(2)) : 0; return PRANA[k] ? pTotal(k, pcfg(k)) + 8 : 0; }
+function exIsW(k) { return k.slice(0, 2) === 'w:'; }
+function exName(k) { return exIsW(k) ? (WX[k.slice(2)] || ['?'])[0] : exIsA(k) ? (ASANA[k.slice(2)] || ['?'])[0] : (PRANA[k] || ['?'])[0]; }
+function exPhoto(k) { return exIsW(k) ? WX[k.slice(2)][2] : exIsA(k) ? ASANA[k.slice(2)][3] : PIMG[k]; }
+function exSec(k) { if (exIsW(k)) return WX[k.slice(2)] ? wxSec(k.slice(2)) : 0; if (exIsA(k)) return ASANA[k.slice(2)] ? asSec(k.slice(2)) : 0; return PRANA[k] ? pTotal(k, pcfg(k)) + 7 : 0; }
 pschedSec = function (s) { return s.items.reduce(function (a, k) { return a + exSec(k); }, 0) + 6; };
-function exValid(k) { return exIsA(k) ? !!ASANA[k.slice(2)] : !!PRANA[k]; }
+function exValid(k) { return exIsW(k) ? !!WX[k.slice(2)] : exIsA(k) ? !!ASANA[k.slice(2)] : !!PRANA[k]; }
 
 /* ---------- the script the player speaks ---------- */
 function vKey(say) { var t = (DB.settings.gvoice || 'Kore') + '|' + say, h = 5381; for (var i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return 'v' + (h >>> 0).toString(36); }
 function introSec(t) { return Math.max(6, Math.round(t.split(' ').length * 0.42 + 2.5)); }
 var PHT = { in: 'Breathe in', hold: 'Hold', out: 'Breathe out', hold2: 'Hold out', fast: 'Go', rest: 'Rest' };
-function pSay(k, g, last) {
-  var s = '';
-  if (g.ph === 'in') s = k === 'sheetali' ? 'Breathe in through the tongue' : k === 'ujjayi' ? 'Breathe in slowly, with a soft ocean sound' : g.nos ? 'Breathe in through the ' + g.nos + ' nostril' : 'Breathe in';
-  if (g.ph === 'hold') s = 'Hold';
-  if (g.ph === 'out') s = k === 'udgeeth' ? 'Chant Om' : k === 'bhramari' ? 'Hum like a bee' : k === 'meditative' ? 'Breathe out through the mouth' : k === 'sheetali' ? 'Breathe out through the nose' : k === 'ujjayi' ? 'Breathe out slowly, with the ocean sound' : g.nos ? 'Breathe out through the ' + g.nos + ' nostril' : 'Breathe out';
-  if (g.ph === 'hold2') s = k === 'bahya' ? 'Hold the breath out. Chin down, belly in' : 'Hold out';
-  if (g.ph === 'fast') s = k === 'kapal' ? 'Begin. Short sharp breaths out' : 'Begin. Deep strong breaths';
-  if (g.ph === 'rest') s = 'Stop. Relax and breathe normally';
-  return (last ? 'Last round. ' : '') + s;
-}
+/* the voice only counts the breath; how-to stays on screen */
+function pSay(k, g) { return { in: 'Inhale', hold: 'Hold', out: 'Exhale', hold2: 'Hold', fast: 'Start', rest: 'Relax' }[g.ph] || ''; }
 function pHint(k, g) {
   if (g.nos && (k === 'anulom' || k === 'surya' || k === 'chandra')) return g.nos === 'left' ? 'Right thumb closes the right nostril' : 'Ring finger closes the left nostril';
   if (g.ph === 'fast') return g.n + ' breaths at ' + g.bpm + ' a minute';
@@ -75,38 +68,34 @@ function pHint(k, g) {
 function pranaSteps(k) {
   var p = PRANA[k], c = pcfg(k), ph = phases(k, c), out = [], img = pImg(k, null), seenRound = 0;
   var lab = c.fast ? null : pshow(k).map(function (f) { return [f === 'r3' && pshow(k).indexOf('r1') >= 0 ? 'Hold out' : PLAB[f][0] + PLAB[f].slice(1).toLowerCase(), c.r[+f[1]], ['in', 'hold', 'out', 'hold2'][+f[1]]]; });
-  var intro = p[0] + '. ' + PINTRO[k];
-  out.push({ ph: 'intro', sec: introSec(intro), say: intro, title: p[0], sub: 'Get ready · ' + p[1], hint: PINTRO[k], img: img, item: k });
+  out.push({ ph: 'intro', sec: 7, say: p[0], title: p[0], sub: 'Get ready · ' + p[1], hint: PINTRO[k], img: img, item: k });
   ph.forEach(function (g) {
     var first = g.round !== seenRound; seenRound = g.round;
-    var last = first && c.rounds > 2 && g.round === c.rounds && g.ph !== 'rest';
     if (g.nos) img = pImg(k, g.nos); /* holds keep the last hand position */
-    out.push({ ph: g.ph, sec: g.sec, say: pSay(k, g, last), title: PHT[g.ph] + (g.nos ? ', ' + g.nos + ' nostril' : ''), sub: 'Round ' + g.round + ' of ' + c.rounds, hint: pHint(k, g), img: img, item: k, cnt: lab, round: g.round, rounds: c.rounds });
+    out.push({ ph: g.ph, sec: g.sec, say: pSay(k, g), title: PHT[g.ph] + (g.nos ? ', ' + g.nos + ' nostril' : ''), sub: 'Round ' + g.round + ' of ' + c.rounds, hint: pHint(k, g), img: img, item: k, cnt: lab, round: g.round, rounds: c.rounds });
   });
   return out;
 }
 function asanaSteps(k) {
-  var a = ASANA[k], hold = asHold(k), out = [], it = 'a:' + k, intro = a[0] + '. ' + a[4];
-  out.push({ ph: 'intro', sec: introSec(intro), say: intro, title: a[0], sub: 'Get into position · ' + a[1], hint: a[4], img: a[3], item: it });
+  var a = ASANA[k], hold = asHold(k), out = [], it = 'a:' + k;
+  out.push({ ph: 'intro', sec: 8, say: a[0], title: a[0], sub: 'Get into position · ' + a[1], hint: a[4], img: a[3], item: it });
   (a[5] ? ['Right side. ', 'Now the other side. '] : ['']).forEach(function (side, si) {
-    if (si) out.push({ ph: 'rest', sec: 4, say: 'Slowly release, and change sides', title: 'Change sides', sub: a[0], hint: 'Come back to the centre', img: a[3], item: it });
-    var h1 = hold >= 30 ? Math.round(hold / 2) : hold;
-    out.push({ ph: 'hold', sec: h1, say: side + 'Hold the pose. Breathe slowly', title: 'Hold' + (a[5] ? (si ? ', other side' : ', first side') : ''), sub: a[0] + ' · ' + hold + ' sec', hint: a[1], img: a[3], item: it });
-    if (hold >= 30) out.push({ ph: 'hold', sec: hold - h1, say: 'Halfway. Stay steady', title: 'Stay steady', sub: a[0] + ' · ' + hold + ' sec', hint: a[1], img: a[3], item: it });
+    if (si) out.push({ ph: 'rest', sec: 4, say: 'Change sides', title: 'Change sides', sub: a[0], hint: 'Come back to the centre', img: a[3], item: it });
+    out.push({ ph: 'hold', sec: hold, say: 'Hold', title: 'Hold' + (a[5] ? (si ? ', other side' : ', first side') : ''), sub: a[0] + ' · ' + hold + ' sec', hint: a[1], img: a[3], item: it });
   });
-  out.push({ ph: 'rest', sec: 4, say: 'Slowly release', title: 'Release', sub: a[0], hint: 'Come out of the pose gently', img: a[3], item: it });
+  out.push({ ph: 'rest', sec: 4, say: 'Release', title: 'Release', sub: a[0], hint: 'Come out of the pose gently', img: a[3], item: it });
   return out;
 }
 function buildSteps(items) {
   var out = [];
   items.filter(exValid).forEach(function (k, i, all) {
-    var st = exIsA(k) ? asanaSteps(k.slice(2)) : pranaSteps(k);
+    var st = exIsW(k) ? wxSteps(k.slice(2), i === all.length - 1) : exIsA(k) ? asanaSteps(k.slice(2)) : pranaSteps(k);
     st.forEach(function (s) { s.n = i + 1; s.of = all.length; });
     out = out.concat(st);
   });
   var lastImg = out.length ? out[out.length - 1].img : 'meditative';
-  out.push({ ph: 'end', sec: 6, say: 'Well done. Sit quietly for a moment and feel the calm.', title: 'Well done', sub: 'Session complete', hint: 'Saved to Activity', img: lastImg, item: '' });
-  out.forEach(function (s) { s.clip = vKey(s.say); });
+  out.push({ ph: 'end', sec: 4, say: 'Well done', title: 'Well done', sub: 'Session complete', hint: 'Saved to Activity', img: lastImg, item: '' });
+  out.forEach(function (s) { s.clip = vKey(s.say); if (s.pre) s.preClip = vKey(s.pre); });
   return out;
 }
 
@@ -120,7 +109,7 @@ function exStart(items, tag, name) {
   XS = { tag: tag, name: name, items: items, steps: steps, nat: false, t0: Date.now(), i: 0, at: Date.now(), paused: 0, done: 0 };
   native('askNotify');
   if (AND && AND.sessionStart) {
-    var lean = steps.map(function (s) { return { say: s.say, clip: s.clip, sec: s.sec, title: s.title, sub: s.sub, item: s.item, ph: s.ph }; });
+    var lean = steps.map(function (s) { return { say: s.say, clip: s.clip, sec: s.sec, title: s.title, sub: s.sub, item: s.item, ph: s.ph, wait: !!s.wait, pre: s.pre, preAt: s.preAt, preClip: s.preClip }; });
     XS.nat = !!native('sessionStart', JSON.stringify({ steps: lean, tag: tag, name: name, voice: voice }));
   }
   if (!XS.nat) xsSpeak(0);
@@ -132,7 +121,7 @@ function xsState() {
   if (XS.nat) { try { var s = JSON.parse(native('sessionState') || '{}'); if (s.tag === XS.tag || s.run) return s; } catch (e) { } return { run: false }; }
   if (XS.done) return { run: false };
   var now = XS.paused || Date.now(), ms = now - XS.at;
-  while (XS.i < XS.steps.length && ms >= XS.steps[XS.i].sec * 1000) {
+  while (XS.i < XS.steps.length && !XS.steps[XS.i].wait && ms >= XS.steps[XS.i].sec * 1000) {
     xsAdd(XS.steps[XS.i], XS.steps[XS.i].sec); ms -= XS.steps[XS.i].sec * 1000; XS.at += XS.steps[XS.i].sec * 1000; XS.i++;
     if (XS.i >= XS.steps.length) { xsFinish(true); return { run: false }; }
     xsSpeak(XS.i);
@@ -163,15 +152,17 @@ window.onResume = function () { exTake(); if (_onRes) _onRes(); };
 function exLogResults(list) {
   var lines = [], kc = 0;
   list.forEach(function (r) {
-    var end = r.end || Date.now(), k = dkey(new Date(end)), d = day(k), yogaSec = 0, yogaNames = [];
+    var end = r.end || Date.now(), k = dkey(new Date(end)), d = day(k), yogaSec = 0, yogaNames = [], wsum = {};
     Object.keys(r.items || {}).forEach(function (it) {
       var sec = Math.round(r.items[it]); if (sec < 20) return;
       if (exIsA(it)) { yogaSec += sec; yogaNames.push(ASANA[it.slice(2)][0]); return; }
+      if (exIsW(it)) { var wk = it.slice(2), W = WX[wk]; if (!W) return; var g = wsum[W[1]] = wsum[W[1]] || { sec: 0, names: [] }; g.sec += sec; g.names.push(W[0] + ' ' + wxDid(wk, r.done)); return; }
       if (!PRANA[it]) return;
       var rec = { t: end, min: Math.round(sec / 6) / 10, sec: sec, kind: 'yoga', act: 'prana', prana: it, name: PRANA[it][0], src: 'guided' };
       d.yoga.push(rec); kc += sessionKcal(rec); lines.push(PRANA[it][0] + ' · ' + mmss(sec));
     });
     if (yogaSec >= 20) { var y = { t: end, min: Math.round(yogaSec / 6) / 10, sec: yogaSec, kind: 'yoga', act: 'yoga', int: 'easy', name: 'Yoga · ' + yogaNames.join(', '), src: 'guided' }; d.yoga.push(y); kc += sessionKcal(y); lines.push('Yoga · ' + mmss(yogaSec)); }
+    Object.keys(wsum).forEach(function (c) { var C = WCAT[c], g = wsum[c]; if (g.sec < 20) return; var rec = { t: end, min: Math.round(g.sec / 6) / 10, sec: Math.round(g.sec), kind: actOf(C.act)[2], act: C.act, int: 'mod', name: C.name + ' · ' + g.names.join(', '), src: 'guided' }; d.yoga.push(rec); kc += sessionKcal(rec); lines.push(C.name + ' · ' + mmss(g.sec)); });
     if (r.done && r.tag && pschedById(r.tag)) { DB.pschedLog = DB.pschedLog || {}; (DB.pschedLog[k] = DB.pschedLog[k] || {})[r.tag] = end; }
   });
   if (XS && list.some(function (r) { return r.tag === XS.tag; })) { XS.done = 1; XS.summary = { lines: lines, kc: kc, done: list[list.length - 1].done }; }
@@ -194,7 +185,7 @@ ROUTES.exrun = function () {
   var s = XS.steps[0];
   return '<div class="xr-hero" id="xrimg" style="background-image:url(' + exImg(s.img) + ')"><div class="xr-top"><button class="xr-b" data-act="xsLeave">' + icon('back', 20) + ' <span id="xrname">' + esc(s.title) + '</span></button><span class="xr-n" id="xrn"></span></div>' +
     '<div class="xr-card"><div class="xr-ring" id="xrring"></div><div class="f1"><b id="xrt">' + esc(s.title) + '</b><small id="xrh">' + esc(s.hint || '') + '</small></div></div></div>' +
-    '<div class="pg xr-body"><div class="xr-cnt" id="xrcnt"></div><div class="row sb l"><span id="xrsub"></span><span id="xrleft"></span></div>' +
+    '<div class="pg xr-body"><div class="xr-cnt" id="xrcnt"></div><div id="xrsets"></div><div class="row sb l"><span id="xrsub"></span><span id="xrleft"></span></div>' +
     '<div class="xr-ctl"><button class="xr-c" data-act="xsCtl" data-a="back" aria-label="Previous step">' + icon('prev', 20) + '</button><button class="xr-c big" data-act="xsCtl" data-a="pause" id="xrpp" aria-label="Pause">' + icon('pause', 30) + '</button><button class="xr-c" data-act="xsCtl" data-a="skip" aria-label="Next step">' + icon('next', 20) + '</button></div>' +
     '<button class="lnk ctr" data-act="xsCtl" data-a="stop">Stop and save</button>' +
     '<div class="l ctr mt6">' + (XS.nat ? 'Keeps going with the screen locked · ' : '') + 'Voice: ' + (DB.settings.exVoice === false ? 'off' : exVoiceLabel()) + '</div></div>';
@@ -213,10 +204,19 @@ function xsPaint() {
   g('xrn').textContent = s.of > 1 ? s.n + ' of ' + s.of : '';
   g('xrt').textContent = s.title; g('xrh').textContent = s.hint || '';
   var pct = s.sec ? (st.ms / 1000) / s.sec : 1;
-  g('xrring').innerHTML = ring(pct * 100, 64, 6, 'var(--g)', '<text x="32" y="38" text-anchor="middle" class="rt3">' + (s.ph === 'fast' ? '' : Math.ceil(left)) + '</text>');
+  var adj = s.wk && XS.adj && XS.adj[s.wk] || {}, wc = s.wk ? wx(s.wk) : null;
+  g('xrring').innerHTML = ring(s.wait ? 100 : pct * 100, 64, 6, s.ph === 'rest' ? 'var(--w)' : 'var(--g)', '<text x="32" y="38" text-anchor="middle" class="rt3">' + (s.wait ? (adj.n || wc.n) : s.ph === 'fast' ? '' : Math.ceil(left)) + '</text>');
+  var sets = '';
+  if (s.wk && s.sets) for (var j = 1; j <= s.sets; j++) {
+    var dn = j < s.set || (j === s.set && s.ph === 'rest'), now = j === s.set && !dn;
+    sets += '<button class="xset' + (dn ? ' dn' : '') + (now ? ' now' : '') + '"' + (now ? ' data-act="wxEditSet"' : '') + '><i>' + (dn ? '✓' : '') + '</i><b>Set ' + j + '</b><span>' + (WX[s.wk][3] === 'time' ? (adj.n || wc.n) + ' sec' : (adj.n || wc.n) + ' reps') + (wc.kg || adj.kg ? ' · ' + (adj.kg != null ? adj.kg : wc.kg) + ' kg' : '') + (now ? ' ✎' : '') + '</span></button>';
+  }
+  g('xrsets').innerHTML = sets;
+  g('xrsets').parentNode.querySelector('.xr-card') ; document.querySelector('.xr-card').className = 'xr-card' + (s.ph === 'rest' ? ' rest' : '');
   g('xrsub').textContent = s.sub || ''; g('xrleft').textContent = mmss(rest) + ' left';
   g('xrcnt').innerHTML = s.cnt ? s.cnt.map(function (c) { return '<div class="' + (c[2] === s.ph ? 'on' : '') + '"><span>' + c[0] + '</span><b>' + c[1] + '</b></div>'; }).join('') : '';
-  g('xrpp').innerHTML = icon(st.paused ? 'play' : 'pause', 30); g('xrpp').setAttribute('aria-label', st.paused ? 'Resume' : 'Pause');
+  if (s.wait) { g('xrpp').innerHTML = '<span class="xdone">' + icon('check', 26) + 'Done</span>'; g('xrpp').setAttribute('data-a', 'skip'); g('xrpp').setAttribute('aria-label', 'Set done'); }
+  else { g('xrpp').innerHTML = icon(st.paused ? 'play' : 'pause', 30); g('xrpp').setAttribute('data-a', 'pause'); g('xrpp').setAttribute('aria-label', st.paused ? 'Resume' : 'Pause'); }
   g('xrimg').className = 'xr-hero ph-' + s.ph + (st.paused ? ' paused' : '');
 }
 ACT.xsLeave = function () { go('ex'); };
@@ -237,6 +237,8 @@ function exSchedCard(s) {
 ROUTES.ex = function () {
   var k = today(), acts = dayActs(k), min = Math.round(acts.reduce(function (a, y) { return a + (y.min || 0); }, 0)), kc = acts.reduce(function (a, y) { return a + (y.kcal != null ? y.kcal : sessionKcal(y)); }, 0);
   var h = '<header class="xh"><h1>Exercise</h1><div class="l">' + fromKey(k).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }) + ' · ' + min + ' min today · ' + Math.round(kc) + ' kcal</div></header>';
+  var ts = {}; try { ts = JSON.parse(native('trackState') || '{}'); } catch (e) { }
+  if ((TR && !TR.done) || ts.run) h += '<button class="tip" data-act="go" data-to="extrack">' + icon('steps', 16) + '<span><b>' + esc(TR ? TR.name : 'Tracker') + '</b> is running · tap to open</span></button>';
   if (XS && !XS.done) h += '<button class="tip" data-act="go" data-to="exrun">' + icon('play', 16) + '<span><b>' + esc(XS.name) + '</b> is playing · tap to open</span></button>';
   var list = pscheds();
   h += list.length ? list.map(exSchedCard).join('') : '<button class="empty-s" data-act="psNew">Make your daily schedule (Dincharya): pick pranayama and yoga in your order, set a reminder, and run them all with one Start.</button>';
@@ -323,8 +325,8 @@ ROUTES.psched = function (id) {
   h += '<section class="c"><label class="fld">Name<input data-chg="psName" data-id="' + id + '" value="' + esc(s.name) + '"></label></section>';
   h += '<section class="c"><div class="row sb"><h2>In this order</h2><span class="l">' + mmss(pschedSec(s)) + '</span></div>' +
     (s.items.length ? s.items.map(function (k, i) {
-      var sub; if (exIsA(k)) sub = 'Yoga · hold ' + asHold(k.slice(2)) + ' s'; else { var c = pcfg(k); sub = c.fast ? c.rounds + ' rounds × ' + c.fast[1] : pshow(k).map(function (f) { return c.r[+f[1]]; }).join(' : ') + ' × ' + c.rounds; }
-      return '<div class="psrow"><span class="xph sm" style="background-image:url(' + exImg(exPhoto(k)) + ')"></span><button class="psm" data-act="go" data-to="' + (exIsA(k) ? 'exa/' + k.slice(2) : 'breath/' + k) + '"><b>' + esc(exName(k)) + '</b><small>' + sub + ' · ' + mmss(exSec(k)) + '</small></button><button class="ib sm" data-act="psMove" data-id="' + id + '" data-i="' + i + '" data-d="-1" aria-label="Move up"' + (i ? '' : ' disabled') + '>↑</button><button class="ib sm" data-act="psMove" data-id="' + id + '" data-i="' + i + '" data-d="1" aria-label="Move down"' + (i < s.items.length - 1 ? '' : ' disabled') + '>↓</button><button class="ib sm" data-act="psDel" data-id="' + id + '" data-i="' + i + '" aria-label="Remove">✕</button></div>';
+      var sub; if (exIsW(k)) sub = wxPlan(k.slice(2)); else if (exIsA(k)) sub = 'Yoga · hold ' + asHold(k.slice(2)) + ' s'; else { var c = pcfg(k); sub = c.fast ? c.rounds + ' rounds × ' + c.fast[1] : pshow(k).map(function (f) { return c.r[+f[1]]; }).join(' : ') + ' × ' + c.rounds; }
+      return '<div class="psrow"><span class="xph sm" style="background-image:url(' + exImg(exPhoto(k)) + ')"></span><button class="psm" data-act="go" data-to="' + (exIsW(k) ? 'exw/' + k.slice(2) : exIsA(k) ? 'exa/' + k.slice(2) : 'breath/' + k) + '"><b>' + esc(exName(k)) + '</b><small>' + sub + ' · ' + mmss(exSec(k)) + '</small></button><button class="ib sm" data-act="psMove" data-id="' + id + '" data-i="' + i + '" data-d="-1" aria-label="Move up"' + (i ? '' : ' disabled') + '>↑</button><button class="ib sm" data-act="psMove" data-id="' + id + '" data-i="' + i + '" data-d="1" aria-label="Move down"' + (i < s.items.length - 1 ? '' : ' disabled') + '>↓</button><button class="ib sm" data-act="psDel" data-id="' + id + '" data-i="' + i + '" aria-label="Remove">✕</button></div>';
     }).join('') : '<div class="l mt6">Add what you do.</div>') +
     '<button class="btn sec mt" data-act="psAdd" data-id="' + id + '">' + icon('plus', 18) + 'Add</button></section>';
   h += '<section class="c"><h2>Daily reminder</h2><div class="row g10 mt"><label class="fld f1">Time<input type="time" data-chg="psTime" data-id="' + id + '" value="' + s.time + '"></label></div>' + '<button class="tog" data-act="psRemind" data-id="' + id + '" role="switch" aria-checked="' + !!s.remind + '"><span>Remind me every day, with Start</span><i class="' + (s.remind ? 'on' : '') + '"></i></button></section>';
@@ -339,25 +341,183 @@ ACT.psRemind = function (el) { var s = pschedById(el.getAttribute('data-id')); s
 ACT.psAdd = function (el) {
   var id = el.getAttribute('data-id');
   sheet('<h2>Add pranayama</h2><div class="chips">' + PRANA_ORDER.map(function (k) { return '<button class="chip" data-act="psPick" data-id="' + id + '" data-k="' + k + '">' + PRANA[k][0] + '</button>'; }).join('') + '</div>' +
-    '<h2 class="mt">Add yoga</h2><div class="chips">' + ASANA_ORDER.map(function (k) { return '<button class="chip" data-act="psPick" data-id="' + id + '" data-k="a:' + k + '">' + ASANA[k][0] + '</button>'; }).join('') + '</div>');
+    '<h2 class="mt">Add yoga</h2><div class="chips">' + ASANA_ORDER.map(function (k) { return '<button class="chip" data-act="psPick" data-id="' + id + '" data-k="a:' + k + '">' + ASANA[k][0] + '</button>'; }).join('') + '</div>' +
+    Object.keys(WCAT).map(function (c) { return '<h2 class="mt">Add ' + WCAT[c].name.toLowerCase() + '</h2><div class="chips">' + WCAT[c].order.map(function (k) { return '<button class="chip" data-act="psPick" data-id="' + id + '" data-k="w:' + k + '">' + WX[k][0] + '</button>'; }).join('') + '</div>'; }).join(''));
 };
 ACT.psRemove = function (el) { var id = el.getAttribute('data-id'); DB.psched = pscheds().filter(function (s) { return s.id !== id; }); save(); syncMeds(); go('ex'); };
 
-/* ---------- other categories (guided workouts next; log for now) ---------- */
-var EXSOON = { gym: ['Gym', 'squat', 'gym', 'Sets × reps × weight for each machine and free weight, a rest timer that speaks, and what you lifted last time.'],
-  band: ['Resistance band', 'bandrow', 'gym', 'Band rows, presses, curls and leg work with sets, reps and a spoken rest timer.'],
-  cali: ['Calisthenics', 'pushup', 'gym', 'Push-ups, squats, planks and lunges with reps or timed holds, guided by voice.'],
-  aero: ['Aerobics', 'jacks', 'other', 'Timed rounds of jumping jacks, high knees, step-ups and more, with voice counting work and rest.'] };
-ROUTES.excat = function (id) {
-  var c = EXSOON[id]; if (!c) return ROUTES.ex();
-  return '<div class="xr-hero sm" style="background-image:url(' + exImg(c[1]) + ')"><div class="xr-top"><button class="xr-b" data-act="back">' + icon('back', 20) + ' ' + c[0] + '</button></div><div class="xr-cap"><b>' + c[0] + '</b><span>Guided workouts are next</span></div></div><div class="pg xr-body">' +
-    '<section class="c"><h2>Coming in the next update</h2><p class="p">' + c[3] + '</p></section>' +
-    '<button class="btn big" data-act="exLog" data-a="' + (id === 'aero' ? 'dance' : 'gym') + '" data-n="' + c[0] + '">' + icon('plus', 20) + 'Log a ' + c[0].toLowerCase() + ' session</button></div>';
+/* ---------- Gym, band, calisthenics, aerobics: sets × reps × weight, spoken rest timer, last time ---------- */
+ACTS.splice(ACTS.length - 1, 0, ['band', 'Resistance band', 'gym', 3.5], ['cali', 'Calisthenics', 'gym', 4.5], ['aero', 'Aerobics', 'other', 6.5]);
+var WCAT = {
+  gym: { name: 'Gym', img: 'squat', rest: 60, act: 'gym', kg: true, order: ['goblet', 'bench', 'pulldown', 'shoulder', 'row', 'curl', 'legpress'] },
+  band: { name: 'Resistance band', img: 'bandrow', rest: 45, act: 'band', kg: false, order: ['brow', 'bchest', 'bsquat', 'bpress', 'bcurl', 'bpull'] },
+  cali: { name: 'Calisthenics', img: 'pushup', rest: 30, act: 'cali', kg: false, order: ['csquat', 'pushup', 'lunge', 'bridge', 'plank'] },
+  aero: { name: 'Aerobics', img: 'jacks', rest: 20, act: 'aero', kg: false, order: ['jacks', 'knees', 'jog', 'stepup'] }
 };
-var SPORTS = [['walk', 'Walk', ''], ['brisk', 'Brisk walk', ''], ['run', 'Running', ''], ['cycle', 'Cycling', ''], ['swim', 'Swimming', ''], ['sport', 'Cricket', 'Cricket'], ['sport', 'Badminton', 'Badminton'], ['sport', 'Football', 'Football'], ['sport', 'Tennis', 'Tennis'], ['sport', 'Table tennis', 'Table tennis'], ['dance', 'Dance', ''], ['stairs', 'Stairs', '']];
+/* key: [name, category, photo, 'reps'|'time', sets, reps or seconds, kg, how, muscles, each side?] */
+var WX = {
+  goblet: ['Goblet squat', 'gym', 'squat', 'reps', 3, 12, 8, 'Hold one dumbbell at your chest. Sit back and down until the thighs are level, then stand up through the heels.', 'Legs, glutes'],
+  bench: ['Dumbbell bench press', 'gym', 'g-bench', 'reps', 3, 10, 8, 'Lie on a flat bench, dumbbells over the chest. Lower slowly to chest level, then press back up.', 'Chest, triceps'],
+  pulldown: ['Lat pulldown', 'gym', 'g-pulldown', 'reps', 3, 12, 25, 'Sit with thighs under the pads. Pull the bar to the upper chest, elbows down and back, then let it up slowly.', 'Back, biceps'],
+  shoulder: ['Shoulder press', 'gym', 'g-shoulder', 'reps', 3, 10, 6, 'Sit tall with back support. Press the dumbbells from shoulder height to overhead, then lower with control.', 'Shoulders'],
+  row: ['One-arm dumbbell row', 'gym', 'g-row', 'reps', 3, 10, 10, 'One knee and hand on the bench, back flat. Pull the dumbbell to the hip, elbow close to the body.', 'Back', 1],
+  curl: ['Dumbbell curl', 'gym', 'g-curl', 'reps', 3, 12, 5, 'Stand tall, elbows at your sides. Curl the dumbbells up, then lower slowly. No swinging.', 'Biceps'],
+  legpress: ['Leg press', 'gym', 'g-legpress', 'reps', 3, 12, 40, 'Feet shoulder-width on the platform. Lower until knees are near 90°, then push back without locking the knees.', 'Legs'],
+  brow: ['Band row', 'band', 'bandrow', 'reps', 3, 15, null, 'Sit with legs straight, band around the feet. Pull the handles to your waist, squeezing the shoulder blades.', 'Back'],
+  bchest: ['Band chest press', 'band', 'b-chest', 'reps', 3, 12, null, 'Band behind your upper back. Press both hands straight forward at chest height, then return slowly.', 'Chest'],
+  bsquat: ['Band squat', 'band', 'b-squat', 'reps', 3, 15, null, 'Stand on the band, handles at the shoulders. Squat down with chest up, then stand.', 'Legs, glutes'],
+  bpress: ['Band overhead press', 'band', 'b-press', 'reps', 3, 12, null, 'Stand on the band. Press the handles from the shoulders to straight overhead.', 'Shoulders'],
+  bcurl: ['Band curl', 'band', 'b-curl', 'reps', 3, 15, null, 'Stand on the band, elbows at your sides. Curl the handles up to the shoulders.', 'Biceps'],
+  bpull: ['Band pull-apart', 'band', 'b-pullapart', 'reps', 3, 15, null, 'Arms straight in front at shoulder height. Pull the band apart toward your chest, then return slowly.', 'Upper back'],
+  csquat: ['Bodyweight squat', 'cali', 'c-squat', 'reps', 3, 15, null, 'Feet shoulder-width. Sit back and down, arms forward for balance, then stand up.', 'Legs'],
+  pushup: ['Push-ups', 'cali', 'pushup', 'reps', 3, 10, null, 'Hands under the shoulders, body straight. Lower the chest near the floor and push up. Knees down if needed.', 'Chest, arms'],
+  lunge: ['Lunges', 'cali', 'c-lunge', 'reps', 3, 10, null, 'Step forward and lower until both knees are at 90°. Push back up. Do the reps on each leg.', 'Legs', 1],
+  bridge: ['Glute bridge', 'cali', 'c-bridge', 'reps', 3, 15, null, 'On your back, knees bent. Lift the hips until the body is straight from shoulders to knees.', 'Glutes, back'],
+  plank: ['Plank hold', 'cali', 'c-plank', 'time', 3, 30, null, 'Hands under the shoulders, body in a straight line. Hold, breathing normally.', 'Core'],
+  jacks: ['Jumping jacks', 'aero', 'jacks', 'time', 3, 40, null, 'Jump the feet apart while raising the arms overhead, then back. Keep a steady rhythm.', 'Full body'],
+  knees: ['High knees', 'aero', 'a-knees', 'time', 3, 30, null, 'Run on the spot, lifting the knees to hip height, arms pumping.', 'Legs, heart'],
+  jog: ['Spot jogging', 'aero', 'a-jog', 'time', 3, 45, null, 'Jog on the spot at an easy, steady pace.', 'Heart'],
+  stepup: ['Step-ups', 'aero', 'a-stepup', 'time', 3, 40, null, 'Step up onto a low step or stair, then down. Change the leading leg every few steps.', 'Legs, heart']
+};
+function wx(k) { var W = WX[k], s = (DB.wx || {})[k] || {}; return { sets: s.sets || W[4], n: s.n || W[5], kg: s.kg != null ? s.kg : W[6], on: s.on !== false }; }
+function wxSet(k, o) { DB.wx = DB.wx || {}; var c = wx(k); Object.keys(o).forEach(function (x) { c[x] = o[x]; }); DB.wx[k] = c; save(); }
+function wxPlan(k) { var W = WX[k], c = wx(k); return c.sets + ' × ' + (W[3] === 'time' ? c.n + ' s' : c.n + (W[9] ? ' each side' : '')) + (c.kg ? ' · ' + c.kg + ' kg' : ''); }
+function wxRest(cat) { return ((DB.wxRest || {})[cat]) || WCAT[cat].rest; }
+function wxSec(k) { var W = WX[k], c = wx(k), work = W[3] === 'time' ? c.n : c.n * 3 * (W[9] ? 2 : 1); return 8 + c.sets * work + (c.sets - 1) * wxRest(W[1]) + wxRest(W[1]); }
+function wxLast(k) { var l = (DB.wxLast || {})[k]; return l ? l.sets + ' × ' + l.n + (WX[k][3] === 'time' ? ' s' : '') + (l.kg ? ' · ' + l.kg + ' kg' : '') + ' on ' + new Date(l.t).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''; }
+/* what was done (with edits made during the session), and remember it as "last time" */
+function wxDid(k, done) {
+  var c = wx(k), adj = XS && XS.adj && XS.adj[k] || {}, n = adj.n || c.n, kg = adj.kg != null ? adj.kg : c.kg;
+  DB.wxLast = DB.wxLast || {}; DB.wxLast[k] = { sets: c.sets, n: n, kg: kg, t: Date.now() };
+  return c.sets + '×' + n + (WX[k][3] === 'time' ? 's' : '') + (kg ? ' ' + kg + 'kg' : '');
+}
+function wxSteps(k, lastOne) {
+  var W = WX[k], c = wx(k), it = 'w:' + k, rest = wxRest(W[1]), out = [], plan = W[3] === 'time' ? c.n + ' sec' : c.n + ' reps' + (W[9] ? ' each side' : '') + (c.kg ? ' · ' + c.kg + ' kg' : '');
+  out.push({ ph: 'intro', sec: 8, say: W[0], title: W[0], sub: 'Get ready · ' + c.sets + ' sets × ' + plan, hint: W[7], img: W[2], item: it, wk: k, set: 0, sets: c.sets });
+  for (var i = 0; i < c.sets; i++) {
+    if (W[3] === 'time') out.push({ ph: 'work', sec: c.n, say: 'Go', pre: 'Five seconds', preAt: 5, title: 'Set ' + (i + 1) + ' of ' + c.sets, sub: plan, hint: W[7], img: W[2], item: it, wk: k, set: i + 1, sets: c.sets });
+    else out.push({ ph: 'set', wait: true, sec: c.n * 3 * (W[9] ? 2 : 1), say: 'Go', title: 'Set ' + (i + 1) + ' of ' + c.sets, sub: plan, hint: 'Tap Done when the set is finished', img: W[2], item: it, wk: k, set: i + 1, sets: c.sets });
+    if (i < c.sets - 1 || !lastOne) out.push({ ph: 'rest', sec: rest, say: 'Rest', pre: 'Get ready', preAt: 5, title: 'Rest', sub: i < c.sets - 1 ? 'Then set ' + (i + 2) + ' of ' + c.sets : 'Then the next exercise', hint: 'Breathe, sip water', img: W[2], item: it, wk: k, set: i + 1, sets: c.sets });
+  }
+  return out;
+}
+ROUTES.excat = function (cat) {
+  var C = WCAT[cat]; if (!C) return ROUTES.ex();
+  var on = C.order.filter(function (k) { return wx(k).on; }), tot = on.reduce(function (a, k) { return a + wxSec(k); }, 0);
+  var h = '<div class="xr-hero sm" style="background-image:url(' + exImg(C.img) + ')"><div class="xr-top"><button class="xr-b" data-act="back">' + icon('back', 20) + ' ' + C.name + '</button></div><div class="xr-cap"><b>' + C.name + '</b><span>' + on.length + ' exercises · about ' + Math.round(tot / 60) + ' min</span></div></div><div class="pg xr-body">';
+  h += '<button class="btn big" data-act="wxGo" data-c="' + cat + '"' + (on.length ? '' : ' disabled') + '>' + icon('play', 20) + 'Start workout</button>';
+  h += '<section class="c"><div class="l">Rest between sets</div><div class="chips">' + [20, 30, 45, 60, 90].map(function (r) { return '<button class="chip' + (wxRest(cat) === r ? ' dk' : '') + '" data-act="wxRestSet" data-c="' + cat + '" data-r="' + r + '">' + r + ' s</button>'; }).join('') + '</div></section>';
+  h += '<div class="l">Tick what you want in today\'s workout. Tap an exercise to change sets, reps' + (C.kg ? ' and weight' : '') + '.</div>';
+  h += C.order.map(function (k) { var W = WX[k], c = wx(k), l = wxLast(k); return '<div class="xrow"><span class="xph" style="background-image:url(' + exImg(W[2]) + ')" data-act="go" data-to="exw/' + k + '"></span><button class="f1 xrb" data-act="go" data-to="exw/' + k + '"><b>' + W[0] + '</b><small>' + wxPlan(k) + ' · ' + W[8] + '</small>' + (l ? '<small>Last time ' + l + '</small>' : '') + '</button><button class="xck' + (c.on ? ' on' : '') + '" data-act="wxOn" data-k="' + k + '" role="checkbox" aria-checked="' + c.on + '" aria-label="Include ' + W[0] + '">' + (c.on ? '✓' : '') + '</button></div>'; }).join('');
+  return h + '</div>';
+};
+ACT.wxOn = function (el) { var k = el.getAttribute('data-k'); wxSet(k, { on: !wx(k).on }); rerender(); };
+ACT.wxRestSet = function (el) { DB.wxRest = DB.wxRest || {}; DB.wxRest[el.getAttribute('data-c')] = +el.getAttribute('data-r'); save(); rerender(); };
+ACT.wxGo = function (el) { var c = el.getAttribute('data-c'), C = WCAT[c]; exStart(C.order.filter(function (k) { return wx(k).on; }).map(function (k) { return 'w:' + k; }), 'w-' + c, C.name + ' workout'); };
+ROUTES.exw = function (k) {
+  var W = WX[k]; if (!W) return ROUTES.ex(); var c = wx(k), C = WCAT[W[1]], l = wxLast(k);
+  var step = function (f, lab, v, d) { return '<div class="xst"><span class="l">' + lab + '</span><div class="row"><button class="ib sm" data-act="wxAdj" data-k="' + k + '" data-f="' + f + '" data-d="-' + d + '" aria-label="Less">−</button><b>' + v + '</b><button class="ib sm" data-act="wxAdj" data-k="' + k + '" data-f="' + f + '" data-d="' + d + '" aria-label="More">+</button></div></div>'; };
+  var h = '<div class="xr-hero sm" style="background-image:url(' + exImg(W[2]) + ')"><div class="xr-top"><button class="xr-b" data-act="back">' + icon('back', 20) + ' ' + C.name + '</button></div><div class="xr-cap"><b>' + W[0] + '</b><span>' + W[8] + '</span></div></div><div class="pg xr-body">';
+  h += '<section class="c"><div class="xsts">' + step('sets', 'Sets', c.sets, 1) + step('n', W[3] === 'time' ? 'Seconds' : 'Reps' + (W[9] ? ' / side' : ''), c.n, W[3] === 'time' ? 5 : 1) + (C.kg ? step('kg', 'Kg', c.kg || 0, k === 'legpress' || k === 'pulldown' ? 5 : 1) : '') + '</div>' + (l ? '<div class="l mt">Last time: ' + l + '</div>' : '') + '</section>';
+  h += '<button class="btn big" data-act="exOne" data-k="w:' + k + '">' + icon('play', 20) + 'Start · ' + mmss(wxSec(k)) + '</button>';
+  h += '<section class="c"><h2>How to do it</h2><p class="p">' + esc(W[7]) + '</p></section>';
+  h += '<button class="btn sec" data-act="exAddTo" data-k="w:' + k + '">' + icon('plus', 18) + 'Add to a schedule</button></div>';
+  return h;
+};
+ACT.wxAdj = function (el) { var k = el.getAttribute('data-k'), f = el.getAttribute('data-f'), d = +el.getAttribute('data-d'), c = wx(k), o = {}; o[f] = Math.max(f === 'kg' ? 0 : 1, Math.round(((c[f] || 0) + d) * 10) / 10); if (f === 'sets') o.sets = Math.min(10, o.sets); wxSet(k, o); rerender(); };
+/* during a set: change reps or weight actually done */
+ACT.wxEditSet = function () {
+  var s = xsCur(); if (!s || !s.wk) return; var c = wx(s.wk), a = (XS.adj = XS.adj || {})[s.wk] || {};
+  sheet('<h2>' + esc(WX[s.wk][0]) + '</h2><div class="l">What you are doing in this set</div><div class="row g10 mt"><label class="fld f1">' + (WX[s.wk][3] === 'time' ? 'Seconds' : 'Reps') + '<input id="wx_n" type="number" inputmode="numeric" value="' + (a.n || c.n) + '"></label>' + (WCAT[WX[s.wk][1]].kg ? '<label class="fld f1">Kg<input id="wx_kg" type="number" inputmode="decimal" value="' + (a.kg != null ? a.kg : c.kg || 0) + '"></label>' : '') + '</div><button class="btn mt" data-act="wxEditOk" data-k="' + s.wk + '">Save</button>');
+};
+ACT.wxEditOk = function (el) { var k = el.getAttribute('data-k'), n = +document.getElementById('wx_n').value, kg = document.getElementById('wx_kg'); XS.adj = XS.adj || {}; XS.adj[k] = { n: n > 0 ? n : wx(k).n, kg: kg ? +kg.value : null }; xsSave(); sheet(null); xsPaint(); };
+function xsCur() { if (!XS) return null; var st = xsState(); return st.run ? XS.steps[st.i] : null; }
+
+/* ---------- live tracker: walk, run, ride, sports ---------- */
+var TRK = [['walk', 'Walk', 'walk', 1], ['brisk', 'Brisk walk', 'walk', 1], ['run', 'Running', 'walk', 1], ['cycle', 'Cycling', 'walk', 1], ['sport', 'Cricket', 'walk', 0], ['sport', 'Badminton', 'walk', 0], ['sport', 'Football', 'walk', 0], ['sport', 'Tennis', 'walk', 0], ['sport', 'Table tennis', 'walk', 0], ['dance', 'Dance', 'jacks', 0], ['stairs', 'Stairs', 'a-stepup', 0], ['other', 'Other', 'walk', 0]];
+var TR = null, TRT = 0;
+function trStride(act) { var cm = +DB.profile.height || 170; return act === 'run' ? cm * 0.0065 : cm * 0.00415; }
+/* calories from speed when distance is known, else the activity's usual effort */
+function trKcal(act, sec, m) {
+  var kg = lastWeight() || DB.profile.weight || 70, hrs = sec / 3600, met = actOf(act)[3];
+  if ((act === 'walk' || act === 'brisk' || act === 'run') && m > 100 && sec > 60) { var v = m / 1000 / hrs; met = v < 3.5 ? 2.8 : v < 5 ? 3.5 : v < 5.8 ? 4.3 : v < 7 ? 5 : v < 8.5 ? 7 : v < 10 ? 9 : 10.5; }
+  return Math.max(0, Math.round((met - 1) * kg * hrs));
+}
+var _skc = sessionKcal; sessionKcal = function (s) { return s.kcal != null && s.src === 'tracked' ? s.kcal : _skc(s); };
+ACT.trGo = function (el) {
+  var i = +el.getAttribute('data-i'), T = TRK[i], gps = !!T[3];
+  TR = { act: T[0], name: T[1], img: T[2], t0: Date.now(), nat: false, paused: 0, pausedMs: 0, sim: { steps: 0 } };
+  var cfg = { act: T[0], name: T[1], tag: 'tr' + Date.now(), stride: trStride(T[0]), voice: DB.settings.exVoice !== false, gps: gps };
+  TR.tag = cfg.tag;
+  if (AND && AND.trackStart) { native('trackStart', JSON.stringify(cfg), gps); TR.nat = true; }
+  try { localStorage.setItem('arogya-tr', JSON.stringify(TR)); } catch (e) { }
+  feel('tick'); go('extrack');
+};
+window.onTrackStarted = function (ok) { if (!ok) toast('Could not start the tracker'); };
+function trState() {
+  if (!TR) return { run: false };
+  if (TR.nat) { try { return JSON.parse(native('trackState') || '{}'); } catch (e) { return { run: false }; } }
+  if (TR.done) return { run: false };
+  var now = TR.paused || Date.now(), sec = Math.floor((now - TR.t0 - TR.pausedMs) / 1000);
+  return { run: true, sec: sec, steps: TR.sim.steps, m: Math.round(TR.sim.steps * trStride(TR.act)), paused: !!TR.paused, act: TR.act };
+}
+ACT.trCtl = function (el) {
+  var a = el.getAttribute('data-a'); if (!TR) return;
+  if (TR.nat) { native('trackCtl', a); if (a === 'stop') setTimeout(trTake, 700); setTimeout(trPaint, 200); return; }
+  if (a === 'pause') { if (TR.paused) { TR.pausedMs += Date.now() - TR.paused; TR.paused = 0; } else TR.paused = Date.now(); }
+  if (a === 'stop') { var st = trState(); TR.done = 1; trLog([{ act: TR.act, name: TR.name, start: TR.t0, end: Date.now(), sec: st.sec, steps: st.steps, m: st.m, gps: false }]); }
+  trPaint();
+};
+function trTake() { try { var r = JSON.parse(native('trackTake') || '[]'); if (r.length) trLog(r); } catch (e) { } }
+function trLog(list) {
+  var last = null;
+  list.forEach(function (r) {
+    if (r.sec < 30) return;
+    var k = dkey(new Date(r.end)), kc = trKcal(r.act, r.sec, r.m);
+    var rec = { t: r.end, min: Math.round(r.sec / 6) / 10, sec: r.sec, kind: actOf(r.act)[2], act: r.act, int: 'mod', name: r.name, steps: r.steps, km: Math.round(r.m / 10) / 100, kcal: kc, gps: !!r.gps, src: 'tracked' };
+    day(k).yoga.push(rec); last = rec;
+  });
+  try { localStorage.removeItem('arogya-tr'); } catch (e) { }
+  if (TR) { TR.done = 1; TR.res = last; }
+  save();
+  if (last) { feel('done'); toast(last.name + ' saved · ' + last.kcal + ' kcal added to today\'s food budget', 3200); } else toast('Too short to save');
+  if (cur.name === 'extrack') rerender();
+}
+ROUTES.extrack = function () {
+  if (!TR) { try { TR = JSON.parse(localStorage.getItem('arogya-tr') || 'null'); } catch (e) { } if (TR) TR.nat = !!(AND && AND.trackState); }
+  if (!TR) return head('Tracker') + '<div class="empty-s">Nothing is being tracked.</div><button class="btn mt" data-act="go" data-to="exsport">Start one</button>';
+  var hero = '<div class="xr-hero sm" style="background-image:url(' + exImg(TR.img || 'walk') + ')"><div class="xr-top"><button class="xr-b" data-act="go" data-to="ex">' + icon('back', 20) + ' ' + esc(TR.name) + '</button></div></div>';
+  if (TR.done) {
+    var r = TR.res;
+    return hero + '<section class="c xr-done"><div class="m22"><b>' + (r ? 'Saved' : 'Too short to save') + '</b></div>' + (r ? '<div class="trg mt">' + trCells(r.sec, r.steps, r.km * 1000, r.kcal, r.act) + '</div><div class="l mt">Added to Activity. The ' + r.kcal + ' kcal you burned are added to today\'s food budget.</div>' : '') + '</section><button class="btn big" data-act="trClose">Done</button>';
+  }
+  return hero + '<div class="pg xr-body"><div class="trtime" id="trtime">00:00</div><div class="trg" id="trg"></div>' +
+    '<div class="xr-ctl"><button class="xr-c big" data-act="trCtl" data-a="pause" id="trpp" aria-label="Pause">' + icon('pause', 30) + '</button><button class="xr-c fin" data-act="trCtl" data-a="stop" aria-label="Finish and save">' + icon('stop', 22) + '</button></div>' +
+    '<div class="l ctr">' + (TR.nat ? 'Keeps counting with the screen locked · ' : '') + 'Steps from the phone sensor' + (TRK.some(function (t) { return t[0] === TR.act && t[3]; }) ? ', distance by GPS' : '') + '</div></div>';
+};
+TABOF.extrack = '';
+ROUTES.extrack.after = function () { clearInterval(TRT); if (TR && !TR.done) { trPaint(); TRT = setInterval(function () { if (cur.name !== 'extrack') return clearInterval(TRT); trPaint(); }, 1000); } };
+function trCells(sec, steps, m, kc, act) {
+  var km = m / 1000, pace = km > 0.05 ? sec / 60 / km : 0;
+  return [['Steps', n0(steps || 0)], ['Distance', km.toFixed(2) + ' km'], ['Calories', kc + ' kcal'], [act === 'cycle' ? 'Speed' : 'Pace', act === 'cycle' ? (sec ? (km / (sec / 3600)).toFixed(1) : '0') + ' km/h' : pace ? Math.floor(pace) + ':' + pad(Math.round(pace % 1 * 60)) + ' /km' : '–']].map(function (c) { return '<div><span>' + c[0] + '</span><b>' + c[1] + '</b></div>'; }).join('');
+}
+function trPaint() {
+  var st = trState(), g = function (id) { return document.getElementById(id); };
+  if (!st.run) { if (TR && TR.nat && !TR.done) { trTake(); if (TR && !TR.done) { TR.done = 1; rerender(); } } return; }
+  if (!g('trtime')) return;
+  g('trtime').textContent = mmss(st.sec);
+  g('trg').innerHTML = trCells(st.sec, st.steps, st.m, trKcal(TR.act, st.sec, st.m), TR.act);
+  g('trpp').innerHTML = icon(st.paused ? 'play' : 'pause', 30);
+}
+ACT.trClose = function () { TR = null; go('ex'); };
+var _ose = window.onSessionEnd; window.onSessionEnd = function () { _ose(); setTimeout(trTake, 300); };
+var _onr2 = window.onResume; window.onResume = function () { trTake(); _onr2(); };
+
 ROUTES.exsport = function () {
-  var h = '<div class="xr-hero sm" style="background-image:url(' + exImg('walk') + ')"><div class="xr-top"><button class="xr-b" data-act="back">' + icon('back', 20) + ' Walk, run & sports</button></div><div class="xr-cap"><b>Walk, run & sports</b><span>Watch workouts come in by themselves</span></div></div><div class="pg xr-body">';
-  h += '<section class="c"><h2>Log what you did</h2><div class="chips mt">' + SPORTS.map(function (s) { return '<button class="chip" data-act="exLog" data-a="' + s[0] + '" data-n="' + s[2] + '">' + s[1] + '</button>'; }).join('') + '</div></section>';
+  var h = '<div class="xr-hero sm" style="background-image:url(' + exImg('walk') + ')"><div class="xr-top"><button class="xr-b" data-act="back">' + icon('back', 20) + ' Walk, run & sports</button></div><div class="xr-cap"><b>Walk, run & sports</b><span>Start, and it counts time, steps, km and calories</span></div></div><div class="pg xr-body">';
+  if (TR && !TR.done) h += '<button class="tip" data-act="go" data-to="extrack">' + icon('play', 16) + '<span><b>' + esc(TR.name) + '</b> is being tracked · tap to open</span></button>';
+  h += '<div class="trs">' + TRK.map(function (t, i) { return '<button class="trb" data-act="trGo" data-i="' + i + '">' + icon('play', 16) + '<span>' + t[1] + '</span></button>'; }).join('') + '</div>';
+  h += '<section class="c"><h2>Already done it?</h2><p class="l">Log it with the time it took.</p><div class="chips mt">' + [['walk', 'Walk', ''], ['run', 'Running', ''], ['cycle', 'Cycling', ''], ['swim', 'Swimming', ''], ['sport', 'Cricket', 'Cricket'], ['sport', 'Badminton', 'Badminton']].map(function (s) { return '<button class="chip" data-act="exLog" data-a="' + s[0] + '" data-n="' + s[2] + '">' + s[1] + '</button>'; }).join('') + '</div></section>';
   var w = []; for (var i = 0; i < 7; i++) { var k = addDays(today(), -i); try { watchSessions(k).forEach(function (s) { w.push(s); }); } catch (e) { } }
   h += '<section class="c"><h2>From your watch · last 7 days</h2>' + (w.length ? w.slice(0, 12).map(function (s) { return '<div class="rd"><span>' + esc(s.name) + ' · ' + new Date(s.t).toLocaleDateString('en-IN', { weekday: 'short' }) + ' ' + hm(s.start || s.t) + '</span><b>' + Math.round(s.min) + ' min</b></div>'; }).join('') : '<p class="l">Nothing yet. Workouts recorded on your Galaxy Watch or Samsung Health show here and in Activity.</p>') + '</section></div>';
   return h;
@@ -369,7 +529,8 @@ var GVOICES = [['Kore', 'Calm, female'], ['Aoede', 'Soft, female'], ['Charon', '
 var VSAMPLE = 'Breathe in through the left nostril';
 function exPhrases() {
   var seen = {}, out = [];
-  var add = function (st) { st.forEach(function (s) { if (s.say && !seen[s.say]) { seen[s.say] = 1; out.push(s.say); } }); };
+  var add = function (st) { st.forEach(function (s) { [s.say, s.pre].forEach(function (t) { if (t && !seen[t]) { seen[t] = 1; out.push(t); } }); }); };
+  add(buildSteps(Object.keys(WX).map(function (k) { return 'w:' + k; })));
   PRANA_ORDER.forEach(function (k) { add(buildSteps([k])); });
   pscheds().forEach(function (s) { add(buildSteps(s.items)); });
   add(buildSteps(ASANA_ORDER.map(function (k) { return 'a:' + k; })));

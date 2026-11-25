@@ -57,6 +57,7 @@ public class SessionService extends Service {
     private int idx = -1;
     private long stepStart = 0, pausedAt = 0, startedWall = 0;
     private boolean paused = false, finished = false;
+    private int preSaid = -1;
     private final JSONObject itemSec = new JSONObject();
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("session", MODE_PRIVATE); }
@@ -174,7 +175,9 @@ public class SessionService extends Service {
             if (!paused) {
                 long into = SystemClock.elapsedRealtime() - stepStart;
                 JSONObject s = steps.optJSONObject(idx);
-                if (s != null && into >= (long) (s.optDouble("sec", 1) * 1000)) { addTime(s, s.optDouble("sec", 1)); if (idx + 1 >= steps.length()) { finish(true); return; } go(idx + 1); }
+                if (s != null && s.optBoolean("wait")) { /* a set of reps: waits for Done */ }
+                else if (s != null && into >= (long) (s.optDouble("sec", 1) * 1000)) { addTime(s, s.optDouble("sec", 1)); if (idx + 1 >= steps.length()) { finish(true); return; } go(idx + 1); }
+                else if (s != null && preSaid != idx && s.has("pre") && s.optDouble("sec", 1) * 1000 - into <= s.optDouble("preAt", 5) * 1000) { preSaid = idx; speak(s.optString("pre"), s.optString("preClip")); }
             }
             h.postDelayed(this, 100);
         }
@@ -198,7 +201,13 @@ public class SessionService extends Service {
         stopAudio();
         String say = s.optString("say", "");
         if (!voice || say.isEmpty()) { if (s.optBoolean("chime", true)) beep(s.optString("ph")); return; }
-        File f = clip(this, s.optString("clip"));
+        speak(say, s.optString("clip"));
+    }
+
+    private void speak(String say, String key) {
+        stopAudio();
+        if (!voice || say == null || say.isEmpty()) return;
+        File f = clip(this, key);
         if (f != null) {
             try {
                 mp = new MediaPlayer();
@@ -300,14 +309,14 @@ public class SessionService extends Service {
                 .setCategory(Notification.CATEGORY_PROGRESS)
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
                 .setContentIntent(PendingIntent.getActivity(this, 41, new Intent(this, MainActivity.class).putExtra("route", "exrun").addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
-        if (s != null && !paused) {
+        if (s != null && !paused && !s.optBoolean("wait")) {
             long left = (long) (s.optDouble("sec", 1) * 1000) - (SystemClock.elapsedRealtime() - stepStart);
             b.setWhen(System.currentTimeMillis() + Math.max(0, left)).setUsesChronometer(true).setShowWhen(true);
             if (Build.VERSION.SDK_INT >= 24) b.setChronometerCountDown(true);
         }
         if (steps != null) b.setProgress(steps.length(), Math.max(0, idx), false);
         b.addAction(new Notification.Action.Builder(null, paused ? "Resume" : "Pause", act(ACT_PAUSE, 42)).build());
-        b.addAction(new Notification.Action.Builder(null, "Skip", act(ACT_SKIP, 43)).build());
+        b.addAction(new Notification.Action.Builder(null, s != null && s.optBoolean("wait") ? "Done" : "Skip", act(ACT_SKIP, 43)).build());
         b.addAction(new Notification.Action.Builder(null, "Stop", act(ACT_STOP, 44)).build());
         return b.build();
     }
