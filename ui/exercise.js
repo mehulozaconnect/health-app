@@ -373,7 +373,7 @@ var WX = {
   pushup: ['Push-ups', 'cali', 'pushup', 'reps', 3, 10, null, 'Hands under the shoulders, body straight. Lower the chest near the floor and push up. Knees down if needed.', 'Chest, arms'],
   lunge: ['Lunges', 'cali', 'c-lunge', 'reps', 3, 10, null, 'Step forward and lower until both knees are at 90°. Push back up. Do the reps on each leg.', 'Legs', 1],
   bridge: ['Glute bridge', 'cali', 'c-bridge', 'reps', 3, 15, null, 'On your back, knees bent. Lift the hips until the body is straight from shoulders to knees.', 'Glutes, back'],
-  plank: ['Plank hold', 'cali', 'c-plank', 'time', 3, 30, null, 'Hands under the shoulders, body in a straight line. Hold, breathing normally.', 'Core'],
+  plank: ['High plank', 'cali', 'c-plank', 'time', 3, 30, null, 'Hands under the shoulders, arms straight, body in one line from head to heels. Hold, breathing normally. Forearms down makes it a forearm plank.', 'Core'],
   jacks: ['Jumping jacks', 'aero', 'jacks', 'time', 3, 40, null, 'Jump the feet apart while raising the arms overhead, then back. Keep a steady rhythm.', 'Full body'],
   knees: ['High knees', 'aero', 'a-knees', 'time', 3, 30, null, 'Run on the spot, lifting the knees to hip height, arms pumping.', 'Legs, heart'],
   jog: ['Spot jogging', 'aero', 'a-jog', 'time', 3, 45, null, 'Jog on the spot at an easy, steady pace.', 'Heart'],
