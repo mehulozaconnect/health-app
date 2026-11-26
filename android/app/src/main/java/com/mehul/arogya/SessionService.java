@@ -120,7 +120,7 @@ public class SessionService extends Service {
         PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
         wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "arogya:session");
         wl.setReferenceCounted(false);
-        try { tone = new ToneGenerator(AudioManager.STREAM_MUSIC, 45); } catch (Exception ignored) { }
+        try { tone = new ToneGenerator(AudioManager.STREAM_MUSIC, 80); } catch (Exception ignored) { }
         String vname = prefs(this).getString("voice", "");
         float rate = prefs(this).getFloat("rate", 0.9f);
         tts = new TextToSpeech(this, st -> {
@@ -177,7 +177,7 @@ public class SessionService extends Service {
                 JSONObject s = steps.optJSONObject(idx);
                 if (s != null && s.optBoolean("wait")) { /* a set of reps: waits for Done */ }
                 else if (s != null && into >= (long) (s.optDouble("sec", 1) * 1000)) { addTime(s, s.optDouble("sec", 1)); if (idx + 1 >= steps.length()) { finish(true); return; } go(idx + 1); }
-                else if (s != null && preSaid != idx && s.has("pre") && s.optDouble("sec", 1) * 1000 - into <= s.optDouble("preAt", 5) * 1000) { preSaid = idx; speak(s.optString("pre"), s.optString("preClip")); }
+                else if (s != null && preSaid != idx && s.has("pre") && s.optDouble("sec", 1) * 1000 - into <= s.optDouble("preAt", 5) * 1000) { preSaid = idx; if (!voice || s.optString("pre").isEmpty()) beep("pre"); else speak(s.optString("pre"), s.optString("preClip")); }
             }
             h.postDelayed(this, 100);
         }
@@ -224,7 +224,10 @@ public class SessionService extends Service {
 
     private void beep(String ph) {
         if (tone == null) return;
-        try { tone.startTone("in".equals(ph) ? ToneGenerator.TONE_PROP_BEEP : ToneGenerator.TONE_PROP_ACK, 120); } catch (Exception ignored) { }
+        /* inhale: one high beep · exhale: a lower double · hold: two short pips · anything else: a soft prompt */
+        int t = "in".equals(ph) ? ToneGenerator.TONE_PROP_BEEP : "out".equals(ph) ? ToneGenerator.TONE_PROP_BEEP2
+                : ("hold".equals(ph) || "hold2".equals(ph)) ? ToneGenerator.TONE_PROP_ACK : "end".equals(ph) ? ToneGenerator.TONE_CDMA_CONFIRM : ToneGenerator.TONE_PROP_PROMPT;
+        try { tone.startTone(t, "end".equals(ph) ? 600 : 200); } catch (Exception ignored) { }
     }
 
     private void stopAudio() {

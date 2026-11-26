@@ -9,7 +9,7 @@ IC.stop = '<rect x="6" y="6" width="12" height="12" rx="2"/>';
 IC.mic = '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>';
 NAV.splice(2, 0, ['ex', 'Exercise', 'dumb']);
 ['ex', 'exy', 'exa', 'exw', 'excat', 'exsport', 'exvoice', 'breath', 'psched', 'breathlog'].forEach(function (k) { TABOF[k] = 'ex'; });
-HERO['Exercise'] = ['dumb', '#7A5AF8']; HERO['Yoga & pranayama'] = ['yoga', '#4E9B6B']; HERO['Voice'] = ['mic', '#7A5AF8']; HERO['Walk, run & sports'] = ['steps', '#2F7FD8'];
+HERO['Exercise'] = ['dumb', '#7A5AF8']; HERO['Yoga & pranayama'] = ['yoga', '#4E9B6B']; HERO['Voice'] = ['mic', '#7A5AF8']; HERO['Sound'] = ['mic', '#7A5AF8']; HERO['Walk, run & sports'] = ['steps', '#2F7FD8'];
 ROUTES.breaths = function () { return ROUTES.exy(); };
 
 function exImg(n) { return 'img/' + n + '.jpg'; }
@@ -54,6 +54,7 @@ pschedSec = function (s) { return s.items.reduce(function (a, k) { return a + ex
 function exValid(k) { return exIsW(k) ? !!WX[k.slice(2)] : exIsA(k) ? !!ASANA[k.slice(2)] : !!PRANA[k]; }
 
 /* ---------- the script the player speaks ---------- */
+function exSound() { return DB.settings.exSound || 'beep'; }
 function vKey(say) { var t = (DB.settings.gvoice || 'Kore') + '|' + say, h = 5381; for (var i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return 'v' + (h >>> 0).toString(36); }
 function introSec(t) { return Math.max(6, Math.round(t.split(' ').length * 0.42 + 2.5)); }
 var PHT = { in: 'Breathe in', hold: 'Hold', out: 'Breathe out', hold2: 'Hold out', fast: 'Go', rest: 'Rest' };
@@ -95,7 +96,9 @@ function buildSteps(items) {
   });
   var lastImg = out.length ? out[out.length - 1].img : 'meditative';
   out.push({ ph: 'end', sec: 4, say: 'Well done', title: 'Well done', sub: 'Session complete', hint: 'Saved to Activity', img: lastImg, item: '' });
-  out.forEach(function (s) { s.clip = vKey(s.say); if (s.pre) s.preClip = vKey(s.pre); });
+  /* sound: a beep at every step, or the voice saying only Inhale / Hold / Exhale (beep for everything else) */
+  var V = exSound() === 'voice', W3 = { in: 'Inhale', out: 'Exhale', hold: 'Hold', hold2: 'Hold' };
+  out.forEach(function (s) { s.say = V ? (W3[s.ph] || '') : ''; s.clip = s.say ? vKey(s.say) : ''; if (s.pre) s.pre = ''; });
   return out;
 }
 
@@ -105,7 +108,7 @@ function xsSave() { try { localStorage.setItem('arogya-xs', JSON.stringify(XS));
 function xsLoad() { try { return JSON.parse(localStorage.getItem('arogya-xs') || 'null'); } catch (e) { return null; } }
 function exStart(items, tag, name) {
   items = items.filter(exValid); if (!items.length) return toast('Nothing to play');
-  var steps = buildSteps(items), voice = DB.settings.exVoice !== false;
+  var steps = buildSteps(items), voice = exSound() === 'voice';
   XS = { tag: tag, name: name, items: items, steps: steps, nat: false, t0: Date.now(), i: 0, at: Date.now(), paused: 0, done: 0 };
   native('askNotify');
   if (AND && AND.sessionStart) {
@@ -129,7 +132,7 @@ function xsState() {
   return { run: true, i: XS.i, ms: ms, paused: !!XS.paused };
 }
 function xsAdd(s, sec) { if (!s.item) return; XS.sec = XS.sec || {}; XS.sec[s.item] = (XS.sec[s.item] || 0) + sec; }
-function xsSpeak(i) { var s = XS.steps[i]; if (!s) return; if (DB.settings.exVoice !== false) plSay(s.say); feel(s.ph === 'in' ? 'tick' : s.ph === 'end' ? 'done' : 'tickl'); }
+function xsSpeak(i) { var s = XS.steps[i]; if (!s) return; if (s.say) plSay(s.say); feel(s.ph === 'in' ? 'tick' : s.ph === 'end' ? 'done' : 'tickl'); }
 function xsFinish(done) {
   if (!XS || XS.done) return; XS.done = 1;
   if (!done) { var s = XS.steps[XS.i]; if (s) xsAdd(s, ((XS.paused || Date.now()) - XS.at) / 1000); }
@@ -188,7 +191,7 @@ ROUTES.exrun = function () {
     '<div class="pg xr-body"><div class="xr-cnt" id="xrcnt"></div><div id="xrsets"></div><div class="row sb l"><span id="xrsub"></span><span id="xrleft"></span></div>' +
     '<div class="xr-ctl"><button class="xr-c" data-act="xsCtl" data-a="back" aria-label="Previous step">' + icon('prev', 20) + '</button><button class="xr-c big" data-act="xsCtl" data-a="pause" id="xrpp" aria-label="Pause">' + icon('pause', 30) + '</button><button class="xr-c" data-act="xsCtl" data-a="skip" aria-label="Next step">' + icon('next', 20) + '</button></div>' +
     '<button class="lnk ctr" data-act="xsCtl" data-a="stop">Stop and save</button>' +
-    '<div class="l ctr mt6">' + (XS.nat ? 'Keeps going with the screen locked · ' : '') + 'Voice: ' + (DB.settings.exVoice === false ? 'off' : exVoiceLabel()) + '</div></div>';
+    '<div class="l ctr mt6">' + (XS.nat ? 'Keeps going with the screen locked · ' : '') + 'Sound: ' + (exSound() === 'voice' ? 'Inhale, Hold, Exhale' : 'beep') + '</div></div>';
 };
 ROUTES.exrun.after = function () { clearInterval(XT); if (XS && !XS.done) { xsPaint(); XT = setInterval(function () { if (cur.name !== 'exrun') return clearInterval(XT); xsPaint(); }, 200); } };
 TABOF.exrun = '';
@@ -244,7 +247,7 @@ ROUTES.ex = function () {
   h += list.length ? list.map(exSchedCard).join('') : '<button class="empty-s" data-act="psNew">Make your daily schedule (Dincharya): pick pranayama and yoga in your order, set a reminder, and run them all with one Start.</button>';
   if (list.length) h += '<button class="lnk" data-act="psNew">+ New schedule</button>';
   h += '<div class="xgrid">' + EXCATS.map(function (c) { return '<button class="xt" data-act="go" data-to="' + c[3] + '"><span class="xti" style="background-image:url(' + exImg(c[2]) + ')"></span><b>' + c[1] + '</b></button>'; }).join('') + '</div>';
-  h += '<button class="res" data-act="go" data-to="exvoice"><span class="actic">' + icon('mic', 18) + '</span><span class="f1">Voice<small>' + (DB.settings.exVoice === false ? 'Off' : exVoiceLabel()) + '</small></span>' + icon('chev', 18) + '</button>';
+  h += '<button class="res" data-act="go" data-to="exvoice"><span class="actic">' + icon('mic', 18) + '</span><span class="f1">Sound<small>' + (exSound() === 'voice' ? 'Voice: Inhale, Hold, Exhale' : 'Beep at each step') + '</small></span>' + icon('chev', 18) + '</button>';
   h += '<button class="res" data-act="go" data-to="yoga"><span class="actic">' + icon('steps', 18) + '</span><span class="f1">Activity log<small>Everything you did, with calories</small></span>' + icon('chev', 18) + '</button>';
   return h;
 };
@@ -447,7 +450,7 @@ var _skc = sessionKcal; sessionKcal = function (s) { return s.kcal != null && s.
 ACT.trGo = function (el) {
   var i = +el.getAttribute('data-i'), T = TRK[i], gps = !!T[3];
   TR = { act: T[0], name: T[1], img: T[2], t0: Date.now(), nat: false, paused: 0, pausedMs: 0, sim: { steps: 0 } };
-  var cfg = { act: T[0], name: T[1], tag: 'tr' + Date.now(), stride: trStride(T[0]), voice: DB.settings.exVoice !== false, gps: gps };
+  var cfg = { act: T[0], name: T[1], tag: 'tr' + Date.now(), stride: trStride(T[0]), voice: false, gps: gps };
   TR.tag = cfg.tag;
   if (AND && AND.trackStart) { native('trackStart', JSON.stringify(cfg), gps); TR.nat = true; }
   try { localStorage.setItem('arogya-tr', JSON.stringify(TR)); } catch (e) { }
@@ -526,23 +529,16 @@ ACT.exLog = function (el) { ACT.logAct(el); var n = el.getAttribute('data-n'); i
 
 /* ---------- voice: Gemini natural voice (recorded once), else the best phone voice ---------- */
 var GVOICES = [['Kore', 'Calm, female'], ['Aoede', 'Soft, female'], ['Charon', 'Warm, male'], ['Iapetus', 'Clear, male']];
-var VSAMPLE = 'Breathe in through the left nostril';
-function exPhrases() {
-  var seen = {}, out = [];
-  var add = function (st) { st.forEach(function (s) { [s.say, s.pre].forEach(function (t) { if (t && !seen[t]) { seen[t] = 1; out.push(t); } }); }); };
-  add(buildSteps(Object.keys(WX).map(function (k) { return 'w:' + k; })));
-  PRANA_ORDER.forEach(function (k) { add(buildSteps([k])); });
-  pscheds().forEach(function (s) { add(buildSteps(s.items)); });
-  add(buildSteps(ASANA_ORDER.map(function (k) { return 'a:' + k; })));
-  return out;
-}
+var VSAMPLE = 'Inhale';
+function exPhrases() { return ['Inhale', 'Hold', 'Exhale']; }
 function clipHave() { try { var a = JSON.parse(native('clipList') || '[]'), m = {}; a.forEach(function (k) { m[k] = 1; }); return m; } catch (e) { return {}; } }
 function exVoiceLabel() { var have = clipHave(), ph = exPhrases(), n = ph.filter(function (t) { return have[vKey(t)]; }).length; return n >= ph.length * 0.9 ? 'natural (' + (DB.settings.gvoice || 'Kore') + ')' : n ? 'natural, ' + n + ' of ' + ph.length + ' recorded' : 'phone voice'; }
 var VREC = null;
 ROUTES.exvoice = function () {
   var on = DB.settings.exVoice !== false, have = clipHave(), ph = exPhrases(), n = ph.filter(function (t) { return have[vKey(t)]; }).length, gv = DB.settings.gvoice || 'Kore';
-  var h = head('Voice', 'What you hear during a session');
-  h += '<section class="c"><button class="tog" data-act="exVoiceTog" role="switch" aria-checked="' + on + '"><span>Speak the steps</span><i class="' + (on ? 'on' : '') + '"></i></button><div class="l mt6">Off: a soft beep marks each step instead.</div></section>';
+  var h = head('Sound', 'What you hear during a session');
+  h += '<section class="c"><h2>During a session</h2><div class="chips mt">' + [['beep', 'Beep only'], ['voice', 'Voice: Inhale, Hold, Exhale']].map(function (o) { return '<button class="chip' + (exSound() === o[0] ? ' dk' : '') + '" data-act="exSoundSet" data-v="' + o[0] + '">' + o[1] + '</button>'; }).join('') + '</div><div class="l mt6">' + (exSound() === 'voice' ? 'Only these three words are spoken. Everything else is a beep.' : 'A beep marks each change: one high beep to inhale, a lower double beep to exhale, two short pips to hold.') + '</div></section>';
+  if (exSound() !== 'voice') return h;
   h += '<section class="c"><h2>Natural voice</h2><p class="p">Gemini records each instruction once in a human voice. After that it plays offline, even with the screen locked.</p>' +
     '<div class="chips mt">' + GVOICES.map(function (v) { return '<button class="chip' + (gv === v[0] ? ' dk' : '') + '" data-act="exGv" data-v="' + v[0] + '">' + v[0] + ' · ' + v[1] + '</button>'; }).join('') + '</div>' +
     '<div class="l mt">' + n + ' of ' + ph.length + ' phrases recorded in ' + gv + '</div>' + bar(n / Math.max(1, ph.length) * 100) +
@@ -558,7 +554,7 @@ ROUTES.exvoice = function () {
     '<div class="l mt">Speed</div><div class="chips">' + [[0.8, 'Slow'], [0.9, 'Calm'], [1, 'Normal']].map(function (r) { return '<button class="chip' + (Math.abs((pref.rate || 0.9) - r[0]) < 0.01 ? ' dk' : '') + '" data-act="exRate" data-r="' + r[0] + '">' + r[1] + '</button>'; }).join('') + '</div></section>';
   return h;
 };
-ACT.exVoiceTog = function () { DB.settings.exVoice = DB.settings.exVoice === false; save(); rerender(); };
+ACT.exSoundSet = function (el) { DB.settings.exSound = el.getAttribute('data-v'); save(); rerender(); };
 ACT.exGv = function (el) { DB.settings.gvoice = el.getAttribute('data-v'); save(); VREC = null; rerender(); };
 ACT.exTts = function (el) { var p = {}; try { p = JSON.parse(native('voicePref') || '{}'); } catch (e) { } native('ttsUse', el.getAttribute('data-n'), p.rate || 0.9, VSAMPLE); setTimeout(rerender, 100); };
 ACT.exRate = function (el) { var p = {}; try { p = JSON.parse(native('voicePref') || '{}'); } catch (e) { } native('ttsUse', p.voice || '', +el.getAttribute('data-r'), VSAMPLE); setTimeout(rerender, 100); };
