@@ -53,6 +53,27 @@ function exSec(k) { if (exIsW(k)) return WX[k.slice(2)] ? wxSec(k.slice(2)) : 0;
 pschedSec = function (s) { return s.items.reduce(function (a, k) { return a + exSec(k); }, 0) + 6; };
 function exValid(k) { return exIsW(k) ? !!WX[k.slice(2)] : exIsA(k) ? !!ASANA[k.slice(2)] : !!PRANA[k]; }
 
+/* fast breathing set in seconds, the same numbers the player uses: Bhastrika inhale + exhale, Kapalbhati one exhale every N s */
+function fastIO(k, c) {
+  var f = c.fast, bpm = f[0] || 30;
+  if (k === 'kapal') { var per = f[3] || Math.round(60 / bpm * 2) / 2; return { per: per, in: 0, out: per }; }
+  var i = f[3] || Math.round(30 / bpm * 2) / 2, o = f[4] || Math.round(30 / bpm * 2) / 2;
+  return { per: i + o, in: i, out: o };
+}
+var _pTotal = pTotal;
+pTotal = function (k, c) { if (!c.fast) return _pTotal(k, c); var io = fastIO(k, c); return Math.round(c.rounds * c.fast[1] * io.per + (c.rounds - 1) * c.fast[2]); };
+ACT.fAdj = function (el) {
+  var k = BP.k, c = pcfg(k), f = el.getAttribute('data-f'), d = +el.getAttribute('data-d'), io = fastIO(k, c);
+  if (f === 'in' || f === 'out') { c.fast[3] = clamp(io.in + (f === 'in' ? d * 0.5 : 0), 0.5, 20); c.fast[4] = clamp(io.out + (f === 'out' ? d * 0.5 : 0), 0.5, 20); }
+  if (f === 'per') c.fast[3] = clamp(io.per + d * 0.5, 0.5, 10);
+  if (f === 'n') c.fast[1] = clamp(c.fast[1] + d * (k === 'kapal' ? 10 : 5), 5, 300);
+  if (f === 'rest') c.fast[2] = clamp(c.fast[2] + d * 5, 0, 180);
+  if (f === 'rounds') c.rounds = clamp(c.rounds + d, 1, 50);
+  c.fast[0] = Math.round(60 / fastIO(k, c).per);
+  bSave(c); rerender();
+};
+function fcell(f, v) { return '<div class="scell"><button class="sup" data-act="fAdj" data-f="' + f + '" data-d="1" aria-label="More">▲</button><b>' + v + '</b><button class="sup" data-act="fAdj" data-f="' + f + '" data-d="-1" aria-label="Less">▼</button></div>'; }
+
 /* ---------- the script the player speaks ---------- */
 function exSound() { return DB.settings.exSound || 'beep'; }
 function vKey(say) { var t = (DB.settings.gvoice || 'Kore') + '|' + say, h = 5381; for (var i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return 'v' + (h >>> 0).toString(36); }
@@ -75,11 +96,11 @@ function pranaSteps(k) {
     if (g.nos) img = pImg(k, g.nos); /* holds keep the last hand position */
     if (g.ph === 'fast') {
       /* every breath is its own step: Bhastrika = inhale + exhale, Kapalbhati = one sharp exhale */
-      var per = 60 / g.bpm, kap = k === 'kapal', lab2 = kap ? [['Exhale', Math.round(per * 10) / 10 + ' s', 'out']] : [['Inhale', Math.round(per / 2 * 10) / 10 + ' s', 'in'], ['Exhale', Math.round(per / 2 * 10) / 10 + ' s', 'out']];
+      var io = fastIO(k, c), kap = k === 'kapal', lab2 = kap ? [['Exhale', io.per + ' s', 'out']] : [['Inhale', io.in + ' s', 'in'], ['Exhale', io.out + ' s', 'out']];
       for (var b = 1; b <= g.n; b++) {
         var sub = 'Round ' + g.round + ' of ' + c.rounds + ' · breath ' + b + ' of ' + g.n;
-        if (!kap) out.push({ ph: 'in', sec: per / 2, title: 'Inhale', sub: sub, hint: 'Deep, strong breath in through the nose', img: img, item: k, cnt: lab2, round: g.round, rounds: c.rounds });
-        out.push({ ph: 'out', sec: kap ? per : per / 2, title: 'Exhale', sub: sub, hint: kap ? 'Snap the belly in; the breath in happens by itself' : 'Strong breath out through the nose', img: img, item: k, cnt: lab2, round: g.round, rounds: c.rounds });
+        if (!kap) out.push({ ph: 'in', sec: io.in, title: 'Inhale', sub: sub, hint: 'Deep, strong breath in through the nose', img: img, item: k, cnt: lab2, round: g.round, rounds: c.rounds });
+        out.push({ ph: 'out', sec: io.out, title: 'Exhale', sub: sub, hint: kap ? 'Snap the belly in; the breath in happens by itself' : 'Strong breath out through the nose', img: img, item: k, cnt: lab2, round: g.round, rounds: c.rounds });
       }
       return;
     }
@@ -298,8 +319,11 @@ ROUTES.breath = function (k) {
   var c = pcfg(k), tot = pTotal(k, c);
   var h = '<div class="xr-hero sm" style="background-image:url(' + exImg(PIMG[k]) + ')"><div class="xr-top"><button class="xr-b" data-act="back">' + icon('back', 20) + ' ' + esc(p[0]) + '</button></div><div class="xr-cap"><b>' + esc(p[0]) + '</b><span>' + esc(p[1]) + ' · ' + mmss(tot) + '</span></div></div><div class="pg xr-body">';
   if (c.fast) {
-    h += '<section class="c strip"><div class="sgrid s4">' + ['BREATHS/MIN', 'PER ROUND', 'REST (S)', 'ROUNDS'].map(function (l) { return '<span class="l">' + l + '</span>'; }).join('') +
-      ['f0', 'f1', 'f2', 'rounds'].map(function (key, j) { return cell(key, key === 'rounds' ? c.rounds : c.fast[j]); }).join('') + '</div></section>';
+    var io = fastIO(k, c), kap = k === 'kapal';
+    var F = kap ? [['EXHALE EVERY', 'per', io.per + 's'], ['BREATHS', 'n', c.fast[1]], ['REST', 'rest', c.fast[2] + 's'], ['ROUNDS', 'rounds', c.rounds]]
+      : [['INHALE', 'in', io.in + 's'], ['EXHALE', 'out', io.out + 's'], ['BREATHS', 'n', c.fast[1]], ['REST', 'rest', c.fast[2] + 's'], ['ROUNDS', 'rounds', c.rounds]];
+    h += '<section class="c strip"><div class="sgrid" style="grid-template-columns:repeat(' + F.length + ',minmax(0,1fr))">' + F.map(function (x) { return '<span class="l">' + x[0] + '</span>'; }).join('') + F.map(function (x) { return fcell(x[1], x[2]); }).join('') + '</div>' +
+      '<div class="l mt6 ctr">' + (kap ? 'One sharp exhale every ' + io.per + ' s' : 'Inhale ' + io.in + ' s, exhale ' + io.out + ' s') + ' · ' + c.fast[1] + ' breaths a round, then ' + c.fast[2] + ' s rest · ' + c.rounds + ' rounds</div></section>';
   } else {
     var sh = pshow(k), labs = sh.map(function (f) { return f === 'r3' && sh.indexOf('r1') >= 0 ? 'HOLD OUT' : PLAB[f]; });
     h += '<section class="c strip"><div class="sgrid" style="grid-template-columns:28px repeat(' + sh.length + ',minmax(0,1fr)) 28px 64px"><span></span>' + labs.map(function (l) { return '<span class="l">' + l + '</span>'; }).join('') + '<span></span><span class="l">ROUNDS</span>' +
