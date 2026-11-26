@@ -42,7 +42,7 @@ var ASANA = {
 };
 var ASANA_ORDER = ['tada', 'vriksha', 'kona', 'vajra', 'bhujanga', 'shava'];
 function asHold(k) { return ((DB.asana || {})[k] || {}).hold || ASANA[k][2]; }
-function asSec(k) { var a = ASANA[k]; return 8 + asHold(k) * (a[5] ? 2 : 1) + (a[5] ? 4 : 0) + 4; }
+function asSec(k) { var a = ASANA[k]; return 8 + (asHold(k) + 8) * (a[5] ? 2 : 1); }
 
 /* one list for schedules: 'anulom' is a pranayama, 'a:tada' a yoga pose */
 function exIsA(k) { return k.slice(0, 2) === 'a:'; }
@@ -57,7 +57,7 @@ function exValid(k) { return exIsW(k) ? !!WX[k.slice(2)] : exIsA(k) ? !!ASANA[k.
 function exSound() { return DB.settings.exSound || 'beep'; }
 function vKey(say) { var t = (DB.settings.gvoice || 'Kore') + '|' + say, h = 5381; for (var i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return 'v' + (h >>> 0).toString(36); }
 function introSec(t) { return Math.max(6, Math.round(t.split(' ').length * 0.42 + 2.5)); }
-var PHT = { in: 'Breathe in', hold: 'Hold', out: 'Breathe out', hold2: 'Hold out', fast: 'Go', rest: 'Rest' };
+var PHT = { in: 'Inhale', hold: 'Hold', out: 'Exhale', hold2: 'Hold', fast: 'Go', rest: 'Relax' };
 /* the voice only counts the breath; how-to stays on screen */
 function pSay(k, g) { return { in: 'Inhale', hold: 'Hold', out: 'Exhale', hold2: 'Hold', fast: 'Start', rest: 'Relax' }[g.ph] || ''; }
 function pHint(k, g) {
@@ -73,20 +73,32 @@ function pranaSteps(k) {
   ph.forEach(function (g) {
     var first = g.round !== seenRound; seenRound = g.round;
     if (g.nos) img = pImg(k, g.nos); /* holds keep the last hand position */
+    if (g.ph === 'fast') {
+      /* every breath is its own step: Bhastrika = inhale + exhale, Kapalbhati = one sharp exhale */
+      var per = 60 / g.bpm, kap = k === 'kapal', lab2 = kap ? [['Exhale', Math.round(per * 10) / 10 + ' s', 'out']] : [['Inhale', Math.round(per / 2 * 10) / 10 + ' s', 'in'], ['Exhale', Math.round(per / 2 * 10) / 10 + ' s', 'out']];
+      for (var b = 1; b <= g.n; b++) {
+        var sub = 'Round ' + g.round + ' of ' + c.rounds + ' · breath ' + b + ' of ' + g.n;
+        if (!kap) out.push({ ph: 'in', sec: per / 2, title: 'Inhale', sub: sub, hint: 'Deep, strong breath in through the nose', img: img, item: k, cnt: lab2, round: g.round, rounds: c.rounds });
+        out.push({ ph: 'out', sec: kap ? per : per / 2, title: 'Exhale', sub: sub, hint: kap ? 'Snap the belly in; the breath in happens by itself' : 'Strong breath out through the nose', img: img, item: k, cnt: lab2, round: g.round, rounds: c.rounds });
+      }
+      return;
+    }
     out.push({ ph: g.ph, sec: g.sec, say: pSay(k, g), title: PHT[g.ph] + (g.nos ? ', ' + g.nos + ' nostril' : ''), sub: 'Round ' + g.round + ' of ' + c.rounds, hint: pHint(k, g), img: img, item: k, cnt: lab, round: g.round, rounds: c.rounds });
   });
   return out;
 }
 function asanaSteps(k) {
+  /* inhale into the pose, hold it, exhale to release; both sides when the pose has sides */
   var a = ASANA[k], hold = asHold(k), out = [], it = 'a:' + k;
-  out.push({ ph: 'intro', sec: 8, say: a[0], title: a[0], sub: 'Get into position · ' + a[1], hint: a[4], img: a[3], item: it });
-  (a[5] ? ['Right side. ', 'Now the other side. '] : ['']).forEach(function (side, si) {
-    if (si) out.push({ ph: 'rest', sec: 4, say: 'Change sides', title: 'Change sides', sub: a[0], hint: 'Come back to the centre', img: a[3], item: it });
-    out.push({ ph: 'hold', sec: hold, say: 'Hold', title: 'Hold' + (a[5] ? (si ? ', other side' : ', first side') : ''), sub: a[0] + ' · ' + hold + ' sec', hint: a[1], img: a[3], item: it });
+  out.push({ ph: 'intro', sec: 8, title: a[0], sub: 'Get into position · ' + a[1], hint: a[4], img: a[3], item: it });
+  (a[5] ? [' · first side', ' · other side'] : ['']).forEach(function (side) {
+    out.push({ ph: 'in', sec: 4, title: 'Inhale', sub: a[0] + side, hint: 'Breathe in and move into the pose', img: a[3], item: it, cnt: ASCNT(hold) });
+    out.push({ ph: 'hold', sec: hold, title: 'Hold', sub: a[0] + side + ' · ' + hold + ' sec', hint: 'Stay steady, breathe normally', img: a[3], item: it, cnt: ASCNT(hold) });
+    out.push({ ph: 'out', sec: 4, title: 'Exhale', sub: a[0] + side, hint: 'Breathe out and release slowly', img: a[3], item: it, cnt: ASCNT(hold) });
   });
-  out.push({ ph: 'rest', sec: 4, say: 'Release', title: 'Release', sub: a[0], hint: 'Come out of the pose gently', img: a[3], item: it });
   return out;
 }
+function ASCNT(h) { return [['Inhale', 4, 'in'], ['Hold', h, 'hold'], ['Exhale', 4, 'out']]; }
 function buildSteps(items) {
   var out = [];
   items.filter(exValid).forEach(function (k, i, all) {
@@ -386,7 +398,10 @@ function wx(k) { var W = WX[k], s = (DB.wx || {})[k] || {}; return { sets: s.set
 function wxSet(k, o) { DB.wx = DB.wx || {}; var c = wx(k); Object.keys(o).forEach(function (x) { c[x] = o[x]; }); DB.wx[k] = c; save(); }
 function wxPlan(k) { var W = WX[k], c = wx(k); return c.sets + ' × ' + (W[3] === 'time' ? c.n + ' s' : c.n + (W[9] ? ' each side' : '')) + (c.kg ? ' · ' + c.kg + ' kg' : ''); }
 function wxRest(cat) { return ((DB.wxRest || {})[cat]) || WCAT[cat].rest; }
-function wxSec(k) { var W = WX[k], c = wx(k), work = W[3] === 'time' ? c.n : c.n * 3 * (W[9] ? 2 : 1); return 8 + c.sets * work + (c.sets - 1) * wxRest(W[1]) + wxRest(W[1]); }
+/* rep guide: each rep = inhale on the easy half, exhale on the effort; pulls and lifts start with the exhale */
+var WPULL = { pulldown: 1, row: 1, curl: 1, brow: 1, bcurl: 1, bpull: 1, bridge: 1, bpress: 0 };
+function wxTempo() { var t = DB.wxTempo || {}; return { on: t.on !== false, in: t.in || 2, out: t.out || 2 }; }
+function wxSec(k) { var W = WX[k], c = wx(k), T = wxTempo(), work = W[3] === 'time' ? c.n : c.n * (T.on ? T.in + T.out : 3) * (W[9] ? 2 : 1); return 8 + c.sets * work + (c.sets - 1) * wxRest(W[1]) + wxRest(W[1]); }
 function wxLast(k) { var l = (DB.wxLast || {})[k]; return l ? l.sets + ' × ' + l.n + (WX[k][3] === 'time' ? ' s' : '') + (l.kg ? ' · ' + l.kg + ' kg' : '') + ' on ' + new Date(l.t).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''; }
 /* what was done (with edits made during the session), and remember it as "last time" */
 function wxDid(k, done) {
@@ -395,10 +410,21 @@ function wxDid(k, done) {
   return c.sets + '×' + n + (WX[k][3] === 'time' ? 's' : '') + (kg ? ' ' + kg + 'kg' : '');
 }
 function wxSteps(k, lastOne) {
-  var W = WX[k], c = wx(k), it = 'w:' + k, rest = wxRest(W[1]), out = [], plan = W[3] === 'time' ? c.n + ' sec' : c.n + ' reps' + (W[9] ? ' each side' : '') + (c.kg ? ' · ' + c.kg + ' kg' : '');
+  var W = WX[k], c = wx(k), T = wxTempo(), it = 'w:' + k, rest = wxRest(W[1]), out = [], plan = W[3] === 'time' ? c.n + ' sec' : c.n + ' reps' + (W[9] ? ' each side' : '') + (c.kg ? ' · ' + c.kg + ' kg' : '');
   out.push({ ph: 'intro', sec: 8, say: W[0], title: W[0], sub: 'Get ready · ' + c.sets + ' sets × ' + plan, hint: W[7], img: W[2], item: it, wk: k, set: 0, sets: c.sets });
   for (var i = 0; i < c.sets; i++) {
     if (W[3] === 'time') out.push({ ph: 'work', sec: c.n, say: 'Go', pre: 'Five seconds', preAt: 5, title: 'Set ' + (i + 1) + ' of ' + c.sets, sub: plan, hint: W[7], img: W[2], item: it, wk: k, set: i + 1, sets: c.sets });
+    else if (T.on) {
+      var reps = c.n * (W[9] ? 2 : 1), pull = WPULL[k], cnt = [['Inhale', T.in, 'in'], ['Exhale', T.out, 'out']];
+      if (pull) cnt.reverse();
+      for (var r = 1; r <= reps; r++) {
+        var rl = 'Set ' + (i + 1) + ' of ' + c.sets + ' · rep ' + (W[9] ? Math.ceil(r / 2) + (r % 2 ? ' right' : ' left') : r) + ' of ' + c.n + (c.kg ? ' · ' + c.kg + ' kg' : '');
+        var rn = 'Rep ' + (W[9] ? Math.ceil(r / 2) + (r % 2 ? ' right' : ' left') : r) + ' of ' + c.n + ' · ';
+        var a1 = { ph: 'in', sec: T.in, title: 'Inhale', sub: rl, hint: rn + (pull ? 'return slowly' : 'lower slowly'), img: W[2], item: it, wk: k, set: i + 1, sets: c.sets, cnt: cnt, rep: r };
+        var a2 = { ph: 'out', sec: T.out, title: 'Exhale', sub: rl, hint: rn + (pull ? 'pull or lift' : 'push or stand up'), img: W[2], item: it, wk: k, set: i + 1, sets: c.sets, cnt: cnt, rep: r };
+        if (pull) out.push(a2, a1); else out.push(a1, a2);
+      }
+    }
     else out.push({ ph: 'set', wait: true, sec: c.n * 3 * (W[9] ? 2 : 1), say: 'Go', title: 'Set ' + (i + 1) + ' of ' + c.sets, sub: plan, hint: 'Tap Done when the set is finished', img: W[2], item: it, wk: k, set: i + 1, sets: c.sets });
     if (i < c.sets - 1 || !lastOne) out.push({ ph: 'rest', sec: rest, say: 'Rest', pre: 'Get ready', preAt: 5, title: 'Rest', sub: i < c.sets - 1 ? 'Then set ' + (i + 2) + ' of ' + c.sets : 'Then the next exercise', hint: 'Breathe, sip water', img: W[2], item: it, wk: k, set: i + 1, sets: c.sets });
   }
@@ -409,11 +435,13 @@ ROUTES.excat = function (cat) {
   var on = C.order.filter(function (k) { return wx(k).on; }), tot = on.reduce(function (a, k) { return a + wxSec(k); }, 0);
   var h = '<div class="xr-hero sm" style="background-image:url(' + exImg(C.img) + ')"><div class="xr-top"><button class="xr-b" data-act="back">' + icon('back', 20) + ' ' + C.name + '</button></div><div class="xr-cap"><b>' + C.name + '</b><span>' + on.length + ' exercises · about ' + Math.round(tot / 60) + ' min</span></div></div><div class="pg xr-body">';
   h += '<button class="btn big" data-act="wxGo" data-c="' + cat + '"' + (on.length ? '' : ' disabled') + '>' + icon('play', 20) + 'Start workout</button>';
-  h += '<section class="c"><div class="l">Rest between sets</div><div class="chips">' + [20, 30, 45, 60, 90].map(function (r) { return '<button class="chip' + (wxRest(cat) === r ? ' dk' : '') + '" data-act="wxRestSet" data-c="' + cat + '" data-r="' + r + '">' + r + ' s</button>'; }).join('') + '</div></section>';
+  h += '<section class="c"><button class="tog" data-act="wxGuide" role="switch" aria-checked="' + wxTempo().on + '"><span>Guide each rep: Inhale / Exhale</span><i class="' + (wxTempo().on ? 'on' : '') + '"></i></button>' + (wxTempo().on ? '<div class="chips mt">' + [[2, 2], [3, 2], [3, 3], [4, 2]].map(function (t) { var T = wxTempo(); return '<button class="chip' + (T.in === t[0] && T.out === t[1] ? ' dk' : '') + '" data-act="wxTempoSet" data-i="' + t[0] + '" data-o="' + t[1] + '">In ' + t[0] + ' s · Out ' + t[1] + ' s</button>'; }).join('') + '</div>' : '<div class="l mt6">Off: tap Done after each set.</div>') + '</section><section class="c"><div class="l">Rest between sets</div><div class="chips">' + [20, 30, 45, 60, 90].map(function (r) { return '<button class="chip' + (wxRest(cat) === r ? ' dk' : '') + '" data-act="wxRestSet" data-c="' + cat + '" data-r="' + r + '">' + r + ' s</button>'; }).join('') + '</div></section>';
   h += '<div class="l">Tick what you want in today\'s workout. Tap an exercise to change sets, reps' + (C.kg ? ' and weight' : '') + '.</div>';
   h += C.order.map(function (k) { var W = WX[k], c = wx(k), l = wxLast(k); return '<div class="xrow"><span class="xph" style="background-image:url(' + exImg(W[2]) + ')" data-act="go" data-to="exw/' + k + '"></span><button class="f1 xrb" data-act="go" data-to="exw/' + k + '"><b>' + W[0] + '</b><small>' + wxPlan(k) + ' · ' + W[8] + '</small>' + (l ? '<small>Last time ' + l + '</small>' : '') + '</button><button class="xck' + (c.on ? ' on' : '') + '" data-act="wxOn" data-k="' + k + '" role="checkbox" aria-checked="' + c.on + '" aria-label="Include ' + W[0] + '">' + (c.on ? '✓' : '') + '</button></div>'; }).join('');
   return h + '</div>';
 };
+ACT.wxGuide = function () { var T = wxTempo(); DB.wxTempo = { on: !T.on, in: T.in, out: T.out }; save(); rerender(); };
+ACT.wxTempoSet = function (el) { DB.wxTempo = { on: true, in: +el.getAttribute('data-i'), out: +el.getAttribute('data-o') }; save(); rerender(); };
 ACT.wxOn = function (el) { var k = el.getAttribute('data-k'); wxSet(k, { on: !wx(k).on }); rerender(); };
 ACT.wxRestSet = function (el) { DB.wxRest = DB.wxRest || {}; DB.wxRest[el.getAttribute('data-c')] = +el.getAttribute('data-r'); save(); rerender(); };
 ACT.wxGo = function (el) { var c = el.getAttribute('data-c'), C = WCAT[c]; exStart(C.order.filter(function (k) { return wx(k).on; }).map(function (k) { return 'w:' + k; }), 'w-' + c, C.name + ' workout'); };
