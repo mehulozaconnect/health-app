@@ -377,6 +377,8 @@ ROUTES.ins = function () {
   /* do these */
   var acts = D.slice(0, 3).map(function (d) { var a = actionFor(d[0], R); if (a) a.pts = d[1]; return a; }).filter(Boolean);
   if (acts.length) h += '<h2 class="insh2">Do these to raise your score</h2>' + acts.map(function (a, i) { return '<section class="c insa"><div class="row sb"><b class="m16">' + (i + 1) + '. ' + esc(a.t) + '</b><span class="insup">+' + Math.round(a.pts) + '</span></div><p class="p">' + esc(a.why) + '</p><div class="inshow">' + icon('check', 16) + '<span>' + esc(a.how) + '</span></div></section>'; }).join('');
+  /* charts that explain themselves */
+  h += '<h2 class="insh2">Your charts</h2>' + insCharts(R, D, PT);
   /* patterns */
   if (PT.length) h += '<h2 class="insh2">What your data shows</h2><section class="c">' + PT.map(function (p) { return '<div class="insf ' + (p[2] ? 'ok' : 'bad') + '">' + icon(p[2] ? 'check' : 'warn', 16) + '<span><b>' + esc(p[0]) + '</b><br>' + esc(p[1]) + '</span></div>'; }).join('') + '</section>';
   /* going well */
@@ -386,7 +388,6 @@ ROUTES.ins = function () {
   h += '<section class="c"><div class="row sb"><div><div class="l">Today so far</div><b class="m18">' + (T.score == null ? 'Nothing logged yet' : grade(T.score)[0]) + '</b></div><b class="m22" style="color:' + gcol(T.score) + '">' + (T.score == null ? '—' : T.score) + '</b></div>' +
     '<p class="l mt6">' + n0(T.kcal) + ' of ' + n0(T.bud) + ' kcal · protein ' + Math.round(T.p) + ' of ' + T.pt + ' g · salt ' + n0(T.na) + ' mg · ' + T.actMin + ' min active' + (TD ? '. Most to gain today: ' + TD[0].toLowerCase() + '.' : '') + '</p></section>';
   /* trend */
-  h += '<section class="c"><h2>Score trend</h2>' + insChart(R) + '<div class="l ctr">Day score: food 40%, movement 25%, sleep 20%, water 15%</div></section>';
   /* the numbers, folded away */
   var cell = function (l, v, s2, c) { return '<div><span>' + l + '</span><b class="' + (c || '') + '">' + v + '</b>' + (s2 ? '<small>' + s2 + '</small>' : '') + '</div>'; };
   h += '<details class="c"><summary class="lnk">See the numbers</summary>' + (R.logged.length ? '<div class="insgrid mt">' +
@@ -397,3 +398,123 @@ ROUTES.ins = function () {
     (INS.p === 'all' ? '<h2 class="mt">Year by year</h2>' + insYears(R).map(function (y) { return rowLine(y[0], y[1], 'foodcal/' + y[0] + '-12'); }).join('') : '') + '</details>';
   return h;
 };
+
+/* ========== interactive charts: each one answers a question, says what it found, and explains how to read it ========== */
+var INSD = {};
+function hmm(m) { if (m == null) return '–'; m = Math.round(m); var h = Math.floor(m / 60) % 24, mm = m % 60, ap = h >= 12 ? 'pm' : 'am'; return ((h % 12) || 12) + ':' + pad(mm) + ' ' + ap; }
+function insBuckets(R) {
+  var D = R.days, n = D.length, out = [];
+  if (n <= 31) return D.map(function (a) { return { label: fromKey(a.k).getDate() + '', long: niceDate(a.k), days: [a] }; });
+  if (n <= 190) { for (var i = 0; i < n; i += 7) { var g = D.slice(i, i + 7); out.push({ label: fromKey(g[0].k).getDate() + ' ' + MON[fromKey(g[0].k).getMonth()], long: 'Week of ' + niceDate(g[0].k), days: g }); } return out; }
+  var m = {}; D.forEach(function (a) { var mk = a.k.slice(0, 7); (m[mk] = m[mk] || []).push(a); });
+  var many = Object.keys(m).length > 12;
+  return Object.keys(m).sort().map(function (mk) { return { label: MON[+mk.slice(5, 7) - 1] + (many ? " '" + mk.slice(2, 4) : ''), long: MON[+mk.slice(5, 7) - 1] + ' ' + mk.slice(0, 4), days: m[mk] }; });
+}
+/* one card: question, takeaway, chart, tap-detail line, how-to-read */
+function icard(id, q, take, svg, how, det, legend) {
+  INSD[id] = det || [];
+  return '<section class="c icard" id="ic-' + id + '"><div class="iq">' + q + '</div><div class="itake">' + take + '</div>' + svg + (legend || '') +
+    '<div class="idet" id="id-' + id + '">' + (det && det.length ? 'Tap a bar or point to see the details.' : '') + '</div><details class="ihow"><summary>How to read this</summary><p>' + how + '</p></details></section>';
+}
+ACT.insTap = function (el) {
+  var id = el.getAttribute('data-c'), i = +el.getAttribute('data-i'), box = document.getElementById('id-' + id), card = document.getElementById('ic-' + id);
+  if (!box || !INSD[id]) return;
+  card.querySelectorAll('.isel').forEach(function (x) { x.classList.remove('isel'); }); el.classList.add('isel');
+  box.innerHTML = INSD[id][i] || ''; box.classList.add('on'); feel('tick');
+};
+var IW = 340;
+function ibars(id, vals, opt) {
+  /* vals: [{v, label, col}]; opt: {max, line, lineLab, H, fmt} */
+  var H = opt.H || 130, n = vals.length, bw = IW / Math.max(1, n), max = opt.max || Math.max.apply(null, vals.map(function (x) { return x.v || 0; }).concat([opt.line || 0, 1])) * 1.12, every = Math.ceil(n / 8), y = function (v) { return H - v / max * H; };
+  var s = '<svg viewBox="0 0 ' + IW + ' ' + (H + 18) + '" class="isvg" role="img">';
+  if (opt.line) s += '<line x1="0" x2="' + IW + '" y1="' + y(opt.line) + '" y2="' + y(opt.line) + '" class="iline"/>';
+  if (opt.path) s += '<path d="' + opt.path.map(function (v, i) { return v == null ? '' : (i && opt.path[i - 1] != null ? 'L' : 'M') + (i * bw + bw / 2) + ' ' + y(v); }).join(' ') + '" class="ipath"/>';
+  vals.forEach(function (x, i) {
+    var v = x.v, h = v == null ? 0 : Math.max(2, v / max * H);
+    s += '<g class="itap" data-act="insTap" data-c="' + id + '" data-i="' + i + '"><rect x="' + i * bw + '" y="0" width="' + bw + '" height="' + (H + 18) + '" fill="transparent"/>' +
+      (v == null ? '<rect x="' + (i * bw + bw * 0.2) + '" y="' + (H - 2) + '" width="' + Math.max(2, bw * 0.6) + '" height="2" fill="var(--line)"/>' : '<rect class="ibar" style="--d:' + (i * 12) + 'ms" x="' + (i * bw + bw * 0.16) + '" y="' + (H - h) + '" width="' + Math.max(2, bw * 0.68) + '" height="' + h + '" rx="' + Math.min(5, bw * 0.3) + '" fill="' + x.col + '"/>') +
+      (i % every === 0 ? '<text x="' + (i * bw + bw / 2) + '" y="' + (H + 14) + '" text-anchor="middle" class="iax">' + x.label + '</text>' : '') + '</g>';
+  });
+  if (opt.dots) opt.dots.forEach(function (v, i) { if (v != null) s += '<circle cx="' + (i * bw + bw / 2) + '" cy="' + opt.dotY(v) + '" r="4" class="idot" data-act="insTap" data-c="' + id + '" data-i="' + i + '"/>'; });
+  if (opt.line && opt.lineLab) { var ly = y(opt.line), tw = opt.lineLab.length * 5.6 + 10; s += '<rect x="0" y="' + (ly - 9) + '" width="' + tw + '" height="18" rx="9" class="ipill"/><text x="5" y="' + (ly + 3.5) + '" class="ilab">' + opt.lineLab + '</text>'; }
+  return s + '</svg>';
+}
+function insCharts(R, D, PT) {
+  var B = insBuckets(R), L = R.logged, out = '', unit = R.n <= 31 ? 'day' : R.n <= 190 ? 'week' : 'month';
+  /* 1. score */
+  var sv = B.map(function (b) { return avg(b.days, function (a) { return a.score; }); });
+  var best = null, worst = null; sv.forEach(function (v, i) { if (v == null) return; if (best == null || v > sv[best]) best = i; if (worst == null || v < sv[worst]) worst = i; });
+  out += icard('sc', 'How did each ' + unit + ' go?', best != null ? 'Best ' + unit + ': ' + B[best].long + ' (' + Math.round(sv[best]) + '). Toughest: ' + B[worst].long + ' (' + Math.round(sv[worst]) + ').' : 'Log food, walks and water to see your score.',
+    ibars('sc', B.map(function (b, i) { return { v: sv[i], label: b.label, col: gcol(sv[i]) }; }), { max: 100, line: 70, lineLab: 'Good 70' }),
+    'Each bar is your day score out of 100 for that ' + unit + ': food counts 40%, movement 25%, sleep 20%, water 15%. Green is good (70+), orange fair (55–69), red needs work. Bars above the dotted line are good ' + unit + 's.',
+    B.map(function (b, i) { var a = b.days.length === 1 ? b.days[0] : null, f = function (k) { var v = avg(b.days, function (x) { return x[k]; }); return v == null ? '–' : Math.round(v); };
+      return '<b>' + b.long + ': ' + (sv[i] == null ? 'no data' : Math.round(sv[i]) + ' · ' + grade(sv[i])[0]) + '</b><br>Food ' + f('food') + ' · Move ' + f('move') + ' · Sleep ' + f('sleep') + ' · Water ' + f('wat') + (a && a.food != null ? '<br>' + n0(a.kcal) + ' kcal, protein ' + Math.round(a.p) + ' g, salt ' + n0(a.na) + ' mg' : ''); }));
+  if (!L.length) return out;
+  /* 2. calories vs budget */
+  var kv = B.map(function (b) { return avg(b.days.filter(function (a) { return a.logged; }), function (a) { return a.kcal; }); }), bv = B.map(function (b) { return avg(b.days.filter(function (a) { return a.logged; }), function (a) { return a.bud; }); });
+  out += icard('kc', 'Are you eating to your budget?', 'Over budget on ' + R.over + ' and well under on ' + R.under + ' of ' + L.length + ' logged days. You average ' + n0(R.kcal) + ' kcal against ' + n0(R.bud) + '.',
+    ibars('kc', B.map(function (b, i) { var v = kv[i], bd = bv[i]; return { v: v, label: b.label, col: v == null ? '' : v > bd * 1.1 ? 'var(--bad)' : v < bd * 0.7 ? 'var(--warn)' : 'var(--g)' }; }), { path: bv }),
+    'Bars are calories eaten; the line is your budget (it rises on days you burn more with walks or workouts). Green is within 10% of budget, red is over, orange is far under. Under-eating is as unhelpful as over-eating: it leaves you hungry and tired later.',
+    B.map(function (b, i) { return kv[i] == null ? '<b>' + b.long + '</b>: no food logged' : '<b>' + b.long + '</b>: ate ' + n0(kv[i]) + ' of ' + n0(bv[i]) + ' kcal (' + (kv[i] > bv[i] ? '+' : '−') + n0(Math.abs(kv[i] - bv[i])) + ')'; }),
+    '<div class="ileg"><span><i style="background:var(--g)"></i>On budget</span><span><i style="background:var(--bad)"></i>Over</span><span><i style="background:var(--warn)"></i>Far under</span><span><i class="ln"></i>Budget</span></div>');
+  /* 3. where the points go */
+  if (D.length) {
+    var DD = D.slice(0, 6), mx = DD[0][1], rowH = 30, H = DD.length * rowH;
+    var svg = '<svg viewBox="0 0 ' + IW + ' ' + H + '" class="isvg" role="img">' + DD.map(function (d, i) { var w = Math.max(6, d[1] / mx * 170); return '<g class="itap" data-act="insTap" data-c="dr" data-i="' + i + '"><rect x="0" y="' + i * rowH + '" width="' + IW + '" height="' + rowH + '" fill="transparent"/><text x="0" y="' + (i * rowH + 19) + '" class="irl">' + d[0] + '</text><rect class="ibarh" style="--d:' + (i * 60) + 'ms" x="140" y="' + (i * rowH + 7) + '" width="' + w + '" height="16" rx="8" fill="' + (i === 0 ? 'var(--bad)' : i < 3 ? 'var(--warn)' : 'var(--mute)') + '"/><text x="' + (146 + w) + '" y="' + (i * rowH + 19) + '" class="irv">−' + Math.round(d[1]) + '</text></g>'; }).join('') + '</svg>';
+    out += icard('dr', 'What is costing you points?', DD[0][0] + ' costs you the most: about ' + Math.round(DD[0][1]) + ' points a day out of 100.', svg,
+      'Each bar is how many points that part takes off your average day score. Fix the longest bars first; that is where the quickest improvement is.',
+      DD.map(function (d) { var a = actionFor(d[0], R); return a ? '<b>' + esc(a.t) + '</b><br>' + esc(a.why) + '<br><span class="gtxt">' + esc(a.how) + '</span>' : '<b>' + d[0] + '</b>'; }));
+  }
+  /* 4. plate balance */
+  var P = L.reduce(function (s, a) { var t = dayTotals(a.k); s.p += t.p * 4; s.c += t.c * 4; s.f += t.f * 9; return s; }, { p: 0, c: 0, f: 0 }), tot = P.p + P.c + P.f;
+  if (tot > 0) {
+    var parts = [['Protein', P.p / tot, [0.18, 0.25], '#7A5AF8', 'builds and repairs muscle and keeps you full'], ['Carbs', P.c / tot, [0.45, 0.6], '#F59E0B', 'roti, rice, poha, sugar: your main fuel'], ['Fat', P.f / tot, [0.2, 0.3], '#EC4899', 'oil, ghee, nuts, fried food']];
+    var C = 2 * Math.PI * 52, off = 0, arcs = parts.map(function (x, i) { var l = x[1] * C, s = '<circle class="itap iarc" data-act="insTap" data-c="pl" data-i="' + i + '" cx="70" cy="70" r="52" fill="none" stroke="' + x[3] + '" stroke-width="22" stroke-dasharray="' + l + ' ' + (C - l) + '" stroke-dashoffset="' + (-off) + '" transform="rotate(-90 70 70)"/>'; off += l; return s; }).join('');
+    var worstP = parts.slice().sort(function (a, b) { var da = a[1] < a[2][0] ? a[2][0] - a[1] : a[1] > a[2][1] ? a[1] - a[2][1] : 0, db = b[1] < b[2][0] ? b[2][0] - b[1] : b[1] > b[2][1] ? b[1] - b[2][1] : 0; return db - da; })[0];
+    var okP = worstP[1] >= worstP[2][0] && worstP[1] <= worstP[2][1];
+    var svg2 = '<div class="iplate"><svg viewBox="0 0 140 140" class="idonut">' + arcs + '<text x="70" y="66" text-anchor="middle" class="idc1">' + n0(R.kcal) + '</text><text x="70" y="84" text-anchor="middle" class="idc2">kcal a day</text></svg><div class="iplg">' +
+      parts.map(function (x, i) { var ok = x[1] >= x[2][0] && x[1] <= x[2][1]; return '<button class="iprow itap" data-act="insTap" data-c="pl" data-i="' + i + '"><i style="background:' + x[3] + '"></i><span class="f1">' + x[0] + '<small>aim ' + Math.round(x[2][0] * 100) + '–' + Math.round(x[2][1] * 100) + '%</small></span><b class="' + (ok ? 'gtxt' : 'warnt') + '">' + Math.round(x[1] * 100) + '%</b></button>'; }).join('') + '</div></div>';
+    out += icard('pl', 'Is your plate balanced?', okP ? 'Your plate is well balanced.' : worstP[0] + ' is ' + Math.round(worstP[1] * 100) + '% of your calories; aim for ' + Math.round(worstP[2][0] * 100) + '–' + Math.round(worstP[2][1] * 100) + '%.', svg2,
+      'The ring splits your calories into protein, carbs and fat. Most Indian meals run high on carbs and low on protein; moving a few percent from carbs to protein helps weight, sugar and energy.',
+      parts.map(function (x) { return '<b>' + x[0] + ': ' + Math.round(x[1] * 100) + '% of calories</b> (aim ' + Math.round(x[2][0] * 100) + '–' + Math.round(x[2][1] * 100) + '%)<br>' + x[4] + '.'; }));
+  }
+  /* 5. salt */
+  var nv = B.map(function (b) { return avg(b.days.filter(function (a) { return a.logged; }), function (a) { return a.na; }); });
+  out += icard('na', 'How much salt are you eating?', R.saltOver ? 'Over ' + n0(R.nalim) + ' mg on ' + R.saltOver + ' of ' + L.length + ' days.' + (R.topNa[0] ? ' Most came from ' + R.topNa[0][0] + '.' : '') : 'Within ' + n0(R.nalim) + ' mg every logged day. Well done.',
+    ibars('na', B.map(function (b, i) { return { v: nv[i], label: b.label, col: nv[i] > R.nalim ? 'var(--bad)' : 'var(--g)' }; }), { line: R.nalim, lineLab: 'Limit ' + n0(R.nalim) }),
+    'Salt (sodium) is the food that moves BP the most. Bars above the dotted line are days over your limit. Pickle, papad, namkeen, bakery items and restaurant food carry most hidden salt.',
+    B.map(function (b, i) { var top = null; b.days.forEach(function (a) { a.items.forEach(function (it) { var v = iv(it, 'na'); if (!top || v > top[1]) top = [it.n, v]; }); }); return nv[i] == null ? '<b>' + b.long + '</b>: no food logged' : '<b>' + b.long + '</b>: ' + n0(nv[i]) + ' mg salt' + (top ? '<br>Biggest source: ' + esc(top[0]) + ' (' + n0(top[1]) + ' mg)' : ''); }));
+  /* 6. meal timing */
+  var MT = MEALS.map(function (m) { var ts = [], ks = []; L.forEach(function (a) { var it = ((dayIf(a.k).meals || {})[m[0]] || []); if (!it.length) return; var t = it.map(function (x) { return x.t; }).filter(Boolean); if (t.length) { var d = new Date(Math.min.apply(null, t)); ts.push(d.getHours() * 60 + d.getMinutes()); } ks.push(sumItems(it).kcal); }); return { m: m[1], t: avg(ts, function (x) { return x; }), k: avg(ks, function (x) { return x; }), n: ks.length }; }).filter(function (x) { return x.n; });
+  if (MT.length) {
+    var x0 = 6 * 60, x1 = 24 * 60, X = function (m) { return 14 + (clamp(m, x0, x1) - x0) / (x1 - x0) * (IW - 28); }, kmax = Math.max.apply(null, MT.map(function (x) { return x.k || 0; }));
+    var svg3 = '<svg viewBox="0 0 ' + IW + ' 96" class="isvg" role="img"><rect x="' + X(22 * 60) + '" y="4" width="' + (X(24 * 60) - X(22 * 60)) + '" height="64" rx="8" class="ilate"/><text x="' + (X(23 * 60)) + '" y="18" text-anchor="middle" class="ilab">late</text><line x1="14" x2="' + (IW - 14) + '" y1="44" y2="44" class="iline2"/>' +
+      [6, 9, 12, 15, 18, 21, 24].map(function (hh) { return '<text x="' + X(hh * 60) + '" y="88" text-anchor="middle" class="iax">' + ((hh % 12) || 12) + (hh < 12 || hh === 24 ? 'am' : 'pm') + '</text>'; }).join('') +
+      MT.map(function (x, i) { return x.t == null ? '' : '<circle class="itap ibub" data-act="insTap" data-c="mt" data-i="' + i + '" cx="' + X(x.t) + '" cy="44" r="' + (6 + (x.k || 0) / Math.max(1, kmax) * 14) + '" fill="' + (x.t >= 22 * 60 ? 'var(--bad)' : 'var(--g)') + '" fill-opacity=".85"/>'; }).join('') + '</svg>';
+    var din = MT.filter(function (x) { return x.m === 'Dinner'; })[0];
+    out += icard('mt', 'When do you eat?', (din && din.t != null ? 'Dinner is usually at ' + hmm(din.t) + (R.late ? '; after 10 pm on ' + R.late + ' days.' : '.') : '') + (R.noBf ? ' Breakfast late or skipped on ' + R.noBf + ' days.' : ''), svg3,
+      'Each circle is a meal at its usual time; bigger circles are bigger meals. Eating most of your food early in the day and finishing dinner 2–3 hours before bed helps sleep, sugar and weight.',
+      MT.map(function (x) { var share = R.kcal ? (x.k || 0) / R.kcal : 0; return '<b>' + x.m + '</b>: usually ' + hmm(x.t) + ', about ' + n0(x.k) + ' kcal (' + Math.round(share * 100) + '% of your day), logged on ' + x.n + ' days'; }));
+  }
+  /* 7. movement and BP */
+  var mv = B.map(function (b) { return avg(b.days, function (a) { return a.actMin; }); }), t0 = function (k) { return fromKey(k).getTime(); };
+  var bpv = B.map(function (b) { var s = fromKey(b.days[0].k).getTime(), e = fromKey(b.days[b.days.length - 1].k).getTime() + 864e5, r = merged('bp').filter(function (x) { return x.t >= s && x.t < e; }); return r.length ? avg(r, function (x) { return x.sys; }) : null; });
+  if (bpv.some(function (v) { return v != null; }) || R.actMin) {
+    var pat = PT.filter(function (p) { return /BP/.test(p[0]); })[0], H2 = 130, mvMax = Math.max(30, Math.max.apply(null, mv.map(function (v) { return v || 0; }))) * 1.15;
+    out += icard('bp', 'Does moving help your BP?', pat ? pat[0] + '. ' + pat[1] : 'Keep logging BP and walks; the link shows up after a couple of weeks.',
+      ibars('bp', B.map(function (b, i) { return { v: mv[i], label: b.label, col: (mv[i] || 0) >= 30 ? 'var(--g)' : 'var(--g2)' }; }), { max: mvMax, line: 30, lineLab: '30 min', H: H2, dots: bpv, dotY: function (v) { return H2 - clamp((v - 100) / 70, 0, 1) * H2; } }),
+      'Bars are active minutes (walks, workouts, yoga); the dots are your average top BP number for that ' + unit + '. Lower dots on taller-bar ' + unit + 's mean exercise is working for you.',
+      B.map(function (b, i) { return '<b>' + b.long + '</b>: ' + Math.round(mv[i] || 0) + ' min active' + (bpv[i] != null ? ' · BP about ' + Math.round(bpv[i]) + ' (top number)' : ' · no BP reading'); }),
+      '<div class="ileg"><span><i style="background:var(--g)"></i>Active minutes</span><span><i class="dt"></i>BP (top number)</span></div>');
+  }
+  /* 8. weekday pattern */
+  if (L.length >= 7) {
+    var wd = [1, 2, 3, 4, 5, 6, 0].map(function (d) { var g = L.filter(function (a) { return fromKey(a.k).getDay() === d; }); return { d: d, v: avg(g, function (a) { return a.kcal; }), n: g.length }; });
+    var hi = wd.filter(function (x) { return x.v != null; }).sort(function (a, b) { return b.v - a.v; })[0];
+    out += icard('wd', 'Which day do you eat the most?', hi ? DOW[hi.d] + ' is your heaviest day: ' + n0(hi.v) + ' kcal on average.' : '',
+      ibars('wd', wd.map(function (x) { return { v: x.v, label: DOW[x.d], col: x.v > R.bud * 1.1 ? 'var(--bad)' : 'var(--g)' }; }), { line: R.bud, lineLab: 'Budget' }),
+      'Average calories for each day of the week. Most people slip on weekends or on one busy weekday; plan that day\'s meals ahead.',
+      wd.map(function (x) { return '<b>' + DOW[x.d] + '</b>: ' + (x.v == null ? 'no data' : n0(x.v) + ' kcal on average over ' + x.n + ' ' + DOW[x.d] + 's'); }));
+  }
+  return out;
+}
