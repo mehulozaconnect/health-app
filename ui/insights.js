@@ -11,7 +11,16 @@ HERO['Insights'] = ['chart', '#7A5AF8'];
 var FRIED = /fried|pakod|pakor|bhaji|bhajia|bhajiya|vada|wada|samosa|kachori|puri|poori|bhatura|chips|wafers|namkeen|farsan|mixture|sev\b|gathiya|fafda|jalebi|french fries|pakoda/i;
 var SWEETS = /sweet|mithai|ladoo|laddu|barfi|burfi|halwa|halva|jalebi|gulab jamun|rasgulla|kheer|payasam|shrikhand|basundi|peda|chocolate|cake|pastry|ice cream|cookie|biscuit|kulfi|rabdi|modak|sheera|chikki|soft drink|cola|mithai/i;
 var IDC = {};
-function insAvoid(n) { try { return typeof dpOK === 'function' && food(n) && !dpOK(n); } catch (e) { return false; } }
+/* only what is truly on an avoid list: your never-suggest words (curd…) and each condition's AVOID foods (not "keep small") */
+function insAvoidWhy(n) {
+  try {
+    var r = food(n), nm = r ? fname(r) : n, re = typeof dpAvoidRe === 'function' ? dpAvoidRe() : null;
+    if (re && re.test(nm)) return 'on your never-suggest list';
+    if (typeof hpConds === 'function') { var why = null; hpConds().forEach(function (c) { if (why) return; var D = hpDef(c); (D.avoid || []).forEach(function (x) { if (!why && x[1] && x[1].test && x[1].test(nm)) why = 'avoid for ' + D.name; }); }); return why; }
+  } catch (e) { }
+  return null;
+}
+function insAvoid(n) { return !!insAvoidWhy(n); }
 function dayA(k) {
   var key = k + '|' + MV; if (IDC[key]) return IDC[key];
   var items = dayItems(k), t = dayTotals(k), b = budgetFor(k), tg = macroTargets(), d = dayIf(k) || {};
@@ -118,7 +127,7 @@ function findings(R, P) {
   if (R.dash != null) (R.dash >= 70 ? good : fix).push('DASH score averaging ' + Math.round(R.dash) + (R.dash >= 70 ? ', on track for BP.' : '; aim 70+ (more fruit, vegetables, low-fat milk, nuts).'));
   var per = R.actMin / R.n;
   if (R.actDays >= R.n * 0.7) good.push('Active ' + R.actDays + ' of ' + R.n + ' days (' + Math.round(per) + ' min a day).'); else fix.push('Active on only ' + R.actDays + ' of ' + R.n + ' days (30 min or 8,000 steps).');
-  if (R.pranaDays) good.push('Pranayama on ' + R.pranaDays + ' of ' + R.n + ' days.');
+  if (R.pranaDays >= R.n * 0.5) good.push('Pranayama on ' + R.pranaDays + ' of ' + R.n + ' days.');
   if (R.sleep != null) (R.sleep >= 70 ? good : fix).push('Sleep score ' + Math.round(R.sleep) + ' on average.');
   if (P && P.bp && R.bp) { var ds = R.bp[0] - P.bp[0]; if (Math.abs(ds) >= 3) (ds < 0 ? good : fix).push('BP ' + (ds < 0 ? 'down' : 'up') + ' ' + Math.abs(ds) + ' points: ' + R.bp[0] + '/' + R.bp[1] + ' vs ' + P.bp[0] + '/' + P.bp[1] + ' before.'); }
   return { good: good, fix: fix };
@@ -224,7 +233,7 @@ ACT.insAsk = function () {
     (R.logged.length ? 'Avg ' + n0(R.kcal) + ' kcal vs budget ' + n0(R.bud) + '; protein ' + Math.round(R.p) + '% of target; fibre ' + Math.round(R.fi) + ' g; salt ' + n0(R.na) + ' mg; added sugar ' + Math.round(R.su) + ' g; fried ' + R.fried + ', sweets ' + R.sweet + '.\nMost eaten: ' + R.most.map(function (x) { return x[0] + ' x' + x[1]; }).join(', ') + '.\nTop salt: ' + R.topNa.map(function (x) { return x[0]; }).join(', ') + '.\n' : '') +
     'Active ' + Math.round(R.actMin / R.n) + ' min/day; pranayama ' + R.pranaDays + ' days. BP ' + (R.bp ? R.bp[0] + '/' + R.bp[1] : 'none') + (PV && PV.bp ? ' (before ' + PV.bp[0] + '/' + PV.bp[1] + ')' : '') + '. Weight ' + (R.wt ? R.wt[0] + '→' + R.wt[1] + ' kg' : 'none') + '.\nWent well: ' + F.good.join(' ') + '\nTo fix: ' + F.fix.join(' ');
   INS_BUSY = true; rerender();
-  gAsk([{ text: 'MY PROFILE AND CONDITIONS:\n' + healthContext() + '\n\n' + sum + '\n\nGive me a short verdict on this period (1 line), then the 3 specific changes that would help me most next period, using Indian food I actually eat. Never suggest raw curd (I have hives). Under 130 words.' }], { system: COACH_SYS, temp: 0.5 })
+  gAsk([{ text: 'MY PROFILE AND CONDITIONS:\n' + healthContext() + '\n\n' + sum + '\n\nInterpret this for me like a good doctor-nutritionist friend: 1) one line on how I did and why, 2) the one pattern that matters most and what it means for my BP/health, 3) exactly what to change next week, using foods I actually eat (name them). No restating raw numbers unless needed. Never suggest raw curd (I have hives). Under 120 words.' }], { system: COACH_SYS, temp: 0.5 })
     .then(function (a) { DB.insAI = DB.insAI || {}; DB.insAI[INS.p + '|' + keys[keys.length - 1]] = { t: a, at: Date.now() }; save(); })
     .catch(function (e) { aiErr(e); })
     .then(function () { INS_BUSY = false; if (cur.name === 'ins') rerender(); });
@@ -269,3 +278,122 @@ ROUTES.foodcal = function (ym) {
 };
 ACT.calPick = function (el) { SEL = el.getAttribute('data-k'); go('food'); };
 ACT.insMonth = function () { INS.p = '30'; go('ins'); };
+
+/* ========== insights, not just numbers: what is pulling the score down, what to do, what patterns show ========== */
+var PROT = [['1 katori dal', 9, /dal|lentil/i], ['1 fistful roasted chana', 7, /chana|chickpea/i], ['1 katori moong sprouts', 7, /sprout|moong/i], ['50 g paneer', 9, /paneer/i], ['30 g soya chunks', 15, /soya/i], ['2 eggs', 12, /egg|anda|omelette/i]];
+function eatsEgg(R) { return R.logged.some(function (a) { return a.items.some(function (it) { return /egg|anda|omelette|bhurji/i.test(it.n); }); }); }
+function mealShare(R) { var m = {}, tot = 0; R.logged.forEach(function (a) { var d = dayIf(a.k); MEALS.forEach(function (x) { var v = sumItems((d.meals || {})[x[0]] || []).kcal; m[x[1]] = (m[x[1]] || 0) + v; tot += v; }); }); return Object.keys(m).map(function (k) { return [k, tot ? m[k] / tot : 0]; }).sort(function (a, b) { return b[1] - a[1]; }); }
+function freq(R, re) { var n = 0, kc = 0, su = 0; R.logged.forEach(function (a) { a.items.forEach(function (it) { if (re.test(it.n)) { n += it.q || 1; kc += iv(it, 'k'); su += iv(it, 'su'); } }); }); return { n: n, kc: kc, su: su }; }
+function itemStats(R) { var m = {}; R.logged.forEach(function (a) { a.items.forEach(function (it) { var x = m[it.n] = m[it.n] || { n: it.n, times: 0, k: 0, na: 0, su: 0 }; x.times++; x.k += iv(it, 'k'); x.na += iv(it, 'na'); x.su += iv(it, 'su'); }); }); return Object.keys(m).map(function (k) { return m[k]; }); }
+
+/* points each part costs on the 100-point day score, averaged over the period */
+function drags(R) {
+  var acc = {}, add = function (key, v) { var a = acc[key] = acc[key] || { s: 0, n: 0 }; a.s += v; a.n++; };
+  R.days.forEach(function (a) {
+    if (a.food != null) { a.fparts.forEach(function (p) { add(p[0], (p[2] - p[1]) * 0.4); }); add('Avoid foods', a.pen * 0.4); }
+    if (a.move != null) add('Movement', (100 - a.move) * 0.25);
+    if (a.sleep != null) add('Sleep', (100 - a.sleep) * 0.2);
+    if (a.wat != null) add('Water', (100 - a.wat) * 0.15);
+  });
+  return Object.keys(acc).map(function (k) { return [k, acc[k].s / acc[k].n]; }).filter(function (x) { return x[1] >= 1; }).sort(function (a, b) { return b[1] - a[1]; });
+}
+/* turn a drag into a concrete action, with the numbers that justify it */
+function actionFor(key, R) {
+  var L = R.logged.length, IS = itemStats(R);
+  if (key === 'Calories on budget') {
+    var dk = Math.round(R.kcal - R.bud), ms = mealShare(R)[0];
+    if (dk > 0) { var top = IS.slice().sort(function (a, b) { return b.k - a.k; })[0];
+      return { t: 'Eat about ' + n0(dk) + ' kcal less a day', why: 'You averaged ' + n0(R.kcal) + ' kcal against a budget of ' + n0(R.bud) + ', and went over on ' + R.over + ' of ' + L + ' days.', how: (top ? top.n + ' gave you the most calories (' + n0(top.k) + ' kcal over ' + top.times + ' times). Take a smaller portion of it. ' : '') + (ms && ms[1] > 0.35 ? ms[0] + ' is ' + Math.round(ms[1] * 100) + '% of your day; make it lighter.' : '') }; }
+    return { t: 'Eat enough: about ' + n0(-dk) + ' kcal more a day', why: 'You averaged ' + n0(R.kcal) + ' kcal against ' + n0(R.bud) + '. Under-eating on ' + R.under + ' days leaves you tired and hungry later.', how: 'Don\'t skip meals. Add a filling snack: roasted chana, fruit, or a besan chilla.' };
+  }
+  if (key === 'Protein') {
+    var tgt = L ? R.logged[0].pt : 84, have = Math.round(R.p / 100 * tgt), gap = Math.max(0, tgt - have), egg = eatsEgg(R), pick = [], g = 0;
+    PROT.filter(function (x) { return egg || !/egg/.test(x[0]); }).forEach(function (x) { if (g < gap && pick.length < 2) { pick.push(x[0]); g += x[1]; } });
+    return { t: 'Add ' + gap + ' g protein a day', why: 'You get about ' + have + ' g a day; your target is ' + tgt + ' g (' + Math.round(R.p) + '%). Low on ' + R.lowP + ' of ' + L + ' days.', how: 'Add ' + pick.join(' and ') + ' (+' + g + ' g). Spread it across lunch and dinner.' };
+  }
+  if (key === 'Fibre') { var gp = Math.max(0, Math.round(R.fit - R.fi)); return { t: 'Add ' + gp + ' g fibre a day', why: 'You average ' + Math.round(R.fi) + ' g; aim for ' + R.fit + ' g. Fibre keeps BP, sugar and digestion steady.', how: 'A katori of salad or sabzi at lunch and dinner (+6 g) and one guava, apple or pear a day (+5 g).' }; }
+  if (key === 'Salt') { var ts = IS.slice().sort(function (a, b) { return b.na - a.na; }).slice(0, 2);
+    return { t: 'Cut salt to under ' + n0(R.nalim) + ' mg', why: 'You average ' + n0(R.na) + ' mg and went over on ' + R.saltOver + ' of ' + L + ' days.', how: ts.map(function (x) { return x.n + ' gives ' + n0(x.na / x.times) + ' mg each time (eaten ' + x.times + '×)'; }).join('; ') + '. Have these less often, and skip pickle and papad.' }; }
+  if (key === 'Added sugar') { var tsu = IS.slice().sort(function (a, b) { return b.su - a.su; })[0];
+    return { t: 'Cut added sugar to 25 g', why: 'You average ' + Math.round(R.su) + ' g a day.', how: tsu ? tsu.n + ' adds the most (' + Math.round(tsu.su / tsu.times) + ' g each time, ' + tsu.times + '×). Take it with half the sugar or none.' : 'Cut sweets and sweetened drinks.' }; }
+  if (key === 'DASH balance' || key === 'Food quality') { var fr = IS.filter(function (x) { return FRIED.test(x.n); }).sort(function (a, b) { return b.times - a.times; })[0];
+    return { t: key === 'DASH balance' ? 'Balance your plate for BP (DASH ' + Math.round(R.dash) + ' → 70)' : 'Less fried, more fresh food', why: (R.dash != null ? 'Your DASH score averages ' + Math.round(R.dash) + '. ' : '') + 'Fried food ' + R.fried + ' times in ' + L + ' days.', how: (fr ? 'Swap ' + fr.n + ' (' + fr.times + '×) for a roasted or steamed option. ' : '') + 'Add 2 fruits and a katori of vegetables a day; low-fat milk or chaas instead of fried snacks.' }; }
+  if (key === 'Avoid foods') { return { t: 'Stop the foods on your avoid list', why: R.avoid.slice(0, 3).map(function (x) { return x[0] + ' ' + x[1] + '× (' + insAvoidWhy(x[0]) + ')'; }).join(', ') + '.', how: 'Each one takes 5 points off that day. Ask Coach for a substitute you like.' }; }
+  if (key === 'Movement') { var per = Math.round(R.actMin / R.n), need = Math.max(10, 30 - per);
+    return { t: 'Move ' + need + ' more minutes a day', why: 'You average ' + per + ' active minutes; active on ' + R.actDays + ' of ' + R.n + ' days. Walking is the single best thing for BP.', how: 'A ' + need + '-minute brisk walk after dinner. Start it from Exercise → Walk so it counts steps and km.' }; }
+  if (key === 'Sleep') return { t: 'Sleep better (score ' + Math.round(R.sleep) + ' → 70+)', why: 'Your sleep score averages ' + Math.round(R.sleep) + (R.late ? '; dinner after 10 pm on ' + R.late + ' days.' : '.'), how: 'Finish dinner by 8:30 pm, no screens 30 minutes before bed, same wake time every day.' };
+  if (key === 'Water') { var wa = Math.round(avg(R.days.filter(function (a) { return a.wat != null; }), function (a) { return a.water; }) || 0), goal = DB.settings.water.goal || 2500;
+    return { t: 'Drink ' + Math.max(1, Math.round((goal - wa) / 250)) + ' more glasses of water', why: 'You average ' + n0(wa) + ' ml of ' + n0(goal) + ' ml on the days you log water.', how: 'A glass on waking, one before each meal, one mid-afternoon.' }; }
+  return null;
+}
+/* patterns: compare groups of days (needs at least 3 days in each) */
+function patterns(R) {
+  var out = [], L = R.logged, D = R.days;
+  var bpNext = function (k) { var t0 = fromKey(addDays(k, 1)).getTime(), b = merged('bp').filter(function (x) { return x.t >= t0 && x.t < t0 + 864e5; }); return b.length ? avg(b, function (x) { return x.sys; }) : null; };
+  var cmp = function (g1, g2, f) { var a = avg(g1, f), b = avg(g2, f); return g1.length >= 3 && g2.length >= 3 && a != null && b != null ? [a, b] : null; };
+  /* late dinner vs that night's sleep */
+  var c1 = cmp(L.filter(function (a) { return a.last >= 22 * 60; }), L.filter(function (a) { return a.last != null && a.last < 21 * 60; }), function (a) { var s = sleepFor(addDays(a.k, 1)); return s ? s.score : null; });
+  if (c1 && Math.abs(c1[0] - c1[1]) >= 4) out.push(['Late dinners ' + (c1[0] < c1[1] ? 'hurt' : 'don\'t hurt') + ' your sleep', 'Sleep score ' + Math.round(c1[0]) + ' after dinner past 10 pm vs ' + Math.round(c1[1]) + ' when you ate before 9.', c1[0] < c1[1]]);
+  /* active days vs next-morning BP */
+  var c2 = cmp(D.filter(function (a) { return a.actMin >= 30; }), D.filter(function (a) { return a.actMin < 10; }), function (a) { return bpNext(a.k); });
+  if (c2 && Math.abs(c2[0] - c2[1]) >= 2) out.push(['Walking ' + (c2[0] < c2[1] ? 'lowers' : 'hasn\'t lowered') + ' your BP', 'Next-day BP averaged ' + Math.round(c2[0]) + ' after active days vs ' + Math.round(c2[1]) + ' after inactive days.', c2[0] < c2[1]]);
+  /* salty days vs next-day BP */
+  var c3 = cmp(L.filter(function (a) { return a.na > a.nalim; }), L.filter(function (a) { return a.na <= a.nalim; }), function (a) { return bpNext(a.k); });
+  if (c3 && Math.abs(c3[0] - c3[1]) >= 2) out.push(['Salt shows up in your BP', 'Next-day BP ' + Math.round(c3[0]) + ' after salty days vs ' + Math.round(c3[1]) + ' after low-salt days.', c3[0] <= c3[1]]);
+  /* weekend vs weekday */
+  var we = function (a) { var d = fromKey(a.k).getDay(); return d === 0 || d === 6; }, c4 = cmp(L.filter(we), L.filter(function (a) { return !we(a); }), function (a) { return a.kcal; });
+  if (c4 && Math.abs(c4[0] - c4[1]) >= 150) out.push(['You eat ' + n0(Math.abs(c4[0] - c4[1])) + ' kcal ' + (c4[0] > c4[1] ? 'more' : 'less') + ' on weekends', n0(c4[0]) + ' kcal on Sat–Sun vs ' + n0(c4[1]) + ' on weekdays.', c4[0] <= c4[1]]);
+  /* biggest meal */
+  var ms = mealShare(R)[0]; if (ms && ms[1] >= 0.35) out.push([ms[0] + ' is ' + Math.round(ms[1] * 100) + '% of your day\'s calories', 'A heavy ' + ms[0].toLowerCase() + ' makes it hard to stay on budget' + (ms[0] === 'Dinner' ? ' and affects sleep and morning sugar.' : '.'), false]);
+  /* tea and coffee */
+  var tc = freq(R, /\btea\b|chai|coffee/i); if (L.length && tc.n / L.length >= 1.5) out.push([n1(tc.n / L.length) + ' cups of tea or coffee a day', 'That is ' + n0(tc.kc / L.length) + ' kcal and ' + Math.round(tc.su / L.length) + ' g sugar a day from cups alone.', false]);
+  /* breakfast skippers */
+  var c5 = cmp(L.filter(function (a) { return a.first != null && a.first < 10 * 60; }), L.filter(function (a) { return a.first == null || a.first >= 11 * 60; }), function (a) { return a.kcal - a.bud; });
+  if (c5 && c5[1] - c5[0] >= 150) out.push(['Skipping breakfast makes you overeat later', 'On late-breakfast days you ended ' + n0(c5[1] - c5[0]) + ' kcal higher than on early-breakfast days.', false]);
+  /* trend of the last weeks */
+  if (R.n >= 21) { var W = insWeeks(R).slice(0, 3).map(function (w) { return w[1].food; }).filter(function (x) { return x != null; });
+    if (W.length === 3) { if (W[0] > W[1] && W[1] > W[2]) out.push(['Your food score has improved 3 weeks running', Math.round(W[2]) + ' → ' + Math.round(W[1]) + ' → ' + Math.round(W[0]) + '. Keep going.', true]);
+      else if (W[0] < W[1] && W[1] < W[2]) out.push(['Your food score has dropped 3 weeks running', Math.round(W[2]) + ' → ' + Math.round(W[1]) + ' → ' + Math.round(W[0]) + '.', false]); } }
+  return out;
+}
+function headline(R, PV, D) {
+  var g = grade(R.score), ch = PV && PV.score != null && R.score != null ? Math.round(R.score - PV.score) : null, top = D[0];
+  var lab = { 'Calories on budget': 'calories off budget', 'Protein': 'too little protein', 'Fibre': 'too little fibre', 'Salt': 'too much salt', 'Added sugar': 'too much sugar', 'DASH balance': 'not enough fruit and vegetables', 'Food quality': 'fried and processed food', 'Avoid foods': 'foods on your avoid list', 'Movement': 'not moving enough', 'Sleep': 'poor sleep', 'Water': 'not drinking enough water' };
+  return (ch == null ? '' : ch > 2 ? 'Better than the period before (↑' + ch + '). ' : ch < -2 ? 'Worse than the period before (↓' + (-ch) + '). ' : 'About the same as the period before. ') +
+    (top ? 'The biggest thing holding you back is ' + lab[top[0]] + ': it costs you about ' + Math.round(top[1]) + ' points a day.' : 'Nothing major is pulling you down.');
+}
+var INS_AUTO = {};
+ROUTES.ins = function () {
+  var keys = periodDays(INS.p), R = periodA(keys), PV = INS.p === 'all' ? null : periodA(prevKeys(keys)), g = grade(R.score), D = drags(R), F = findings(R, PV), PT = patterns(R);
+  var h = '<h1 class="big">Insights</h1>';
+  h += '<div class="chips insp">' + PERIODS.map(function (p) { return '<button class="chip' + (INS.p === p[0] ? ' dk' : '') + '" data-act="insP" data-p="' + p[0] + '">' + p[1] + '</button>'; }).join('') + '</div>';
+  /* verdict */
+  h += '<section class="c insv"><div class="row sb"><div class="f1"><div class="l">' + niceDate(keys[0]) + ' – ' + niceDate(keys[keys.length - 1]) + '</div><b class="m22 ' + g[1] + '">' + g[0] + '</b></div><b class="insbig" style="color:' + gcol(R.score) + '">' + (R.score == null ? '—' : Math.round(R.score)) + '</b></div>' +
+    '<p class="p insh">' + esc(headline(R, PV, D)) + '</p>' + (R.logged.length < R.n * 0.5 ? '<div class="note warn mt6">Food logged on ' + R.logged.length + ' of ' + R.n + ' days, so this is a rough picture.</div>' : '') + '</section>';
+  /* coach's take (Gemini, written once a day per period) */
+  var ak = INS.p + '|' + keys[keys.length - 1], ai = (DB.insAI || {})[ak];
+  if (DB.settings.gkey && !ai && !INS_BUSY && !INS_AUTO[ak] && R.logged.length >= 2) { INS_AUTO[ak] = 1; setTimeout(ACT.insAsk, 50); }
+  if (ai || INS_BUSY) h += '<section class="c"><div class="row sb"><h2>' + icon('spark', 18) + ' Coach\'s take</h2>' + (ai && !INS_BUSY ? '<button class="lnk" data-act="insAsk">Refresh</button>' : '') + '</div>' + (INS_BUSY ? '<p class="l">Reading your ' + keys.length + ' days…</p>' : '<div class="p">' + fmt(ai.t) + '</div>') + '</section>';
+  /* do these */
+  var acts = D.slice(0, 3).map(function (d) { var a = actionFor(d[0], R); if (a) a.pts = d[1]; return a; }).filter(Boolean);
+  if (acts.length) h += '<h2 class="insh2">Do these to raise your score</h2>' + acts.map(function (a, i) { return '<section class="c insa"><div class="row sb"><b class="m16">' + (i + 1) + '. ' + esc(a.t) + '</b><span class="insup">+' + Math.round(a.pts) + '</span></div><p class="p">' + esc(a.why) + '</p><div class="inshow">' + icon('check', 16) + '<span>' + esc(a.how) + '</span></div></section>'; }).join('');
+  /* patterns */
+  if (PT.length) h += '<h2 class="insh2">What your data shows</h2><section class="c">' + PT.map(function (p) { return '<div class="insf ' + (p[2] ? 'ok' : 'bad') + '">' + icon(p[2] ? 'check' : 'warn', 16) + '<span><b>' + esc(p[0]) + '</b><br>' + esc(p[1]) + '</span></div>'; }).join('') + '</section>';
+  /* going well */
+  if (F.good.length) h += '<h2 class="insh2">Keep doing</h2><section class="c">' + F.good.slice(0, 4).map(function (x) { return '<div class="insf ok">' + icon('check', 16) + '<span>' + esc(x) + '</span></div>'; }).join('') + '</section>';
+  /* today, live */
+  var T = dayA(today()), TD = drags(periodA([today()]))[0];
+  h += '<section class="c"><div class="row sb"><div><div class="l">Today so far</div><b class="m18">' + (T.score == null ? 'Nothing logged yet' : grade(T.score)[0]) + '</b></div><b class="m22" style="color:' + gcol(T.score) + '">' + (T.score == null ? '—' : T.score) + '</b></div>' +
+    '<p class="l mt6">' + n0(T.kcal) + ' of ' + n0(T.bud) + ' kcal · protein ' + Math.round(T.p) + ' of ' + T.pt + ' g · salt ' + n0(T.na) + ' mg · ' + T.actMin + ' min active' + (TD ? '. Most to gain today: ' + TD[0].toLowerCase() + '.' : '') + '</p></section>';
+  /* trend */
+  h += '<section class="c"><h2>Score trend</h2>' + insChart(R) + '<div class="l ctr">Day score: food 40%, movement 25%, sleep 20%, water 15%</div></section>';
+  /* the numbers, folded away */
+  var cell = function (l, v, s2, c) { return '<div><span>' + l + '</span><b class="' + (c || '') + '">' + v + '</b>' + (s2 ? '<small>' + s2 + '</small>' : '') + '</div>'; };
+  h += '<details class="c"><summary class="lnk">See the numbers</summary>' + (R.logged.length ? '<div class="insgrid mt">' +
+    cell('Eaten', n0(R.kcal) + ' kcal', 'budget ' + n0(R.bud)) + cell('Days logged', R.logged.length + ' / ' + R.n, R.over + ' over budget') + cell('Protein', Math.round(R.p) + '%', 'of target') + cell('Fibre', Math.round(R.fi) + ' g', 'aim ' + R.fit + ' g') +
+    cell('Salt', n0(R.na) + ' mg', 'limit ' + n0(R.nalim)) + cell('Added sugar', Math.round(R.su) + ' g', 'limit 25 g') + (R.dash != null ? cell('DASH score', Math.round(R.dash), 'aim 70+') : '') + cell('Fried · sweets', R.fried + ' · ' + R.sweet, 'times') +
+    cell('Active', Math.round(R.actMin / R.n) + ' min', 'a day') + cell('BP average', R.bp ? R.bp[0] + '/' + R.bp[1] : '—', R.bp ? R.bp[2] + ' readings' : '') + cell('Weight', R.wt ? n1(R.wt[1]) + ' kg' : '—', R.wt && R.wt[0] !== R.wt[1] ? (R.wt[1] - R.wt[0] > 0 ? '+' : '') + n1(R.wt[1] - R.wt[0]) + ' kg' : '') + (R.sleep != null ? cell('Sleep score', Math.round(R.sleep), 'average') : '') + '</div>' : '<p class="l mt">No food logged in this period.</p>') +
+    (INS.p !== '7' ? '<h2 class="mt">Week by week</h2>' + insWeeks(R).slice(0, 26).map(function (w) { var e = addDays(w[0], 6); return rowLine(fromKey(w[0]).getDate() + ' ' + MON[fromKey(w[0]).getMonth()] + ' – ' + fromKey(e).getDate() + ' ' + MON[fromKey(e).getMonth()], w[1], 'foodcal/' + w[0].slice(0, 7)); }).join('') : '<h2 class="mt">Day by day</h2>' + R.days.slice().reverse().map(function (a) { return rowLine(niceDate(a.k), periodA([a.k]), 'insday/' + a.k); }).join('')) +
+    (INS.p === 'all' ? '<h2 class="mt">Year by year</h2>' + insYears(R).map(function (y) { return rowLine(y[0], y[1], 'foodcal/' + y[0] + '-12'); }).join('') : '') + '</details>';
+  return h;
+};

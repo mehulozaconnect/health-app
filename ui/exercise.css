@@ -105,3 +105,9 @@ html[data-theme=glass] .ni.on:before{width:40px}
 .fcd b{font-size:15px}.fcd i{width:8px;height:8px;border-radius:50%}.fcd small{font-size:9.5px;color:var(--mute);font-weight:600}
 .fcd.on{background:var(--card2);box-shadow:0 0 0 2px var(--g) inset}.fcd.td b{color:var(--g)}.fcd:disabled{opacity:.35}
 .fdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
+.insh{font-size:15.5px;line-height:1.5;margin-top:10px}
+.insh2{font-size:17px;font-weight:800;margin:6px 4px -4px}
+.insa .p{margin-top:6px}
+.insup{flex:none;background:var(--g2);color:var(--onmint);font-weight:800;font-size:13px;border-radius:999px;padding:4px 10px}
+.inshow{display:flex;gap:8px;align-items:flex-start;margin-top:8px;background:var(--card2);border-radius:12px;padding:10px 12px;font-size:14.5px;line-height:1.45;font-weight:600}
+.inshow svg{flex:none;color:var(--g);margin-top:2px}
