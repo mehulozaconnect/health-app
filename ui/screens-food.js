@@ -6,10 +6,12 @@ function mealFor(t) { var d = new Date(t || Date.now()), m = d.getHours() * 60 +
 
 ROUTES.food = function () {
   var k = SEL, b = budgetFor(k), t = dayTotals(k), d = day(k), h = '';
-  h += '<div class="row sb"><h1 class="big">Food diary</h1><button class="ib" data-act="photoMeal" aria-label="Log from a photo">' + icon('cam') + '</button></div>';
+  h += '<div class="row sb"><h1 class="big">Food diary</h1><div class="row g10"><button class="ib" data-act="go" data-to="foodcal/' + k.slice(0, 7) + '" aria-label="Open any past day">' + icon('cal') + '</button><button class="ib" data-act="photoMeal" aria-label="Log from a photo">' + icon('cam') + '</button></div></div>';
+  if (k !== today()) h += '<button class="tip" data-act="selDay" data-k="' + today() + '">' + icon('back', 16) + '<span>Showing <b>' + niceDate(k) + '</b> · back to today</span></button>';
   h += '<div class="days">';
+  var stripEnd = addDays(k, 3) > today() ? today() : addDays(k, 3);
   for (var i = -6; i <= 0; i++) {
-    var dk = addDays(today(), i), dd = fromKey(dk), dt = dayTotals(dk), db = budgetFor(dk), has = dayItems(dk).length;
+    var dk = addDays(stripEnd, i), dd = fromKey(dk), dt = dayTotals(dk), db = budgetFor(dk), has = dayItems(dk).length;
     var dot = !has ? 'transparent' : dt.kcal > db.total + 100 ? 'var(--warn)' : 'var(--g)';
     h += '<button class="day' + (dk === k ? ' on' : '') + '" data-act="selDay" data-k="' + dk + '">' + DOW[dd.getDay()].toUpperCase() + '<b>' + dd.getDate() + '</b><i style="background:' + dot + '"></i></button>';
   }
@@ -31,10 +33,6 @@ ROUTES.food = function () {
     items.forEach(function (it) {
       h += '<button class="it" data-act="editItem" data-m="' + m[0] + '" data-id="' + it.id + '">' + dishPic(it.n, 38) + '<span class="f1">' + esc(it.n) + '<small>' + (it.t ? hm(it.t) + ' · ' : '') + frac(it.q) + ' ' + esc(unitLabel(it.u, it.n)) + (it.u === 'grams' ? '' : ' · ' + Math.round(it.g) + ' ' + gu(it.n)) + (it.exTxt ? ' · ' + esc(it.exTxt) : '') + '</small></span><b>' + n0(iv(it, 'k')) + '</b></button>';
     });
-    if (!items.length && k === today()) {
-      var sug = suggestFor(m[0], left);
-      if (sug) h += '<div class="fit"><b>Fits your day:</b> ' + esc(sug.text) + '<button class="lnk" data-act="addSuggest" data-m="' + m[0] + '">Add in one tap</button></div>';
-    }
     h += '</section>';
   });
   var tg = macroTargets();

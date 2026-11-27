@@ -78,3 +78,30 @@ html[data-theme=glass] .ni.on:before{width:44px}
 .trs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .trb{display:flex;align-items:center;gap:8px;border:0;background:var(--card);border-radius:16px;padding:16px 14px;font:inherit;font-size:15px;font-weight:800;color:var(--ink);text-align:left;box-shadow:var(--shadow)}
 .trb svg{color:var(--g);flex:none}
+/* 7-tab bar */
+#nav{grid-template-columns:repeat(7,minmax(0,1fr))}
+#nav .ni{font-size:10px;letter-spacing:-.01em}
+html[data-theme=glass] .ni.on:before{width:40px}
+/* Insights */
+.insp{flex-wrap:nowrap;overflow-x:auto;margin:0 -16px;padding:2px 16px;scrollbar-width:none}.insp::-webkit-scrollbar{display:none}.insp .chip{flex:none}
+.insbig{font-size:52px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.insmini{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.insmini div{background:var(--card2);border-radius:12px;padding:8px 6px;text-align:center}
+.insmini span{display:block;font-size:12px;color:var(--mute);font-weight:700}.insmini b{font-size:20px;font-weight:800}
+.insch{width:100%;height:auto;margin-top:14px;display:block}
+.insgl{stroke:var(--line);stroke-dasharray:3 4;stroke-width:1}
+.insax{font-size:9px;fill:var(--mute);font-weight:600}
+.insf{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line);font-size:14.5px;line-height:1.45}
+.insf:first-of-type{border-top:0}.insf svg{flex:none;margin-top:2px}.insf.ok svg{color:var(--g)}.insf.bad svg{color:var(--warn)}
+.insgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.insgrid div{background:var(--card2);border-radius:14px;padding:10px 12px}
+.insgrid span{display:block;font-size:12px;color:var(--mute);font-weight:700}.insgrid b{display:block;font-size:19px;font-weight:800}.insgrid small{font-size:11.5px;color:var(--mute)}
+.insw{display:flex;align-items:center;gap:10px;width:100%;border:0;border-top:1px solid var(--line);background:none;padding:10px 0;text-align:left;font:inherit;color:var(--ink)}
+.insw:first-of-type{border-top:0}.insw b{font-size:15px}.insw small{display:block;font-size:12.5px;color:var(--mute)}
+.insg{text-align:right;flex:none}.insg b{font-size:20px;font-weight:800;display:block}
+/* food calendar */
+.fcal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:10px;text-align:center}
+.fcd{border:0;background:none;border-radius:12px;padding:6px 0 4px;min-height:54px;display:flex;flex-direction:column;align-items:center;gap:2px;font:inherit;color:var(--ink)}
+.fcd b{font-size:15px}.fcd i{width:8px;height:8px;border-radius:50%}.fcd small{font-size:9.5px;color:var(--mute);font-weight:600}
+.fcd.on{background:var(--card2);box-shadow:0 0 0 2px var(--g) inset}.fcd.td b{color:var(--g)}.fcd:disabled{opacity:.35}
+.fdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
